@@ -41,9 +41,9 @@ No workflow changes needed. App Check and AI Logic are runtime deps via Vite. Th
   - Clicking the button again regenerates (overwrites).
   - Checking off the item clears the fact.
 - [x] **Commit: fun-fact button.** *(auto)*
-- [ ] **Deploy and verify.** Push, then on the live URL: confirm App Check doesn't break sign-in or Firestore; confirm the button only appears on the bottom-most unchecked item; confirm a fun fact appears within a few seconds; confirm checking the item off clears the fact. *(user)*
-- [ ] **Move plan to `plans/done/`.** `git mv plans/active/llm-fun-fact.md plans/done/llm-fun-fact.md`.
-- [ ] **Commit: complete llm-fun-fact milestone.** *(auto)*
+- [x] **Deploy and verify.** Push, then on the live URL: confirm App Check doesn't break sign-in or Firestore; confirm the button only appears on the bottom-most unchecked item; confirm a fun fact appears within a few seconds; confirm checking the item off clears the fact. *(user)* — verified end-to-end.
+- [x] **Move plan to `plans/done/`.** `git mv plans/active/llm-fun-fact.md plans/done/llm-fun-fact.md`.
+- [x] **Commit: complete llm-fun-fact milestone.** *(auto)*
 
 ## Done when
 
