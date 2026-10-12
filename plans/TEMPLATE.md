@@ -2,6 +2,8 @@
 
 # <Title>
 
+**Status:** <needs-triage | needs-info | ready-for-agent | ready-for-human | wontfix> · <bug | enhancement>
+
 <One-paragraph intro: what this milestone is, why it matters, what it explicitly does not cover.>
 
 ## Scope
@@ -42,3 +44,7 @@ Commit cadence: roughly one commit per coherent chunk (1–2 prompts). Default c
 
 - <Concrete verifiable condition>
 - <Concrete verifiable condition>
+
+## Notes
+
+<Triage notes, agent briefs, decisions. Append newest last, dated YYYY-MM-DD. Delete if empty.>

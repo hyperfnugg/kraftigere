@@ -27,3 +27,17 @@ Multi-step work lives in `plans/active/<NN>-<kebab-name>.md`, where `<NN>` is th
 - Inline styles in components. No CSS framework, no animations, no transitions, no icon library.
 - React + TypeScript + Vite frontend; Firebase (Auth, Firestore, AI Logic / Gemini) backend. Full stack in `README.md`.
 - Keep new code minimal — this is a POC. Don't add abstractions for hypothetical future needs.
+
+## Agent skills
+
+### Issue tracker
+
+Issues, specs and tickets are plan files in `plans/` — no external tracker. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default five roles, recorded as a `**Status:**` line in each plan. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context (`CONTEXT.md` + `docs/adr/` at root). See `docs/agents/domain.md`.
