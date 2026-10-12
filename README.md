@@ -23,7 +23,7 @@ A tiny shared shopping list for my family. Open a URL on your phone, add items, 
 - **Styling:** inline styles where possible. No CSS framework, no animations, no transitions, no icon library — nothing that isn't load-bearing.
 - **Auth:** Firebase Auth with Google provider (Google SSO).
 - **State:** Firestore, access gated by security rules on the signed-in user.
-- **LLM:** Gemini via Firebase AI Logic (Vertex AI in Firebase), called directly from the browser with App Check protecting the key.
+- **LLM:** Gemini via Firebase AI Logic (Gemini Developer API backend), called directly from the browser with App Check protecting the key.
 
 ## Sharing
 
