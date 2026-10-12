@@ -62,20 +62,17 @@ export function useItems() {
 }
 
 export function useAuthorized(user: User | null) {
-  const [authorized, setAuthorized] = useState<boolean | null>(null)
+  const [result, setResult] = useState<{ user: User; authorized: boolean } | null>(null)
 
   useEffect(() => {
-    if (!user) {
-      setAuthorized(null)
-      return
-    }
+    if (!user) return
     let cancelled = false
     getDoc(doc(db, 'config/family')).then(
       () => {
-        if (!cancelled) setAuthorized(true)
+        if (!cancelled) setResult({ user, authorized: true })
       },
       () => {
-        if (!cancelled) setAuthorized(false)
+        if (!cancelled) setResult({ user, authorized: false })
       },
     )
     return () => {
@@ -83,5 +80,6 @@ export function useAuthorized(user: User | null) {
     }
   }, [user])
 
+  const authorized = user && result?.user === user ? result.authorized : null
   return { authorized, loading: !!user && authorized === null }
 }

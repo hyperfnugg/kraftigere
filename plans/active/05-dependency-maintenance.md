@@ -21,8 +21,8 @@ Fifth milestone. Keep npm packages and GitHub Actions up to date with no human i
 ## Steps
 
 - [ ] **Enable Dependabot alerts and security updates** via `gh api` (`PUT repos/hyperfnugg/webapp_poc/vulnerability-alerts`, then `PUT …/automated-security-fixes`). Confirm with `gh api repos/hyperfnugg/webapp_poc --jq .security_and_analysis`. *(manual)* (repo security settings; run only after the user approves)
-- [ ] **Fix existing lint errors.** `npm run lint` fails on `main` with 2 `react-hooks/set-state-in-effect` errors (`App.tsx` clears the fun fact in an effect; `useAuthorized` in `items.ts` resets state in an effect). CI never ran lint, so nobody noticed. The required check would fail every PR until these are fixed. Behaviour must not change.
-- [ ] **Commit: fix set-state-in-effect lint errors.** *(auto)*
+- [x] **Fix existing lint errors.** `npm run lint` fails on `main` with 2 `react-hooks/set-state-in-effect` errors (`App.tsx` clears the fun fact in an effect; `useAuthorized` in `items.ts` resets state in an effect). CI never ran lint, so nobody noticed. The required check would fail every PR until these are fixed. Behaviour must not change.
+- [x] **Commit: fix set-state-in-effect lint errors.** *(auto)*
 - [ ] **Add `.github/dependabot.yml`.**
   - `npm`: weekly, `cooldown.default-days: 7`. Group `minor` + `patch` into one PR. Majors stay ungrouped, one PR each.
   - `@types/node`: ignore `version-update:semver-major`, so its major version stays matched to the Node version CI runs (24).

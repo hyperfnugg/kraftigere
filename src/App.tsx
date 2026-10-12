@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useState, type FormEvent } from 'react'
 import { type User } from 'firebase/auth'
 import { generate } from './ai'
 import { signInWithGoogle, signOut, useUser } from './firebase'
@@ -69,9 +69,7 @@ function List({ user }: { user: User }) {
 
   const lastUnchecked = items.findLast((i) => !i.checked)
 
-  useEffect(() => {
-    if (fact && fact.itemId !== lastUnchecked?.id) setFact(null)
-  }, [lastUnchecked?.id, fact])
+  if (fact && fact.itemId !== lastUnchecked?.id) setFact(null)
 
   function onAdd(e: FormEvent) {
     e.preventDefault()
