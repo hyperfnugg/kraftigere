@@ -1,13 +1,13 @@
 # Family lists
 
-Shared lists for a family: shopping, and later chores and other kinds. Every member of a family sees the same lists.
+Shared lists for a family: shopping, and later chores and other kinds. A Family's Lists are shared by all its Family Members.
 
 ## Language
 
 ### Lists
 
 **List**:
-A collection of Entries belonging to at most one Family, which can have many Lists. Lists are never shared across Families.
+A collection of Entries belonging to at most one Family, which can have many Lists. Lists are never shared across Families. A possible future Personal List would belong to one Family Member and be visible only to them.
 _Avoid_: Shopping list (one List Kind, not the general concept)
 
 **List Kind**:
@@ -33,7 +33,7 @@ The group of people who share Lists. It is always a family, never a team, group,
 _Avoid_: Group, household, team, tenant
 
 **Family Member**:
-A person, identified by their Google account, who belongs to a Family.
+A person, identified by their Google account, who belongs to exactly one Family. Being a Family Member is the only way into the app.
 _Avoid_: User, member (without "Family")
 
 **Admin**:
