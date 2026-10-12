@@ -24,7 +24,7 @@ Seventh milestone. Give the agent a development loop it can verify: a local stac
 
 ## Steps
 
-- [ ] **Let git use gh credentials.** Run `! gh auth setup-git` (adds a github.com credential helper to `~/.gitconfig`). *(user)*
+- [x] **Let git use gh credentials.** Run `! gh auth setup-git` (adds a github.com credential helper to `~/.gitconfig`). *(user)*
 - [x] **Emulator config and dev wiring.**
   - Add `firebase-tools` as a dev dependency. Install new packages with `npm install --before=<today − 7 days>` to respect the ADR 0001 cooldown.
   - `firebase.json`: `firestore.rules` path, Auth emulator on 9099, Firestore emulator on 8080, UI off.
@@ -51,14 +51,14 @@ Seventh milestone. Give the agent a development loop it can verify: a local stac
 - [x] **Commit: Playwright e2e tests against emulators.** *(auto)*
 - [x] **Playwright MCP.** Add `@playwright/mcp` as a dev dependency, plus a checked-in `.mcp.json` that runs its local binary headless (check the bin name in the installed package). Verify by opening `localhost:5173` and signing in through the emulator.
 - [x] **Commit: Playwright MCP for agent browser access.** *(auto)*
-- [ ] **CI gate.** In `pr-check.yml`'s `check` job, after lint:
+- [x] **CI gate.** In `pr-check.yml`'s `check` job, after lint:
   - `actions/setup-java` (Temurin 21), pinned to a SHA.
   - Cache `~/.cache/firebase/emulators` and the Playwright browser cache (key on the Playwright version).
   - `npx playwright install --with-deps chromium`.
   - `npm run test:rules`, then `npm run test:e2e`.
   - Upload the Playwright report as an artifact on failure.
-- [ ] **Update ADR 0001.** The gate is now build + lint + rules tests + e2e. Runtime breakage that the e2e cases don't cover can still reach the Family.
-- [ ] **Commit: run rules and e2e tests in the PR check; update ADR 0001.** *(manual)* (CI gate and ADR; review before committing)
+- [x] **Update ADR 0001.** The gate is now build + lint + rules tests + e2e. Runtime breakage that the e2e cases don't cover can still reach the Family.
+- [x] **Commit: run rules and e2e tests in the PR check; update ADR 0001.** *(manual)* (CI gate and ADR; review before committing)
 - [ ] **Verify in CI.** Push, then open a throwaway PR (or wait for a Dependabot PR) and confirm that `check` runs both suites and passes. Record its run time in Notes.
 - [ ] **Move plan to `plans/done/`.** `git mv plans/active/07-local-dev-and-tests.md plans/done/07-local-dev-and-tests.md`.
 - [ ] **Commit: complete local-dev-and-tests milestone.** *(auto)*

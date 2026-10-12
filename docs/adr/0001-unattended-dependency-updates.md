@@ -2,9 +2,9 @@
 status: accepted
 ---
 
-# Unattended dependency updates: auto-merge on build + lint, cooldown except for security fixes
+# Unattended dependency updates: auto-merge on passing checks, cooldown except for security fixes
 
-Every Dependabot PR (npm and GitHub Actions, majors included) is merged and deployed with no human review, as soon as `npm run build` and `npm run lint` pass. The app only affects one family, so stability doesn't matter much, but security does: known vulnerabilities must be patched without anyone at the keyboard. Ordinary updates wait out a 7-day cooldown, because most malicious npm releases are pulled within days. Security updates skip the cooldown, because fast patching matters more for known vulnerabilities. Actions are pinned to commit SHAs, because tags can be moved to point at different code.
+Every Dependabot PR (npm and GitHub Actions, majors included) is merged and deployed with no human review, as soon as the required `check` passes: build, lint, Firestore rules tests, and Playwright e2e tests against the emulators. The app only affects one family, so stability doesn't matter much, but security does: known vulnerabilities must be patched without anyone at the keyboard. Ordinary updates wait out a 7-day cooldown, because most malicious npm releases are pulled within days. Security updates skip the cooldown, because fast patching matters more for known vulnerabilities. Actions are pinned to commit SHAs, because tags can be moved to point at different code.
 
 ## Considered Options
 
@@ -14,6 +14,6 @@ Every Dependabot PR (npm and GitHub Actions, majors included) is merged and depl
 
 ## Consequences
 
-- Runtime breakage that build + lint can't catch, such as a broken Firebase login, will reach the family. This is accepted.
+- Runtime breakage the e2e cases don't cover will reach the family. This is accepted. Things that run only in production, such as App Check, real Google sign-in and Gemini, aren't exercised by the emulator-based tests.
 - A PR that fails the check stays open until a human (or, later, Claude in CI) fixes it. That includes security fixes that need a breaking major.
 - No update tooling can protect against a true zero-day (no fix exists yet). Dependabot alert emails are the backstop.
