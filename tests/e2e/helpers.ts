@@ -2,19 +2,19 @@ import { expect, type Page } from '@playwright/test'
 
 export { MEMBERS, OUTSIDER, reset, seed } from '../../scripts/seed.mjs'
 
-// Completes the Auth emulator's fake Google popup.
+// Completes the Auth emulator's fake Google popup with a seeded account.
 export async function completeGooglePopup(page: Page, email: string) {
   await page.goto('./')
   const popupPromise = page.waitForEvent('popup')
   await page.getByRole('button', { name: 'Sign in with Google' }).click()
   const popup = await popupPromise
-  // Clicks before the popup's script is ready are dropped, so retry until the form shows.
+  // The seeded accounts are listed in the popup. Clicks before its script is ready
+  // are dropped, so retry until the popup closes.
   await expect(async () => {
-    await popup.getByRole('button', { name: /Add new account/ }).click()
-    await expect(popup.locator('#email-input')).toBeVisible({ timeout: 1_000 })
-  }).toPass()
-  await popup.locator('#email-input').fill(email)
-  await popup.locator('#sign-in').click()
+    if (!popup.isClosed())
+      await popup.getByRole('listitem').filter({ hasText: email }).click({ timeout: 1_000 })
+    expect(popup.isClosed()).toBe(true)
+  }).toPass({ intervals: [500, 1_000] })
 }
 
 export async function signIn(page: Page, email: string) {

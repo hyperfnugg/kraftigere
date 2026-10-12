@@ -19,7 +19,26 @@ export async function reset() {
   }
 }
 
+// Creates Google accounts in the Auth emulator so its sign-in popup lists them.
+// The emulator accepts an unsigned JSON ID token.
+async function seedAccounts() {
+  for (const email of [...MEMBERS, OUTSIDER]) {
+    const idToken = JSON.stringify({ sub: email, email, email_verified: true, name: email.split('@')[0] })
+    const res = await fetch('http://127.0.0.1:9099/identitytoolkit.googleapis.com/v1/accounts:signInWithIdp?key=demo', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        requestUri: 'http://localhost',
+        postBody: `id_token=${encodeURIComponent(idToken)}&providerId=google.com`,
+        returnSecureToken: true,
+      }),
+    })
+    if (!res.ok) throw new Error(`account seed failed: ${email} ${res.status} ${await res.text()}`)
+  }
+}
+
 export async function seed() {
+  await seedAccounts()
   const res = await fetch(`${documents}/config/family`, {
     method: 'PATCH',
     headers,
