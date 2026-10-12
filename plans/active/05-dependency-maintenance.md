@@ -47,6 +47,7 @@ Fifth milestone. Keep npm packages and GitHub Actions up to date with no human i
 
 ## Notes
 
+- 2026-10-12: Decision recorded in [ADR 0001](../../docs/adr/0001-unattended-dependency-updates.md).
 - 2026-10-12: The merge happens inside `pr-check.yml` rather than through native auto-merge. Merges made with `GITHUB_TOKEN` don't start new workflow runs, so a natively auto-merged PR would never trigger `deploy.yml`. `workflow_dispatch` is the exception to that rule, which is why the merge job starts the deploy itself.
 - 2026-10-12: The cooldown is there for supply-chain attacks: most malicious npm releases are pulled within days. Security updates skip it because fast patching matters more for known vulnerabilities.
 - 2026-10-12: Moved ahead of item-to-entry at the user's request (that plan is now 06).
