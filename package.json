@@ -8,7 +8,8 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test:rules": "firebase emulators:exec --project demo-kraftigere --only firestore \"vitest run tests/rules\""
+    "test:rules": "firebase emulators:exec --project demo-kraftigere --only firestore \"vitest run tests/rules\"",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "firebase": "^12.12.1",
@@ -18,6 +19,7 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@firebase/rules-unit-testing": "^5.0.2",
+    "@playwright/test": "^1.63.0",
     "@types/node": "^24.12.2",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",

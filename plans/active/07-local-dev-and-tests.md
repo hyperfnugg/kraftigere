@@ -41,14 +41,14 @@ Seventh milestone. Give the agent a development loop it can verify: a local stac
   - A Family Member can read but not write `config/family`.
   - A non-member can't read `config/family`.
 - [x] **Commit: Firestore rules tests.** *(auto)*
-- [ ] **E2E tests.** Playwright (Chromium only), in `tests/e2e/`. `playwright.config.ts` uses `webServer: npm run dev`. `npm run test:e2e`. Sign-in goes through the emulator's fake Google popup. Cases:
+- [x] **E2E tests.** Playwright (Chromium only), in `tests/e2e/`. `playwright.config.ts` uses `webServer: npm run dev`. `npm run test:e2e`. Sign-in goes through the emulator's fake Google popup. Cases:
   - A Family Member signs in and sees the List.
   - A non-member sees the not-authorized screen.
   - Add, check off, uncheck and remove an Entry.
   - An Entry added in one browser context appears in a second one.
   - The fun-fact button appears only on the bottom-most unchecked Entry and shows the stubbed fact.
   - Reset emulator data between tests (Firestore emulator `DELETE …/documents`, then re-seed).
-- [ ] **Commit: Playwright e2e tests against emulators.** *(auto)*
+- [x] **Commit: Playwright e2e tests against emulators.** *(auto)*
 - [ ] **Playwright MCP.** Add `@playwright/mcp` as a dev dependency, plus a checked-in `.mcp.json` that runs its local binary headless (check the bin name in the installed package). Verify by opening `localhost:5173` and signing in through the emulator.
 - [ ] **Commit: Playwright MCP for agent browser access.** *(auto)*
 - [ ] **CI gate.** In `pr-check.yml`'s `check` job, after lint:
@@ -74,3 +74,4 @@ Seventh milestone. Give the agent a development loop it can verify: a local stac
 ## Notes
 
 - 2026-10-12: Decided in a grilling session: emulators over production or a dev project (throwaway data, automatable fake Google sign-in, real rules enforced); a stubbed fun fact in dev (Gemini has no emulator, and App Check would block localhost); no `dev:prod`. Because the dev build stubs Gemini, the e2e tests need no network interception.
+- 2026-10-12: E2E flakiness found and fixed. (1) The emulator popup drops clicks made before its script is ready, so the helper retries "Add new account" until the form shows. (2) The first popup sign-in after the emulators start sometimes never reaches the page, so a `globalSetup` warm-up does one throwaway sign-in. (3) Playwright's `webServer` left the Java emulator running after a run; `gracefulShutdown: SIGINT` fixes that. After these, 60/60 passed across 4 cold starts.
