@@ -49,8 +49,8 @@ Seventh milestone. Give the agent a development loop it can verify: a local stac
   - The fun-fact button appears only on the bottom-most unchecked Entry and shows the stubbed fact.
   - Reset emulator data between tests (Firestore emulator `DELETE …/documents`, then re-seed).
 - [x] **Commit: Playwright e2e tests against emulators.** *(auto)*
-- [ ] **Playwright MCP.** Add `@playwright/mcp` as a dev dependency, plus a checked-in `.mcp.json` that runs its local binary headless (check the bin name in the installed package). Verify by opening `localhost:5173` and signing in through the emulator.
-- [ ] **Commit: Playwright MCP for agent browser access.** *(auto)*
+- [x] **Playwright MCP.** Add `@playwright/mcp` as a dev dependency, plus a checked-in `.mcp.json` that runs its local binary headless (check the bin name in the installed package). Verify by opening `localhost:5173` and signing in through the emulator.
+- [x] **Commit: Playwright MCP for agent browser access.** *(auto)*
 - [ ] **CI gate.** In `pr-check.yml`'s `check` job, after lint:
   - `actions/setup-java` (Temurin 21), pinned to a SHA.
   - Cache `~/.cache/firebase/emulators` and the Playwright browser cache (key on the Playwright version).
@@ -75,3 +75,4 @@ Seventh milestone. Give the agent a development loop it can verify: a local stac
 
 - 2026-10-12: Decided in a grilling session: emulators over production or a dev project (throwaway data, automatable fake Google sign-in, real rules enforced); a stubbed fun fact in dev (Gemini has no emulator, and App Check would block localhost); no `dev:prod`. Because the dev build stubs Gemini, the e2e tests need no network interception.
 - 2026-10-12: E2E flakiness found and fixed. (1) The emulator popup drops clicks made before its script is ready, so the helper retries "Add new account" until the form shows. (2) The first popup sign-in after the emulators start sometimes never reaches the page, so a `globalSetup` warm-up does one throwaway sign-in. (3) Playwright's `webServer` left the Java emulator running after a run; `gracefulShutdown: SIGINT` fixes that. After these, 60/60 passed across 4 cold starts.
+- 2026-10-12: `@playwright/mcp` 0.0.83 pins a pre-release `playwright` (1.64 alpha) with its own Chromium build, separate from `@playwright/test`'s. After Dependabot bumps it, run `node node_modules/@playwright/mcp/node_modules/playwright/cli.js install chromium` if the MCP can't find a browser. Smoke-tested over stdio: it lists 25 tools and loads the dev server. Claude Code only loads `.mcp.json` servers after a restart, with an approval prompt.
