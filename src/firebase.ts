@@ -25,7 +25,7 @@ const firebaseConfig = {
 const dev = import.meta.env.DEV
 
 export const app = initializeApp(
-  dev ? { apiKey: 'demo', projectId: 'demo-kraftigere' } : firebaseConfig,
+  dev ? { apiKey: 'demo', authDomain: 'localhost', projectId: 'demo-kraftigere', appId: 'demo-app' } : firebaseConfig,
 )
 
 if (!dev) {
