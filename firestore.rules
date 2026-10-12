@@ -15,5 +15,9 @@ service cloud.firestore {
     match /items/{itemId} {
       allow read, write: if isFamily();
     }
+
+    match /entries/{entryId} {
+      allow read, write: if isFamily();
+    }
   }
 }
