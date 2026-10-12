@@ -3,13 +3,13 @@ import { type User } from 'firebase/auth'
 import { generate } from './ai'
 import { signInWithGoogle, signOut, useUser } from './firebase'
 import {
-  addItem,
-  removeItem,
-  toggleItem,
+  addEntry,
+  removeEntry,
+  toggleEntry,
   useAuthorized,
-  useItems,
-  type Item,
-} from './items'
+  useEntries,
+  type Entry,
+} from './entries'
 
 const centerStyle = {
   minHeight: '100vh',
@@ -28,7 +28,7 @@ const buttonStyle = {
   cursor: 'pointer',
 }
 
-type Fact = { itemId: string; text: string; loading: boolean }
+type Fact = { entryId: string; text: string; loading: boolean }
 
 export default function App() {
   const { user, loading: userLoading } = useUser()
@@ -63,31 +63,31 @@ export default function App() {
 }
 
 function List({ user }: { user: User }) {
-  const { items } = useItems()
+  const { entries } = useEntries()
   const [text, setText] = useState('')
   const [fact, setFact] = useState<Fact | null>(null)
 
-  const lastUnchecked = items.findLast((i) => !i.checked)
+  const lastUnchecked = entries.findLast((e) => !e.checked)
 
-  if (fact && fact.itemId !== lastUnchecked?.id) setFact(null)
+  if (fact && fact.entryId !== lastUnchecked?.id) setFact(null)
 
   function onAdd(e: FormEvent) {
     e.preventDefault()
     const t = text.trim()
     if (!t) return
-    addItem(t)
+    addEntry(t)
     setText('')
   }
 
-  async function showFunFact(item: Item) {
-    setFact({ itemId: item.id, text: '', loading: true })
+  async function showFunFact(entry: Entry) {
+    setFact({ entryId: entry.id, text: '', loading: true })
     try {
       const result = await generate(
-        `Share a fun fact about: ${item.text}. One or two sentences, casual tone.`,
+        `Share a fun fact about: ${entry.text}. One or two sentences, casual tone.`,
       )
-      setFact({ itemId: item.id, text: result.trim(), loading: false })
+      setFact({ entryId: entry.id, text: result.trim(), loading: false })
     } catch {
-      setFact({ itemId: item.id, text: 'Failed to fetch fun fact.', loading: false })
+      setFact({ entryId: entry.id, text: 'Failed to fetch fun fact.', loading: false })
     }
   }
 
@@ -144,39 +144,39 @@ function List({ user }: { user: User }) {
           gap: '0.5rem',
         }}
       >
-        {items.map((item) => {
-          const isLastUnchecked = item.id === lastUnchecked?.id
-          const showFact = fact?.itemId === item.id
+        {entries.map((entry) => {
+          const isLastUnchecked = entry.id === lastUnchecked?.id
+          const showFact = fact?.entryId === entry.id
           const factLoading = showFact && fact.loading
           return (
             <li
-              key={item.id}
+              key={entry.id}
               style={{
                 display: 'flex',
                 flexDirection: 'column',
                 gap: '0.25rem',
-                opacity: item.checked ? 0.4 : 1,
+                opacity: entry.checked ? 0.4 : 1,
                 fontSize: '1.125rem',
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                 <input
                   type="checkbox"
-                  checked={item.checked}
-                  onChange={(e) => toggleItem(item.id, e.target.checked)}
+                  checked={entry.checked}
+                  onChange={(e) => toggleEntry(entry.id, e.target.checked)}
                   style={{ width: '1.25rem', height: '1.25rem' }}
                 />
                 <span
                   style={{
                     flex: 1,
-                    textDecoration: item.checked ? 'line-through' : 'none',
+                    textDecoration: entry.checked ? 'line-through' : 'none',
                   }}
                 >
-                  {item.text}
+                  {entry.text}
                 </span>
                 {isLastUnchecked && (
                   <button
-                    onClick={() => showFunFact(item)}
+                    onClick={() => showFunFact(entry)}
                     disabled={factLoading}
                     style={{ ...buttonStyle, fontSize: '0.875rem', padding: '0.25rem 0.5rem' }}
                   >
@@ -184,7 +184,7 @@ function List({ user }: { user: User }) {
                   </button>
                 )}
                 <button
-                  onClick={() => removeItem(item.id)}
+                  onClick={() => removeEntry(entry.id)}
                   aria-label="Remove"
                   style={{ ...buttonStyle, padding: '0.25rem 0.5rem' }}
                 >

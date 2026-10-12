@@ -25,9 +25,9 @@ Sixth milestone. Bring the code in line with the glossary in `CONTEXT.md`: what 
 - [x] **Allow `/entries` in `firestore.rules`** alongside `/items`, using the same `isFamily()` rule, so old and new clients both work during the cutover.
 - [x] **Commit: allow /entries collection in security rules.** *(manual)* (security rules; review before committing)
 - [x] **Deploy rules.** Paste `firestore.rules` into Firebase console → Firestore → Rules, publish. *(user)*
-- [ ] **Rename in code.** `git mv src/items.ts src/entries.ts`. Then `Item` → `Entry`, `addItem`/`toggleItem`/`removeItem`/`useItems` → `addEntry`/`toggleEntry`/`removeEntry`/`useEntries`, collection `'items'` → `'entries'`, and update local names in `App.tsx`. `useAuthorized` moves with the module unchanged.
+- [x] **Rename in code.** `git mv src/items.ts src/entries.ts`. Then `Item` → `Entry`, `addItem`/`toggleItem`/`removeItem`/`useItems` → `addEntry`/`toggleEntry`/`removeEntry`/`useEntries`, collection `'items'` → `'entries'`, and update local names in `App.tsx`. `useAuthorized` moves with the module unchanged.
   - `npm run build` and lint pass.
-- [ ] **Commit: rename Item to Entry, use /entries collection.** *(auto)*
+- [x] **Commit: rename Item to Entry, use /entries collection.** *(auto)*
 - [ ] **Deploy and verify.** Push. On the live URL, add, check off and remove an Entry, and confirm it syncs to a second device. *(user)*
 - [ ] **Drop `/items`.** Remove the `/items` match from `firestore.rules`. *(user: deploy rules, then delete the `items` collection in the console)*
 - [ ] **Commit: remove /items from security rules.** *(manual)* (security rules)

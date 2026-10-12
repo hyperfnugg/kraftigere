@@ -18,47 +18,47 @@ import { app } from './firebase'
 
 const db = getFirestore(app)
 
-export type Item = {
+export type Entry = {
   id: string
   text: string
   checked: boolean
   createdAt: Timestamp | null
 }
 
-export function addItem(text: string) {
-  return addDoc(collection(db, 'items'), {
+export function addEntry(text: string) {
+  return addDoc(collection(db, 'entries'), {
     text,
     checked: false,
     createdAt: serverTimestamp(),
   })
 }
 
-export function toggleItem(id: string, checked: boolean) {
-  return updateDoc(doc(db, 'items', id), { checked })
+export function toggleEntry(id: string, checked: boolean) {
+  return updateDoc(doc(db, 'entries', id), { checked })
 }
 
-export function removeItem(id: string) {
-  return deleteDoc(doc(db, 'items', id))
+export function removeEntry(id: string) {
+  return deleteDoc(doc(db, 'entries', id))
 }
 
-export function useItems() {
-  const [items, setItems] = useState<Item[]>([])
+export function useEntries() {
+  const [entries, setEntries] = useState<Entry[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const q = query(collection(db, 'items'), orderBy('createdAt', 'asc'))
+    const q = query(collection(db, 'entries'), orderBy('createdAt', 'asc'))
     return onSnapshot(q, (snap) => {
-      setItems(
+      setEntries(
         snap.docs.map((d) => ({
           id: d.id,
-          ...(d.data() as Omit<Item, 'id'>),
+          ...(d.data() as Omit<Entry, 'id'>),
         })),
       )
       setLoading(false)
     })
   }, [])
 
-  return { items, loading }
+  return { entries, loading }
 }
 
 export function useAuthorized(user: User | null) {
