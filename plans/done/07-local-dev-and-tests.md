@@ -59,9 +59,9 @@ Seventh milestone. Give the agent a development loop it can verify: a local stac
   - Upload the Playwright report as an artifact on failure.
 - [x] **Update ADR 0001.** The gate is now build + lint + rules tests + e2e. Runtime breakage that the e2e cases don't cover can still reach the Family.
 - [x] **Commit: run rules and e2e tests in the PR check; update ADR 0001.** *(manual)* (CI gate and ADR; review before committing)
-- [ ] **Verify in CI.** Push, then open a throwaway PR (or wait for a Dependabot PR) and confirm that `check` runs both suites and passes. Record its run time in Notes.
-- [ ] **Move plan to `plans/done/`.** `git mv plans/active/07-local-dev-and-tests.md plans/done/07-local-dev-and-tests.md`.
-- [ ] **Commit: complete local-dev-and-tests milestone.** *(auto)*
+- [x] **Verify in CI.** Push, then open a throwaway PR (or wait for a Dependabot PR) and confirm that `check` runs both suites and passes. Record its run time in Notes.
+- [x] **Move plan to `plans/done/`.** `git mv plans/active/07-local-dev-and-tests.md plans/done/07-local-dev-and-tests.md`.
+- [x] **Commit: complete local-dev-and-tests milestone.** *(auto)*
 
 ## Done when
 
@@ -76,3 +76,4 @@ Seventh milestone. Give the agent a development loop it can verify: a local stac
 - 2026-10-12: Decided in a grilling session: emulators over production or a dev project (throwaway data, automatable fake Google sign-in, real rules enforced); a stubbed fun fact in dev (Gemini has no emulator, and App Check would block localhost); no `dev:prod`. Because the dev build stubs Gemini, the e2e tests need no network interception.
 - 2026-10-12: E2E flakiness found and fixed. (1) The emulator popup drops clicks made before its script is ready, so the helper retries "Add new account" until the form shows. (2) The first popup sign-in after the emulators start sometimes never reaches the page, so a `globalSetup` warm-up does one throwaway sign-in. (3) Playwright's `webServer` left the Java emulator running after a run; `gracefulShutdown: SIGINT` fixes that. After these, 60/60 passed across 4 cold starts.
 - 2026-10-12: `@playwright/mcp` 0.0.83 pins a pre-release `playwright` (1.64 alpha) with its own Chromium build, separate from `@playwright/test`'s. After Dependabot bumps it, run `node node_modules/@playwright/mcp/node_modules/playwright/cli.js install chromium` if the MCP can't find a browser. Smoke-tested over stdio: it lists 25 tools and loads the dev server. Claude Code only loads `.mcp.json` servers after a restart, with an approval prompt.
+- 2026-10-12: Verified in CI on throwaway PR #5. `check` passed in 1m49s with a cold cache, including rules tests and e2e (5 passed in 21.8s, no retries). The `merge` job was skipped, as it should be for a non-Dependabot PR. Also: the seed script creates alice, bob and eve as Google accounts in the Auth emulator, so the sign-in popup lists them for one-click sign-in.
