@@ -34,12 +34,13 @@ Seventh milestone. Give the agent a development loop it can verify: a local stac
   - `npm run dev`: `firebase emulators:exec --project demo-kraftigere --only auth,firestore "node scripts/seed.mjs && vite"`.
   - Verify: `npm run dev` starts, and signing in through the emulator's fake Google popup as a seeded Family Member shows the List.
 - [x] **Commit: run local dev against Firebase emulators.** *(auto)*
-- [ ] **Rules tests.** Vitest + `@firebase/rules-unit-testing`, in `tests/rules/`. `npm run test:rules` runs them under `firebase emulators:exec --only firestore`. Cases:
+- [x] **Rules tests.** Vitest + `@firebase/rules-unit-testing`, in `tests/rules/`. `npm run test:rules` runs them under `firebase emulators:exec --only firestore`. Cases:
   - A Family Member can read and write `/entries`.
   - A signed-in non-member can't read or write `/entries`.
   - A signed-out user can't read or write `/entries`.
   - A Family Member can read but not write `config/family`.
-- [ ] **Commit: Firestore rules tests.** *(auto)*
+  - A non-member can't read `config/family`.
+- [x] **Commit: Firestore rules tests.** *(auto)*
 - [ ] **E2E tests.** Playwright (Chromium only), in `tests/e2e/`. `playwright.config.ts` uses `webServer: npm run dev`. `npm run test:e2e`. Sign-in goes through the emulator's fake Google popup. Cases:
   - A Family Member signs in and sees the List.
   - A non-member sees the not-authorized screen.
