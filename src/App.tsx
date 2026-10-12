@@ -51,7 +51,7 @@ export default function App() {
   if (!authorized) {
     return (
       <main style={centerStyle}>
-        <div>Not authorized — ask a family member to add your Google account.</div>
+        <div>Not authorized — ask the admin to add your Google account.</div>
         <button style={buttonStyle} onClick={() => signOut()}>
           Sign out
         </button>
