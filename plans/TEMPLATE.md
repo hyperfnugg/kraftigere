@@ -1,4 +1,4 @@
-<!-- Copy to plans/active/<kebab-name>.md to start a new plan. -->
+<!-- Copy to plans/active/<NN>-<kebab-name>.md to start a new plan (NN = next number across active/ and done/). -->
 
 # <Title>
 

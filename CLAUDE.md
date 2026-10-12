@@ -2,7 +2,7 @@
 
 ## Plans
 
-Multi-step work lives in `plans/active/<kebab-name>.md`. Each plan has scope, out-of-scope, steps, ownership, and a done-when. Start new plans by copying `plans/TEMPLATE.md`.
+Multi-step work lives in `plans/active/<NN>-<kebab-name>.md`, where `<NN>` is the next two-digit number across `plans/active/` and `plans/done/` (e.g. `05-foo.md`). Each plan has scope, out-of-scope, steps, ownership, and a done-when. Start new plans by copying `plans/TEMPLATE.md`.
 
 - **Read the plan at the start of a session** and do not preload plans you aren't working on.
 - **Steps are checkboxes** (`- [ ]` / `- [x]`). Tick each step off as it lands. Steps must use `- [ ]` bullet form, not numbered lists (GitHub only renders checkboxes on bullets).
