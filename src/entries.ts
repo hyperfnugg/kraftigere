@@ -6,7 +6,6 @@ import {
   deleteDoc,
   doc,
   getDoc,
-  getFirestore,
   onSnapshot,
   orderBy,
   query,
@@ -14,9 +13,7 @@ import {
   updateDoc,
 } from 'firebase/firestore'
 import { useEffect, useState } from 'react'
-import { app } from './firebase'
-
-const db = getFirestore(app)
+import { db } from './firebase'
 
 export type Entry = {
   id: string

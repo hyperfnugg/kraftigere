@@ -25,7 +25,7 @@ Seventh milestone. Give the agent a development loop it can verify: a local stac
 ## Steps
 
 - [ ] **Let git use gh credentials.** Run `! gh auth setup-git` (adds a github.com credential helper to `~/.gitconfig`). *(user)*
-- [ ] **Emulator config and dev wiring.**
+- [x] **Emulator config and dev wiring.**
   - Add `firebase-tools` as a dev dependency. Install new packages with `npm install --before=<today − 7 days>` to respect the ADR 0001 cooldown.
   - `firebase.json`: `firestore.rules` path, Auth emulator on 9099, Firestore emulator on 8080, UI off.
   - `src/firebase.ts`: when `import.meta.env.DEV`, use project `demo-kraftigere`, call `connectAuthEmulator` and `connectFirestoreEmulator`, and skip `initializeAppCheck`. Firestore is initialised in `src/entries.ts`, so either move `db` into `firebase.ts` or connect it there. The production path must stay unchanged.
@@ -33,7 +33,7 @@ Seventh milestone. Give the agent a development loop it can verify: a local stac
   - `scripts/seed.mjs`: writes `config/family` with two fake Family Members, using the Firestore emulator REST API with `Authorization: Bearer owner` to bypass rules.
   - `npm run dev`: `firebase emulators:exec --project demo-kraftigere --only auth,firestore "node scripts/seed.mjs && vite"`.
   - Verify: `npm run dev` starts, and signing in through the emulator's fake Google popup as a seeded Family Member shows the List.
-- [ ] **Commit: run local dev against Firebase emulators.** *(auto)*
+- [x] **Commit: run local dev against Firebase emulators.** *(auto)*
 - [ ] **Rules tests.** Vitest + `@firebase/rules-unit-testing`, in `tests/rules/`. `npm run test:rules` runs them under `firebase emulators:exec --only firestore`. Cases:
   - A Family Member can read and write `/entries`.
   - A signed-in non-member can't read or write `/entries`.
