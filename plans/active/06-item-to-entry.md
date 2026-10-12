@@ -28,11 +28,11 @@ Sixth milestone. Bring the code in line with the glossary in `CONTEXT.md`: what 
 - [x] **Rename in code.** `git mv src/items.ts src/entries.ts`. Then `Item` → `Entry`, `addItem`/`toggleItem`/`removeItem`/`useItems` → `addEntry`/`toggleEntry`/`removeEntry`/`useEntries`, collection `'items'` → `'entries'`, and update local names in `App.tsx`. `useAuthorized` moves with the module unchanged.
   - `npm run build` and lint pass.
 - [x] **Commit: rename Item to Entry, use /entries collection.** *(auto)*
-- [ ] **Deploy and verify.** Push. On the live URL, add, check off and remove an Entry, and confirm it syncs to a second device. *(user)*
-- [ ] **Drop `/items`.** Remove the `/items` match from `firestore.rules`. *(user: deploy rules, then delete the `items` collection in the console)*
-- [ ] **Commit: remove /items from security rules.** *(manual)* (security rules)
-- [ ] **Move plan to `plans/done/`.** `git mv plans/active/06-item-to-entry.md plans/done/06-item-to-entry.md`.
-- [ ] **Commit: complete item-to-entry milestone.** *(auto)*
+- [x] **Deploy and verify.** Push. On the live URL, add, check off and remove an Entry, and confirm it syncs to a second device. *(user)*
+- [x] **Drop `/items`.** Remove the `/items` match from `firestore.rules`. *(user: deploy rules, then delete the `items` collection in the console)*
+- [x] **Commit: remove /items from security rules.** *(manual)* (security rules)
+- [x] **Move plan to `plans/done/`.** `git mv plans/active/06-item-to-entry.md plans/done/06-item-to-entry.md`.
+- [x] **Commit: complete item-to-entry milestone.** *(auto)*
 
 ## Done when
 
