@@ -3,7 +3,7 @@
 **Status:** ready-for-agent · enhancement
 
 Fifth milestone. Keep npm packages and GitHub Actions up to date with no human involvement, so that fixes for known vulnerabilities are live within minutes of a PR passing. Stability doesn't matter much (the only users are family), but security does. Ordinary updates wait out a cooldown to reduce supply-chain risk. Security updates skip it. No update tooling can protect against a true zero-day (no fix exists yet); for that case the plan relies on alert emails.
-
+  
 ## Scope
 
 - Dependabot version updates and security updates for `npm` and `github-actions`.
@@ -20,20 +20,20 @@ Fifth milestone. Keep npm packages and GitHub Actions up to date with no human i
 
 ## Steps
 
-- [ ] **Enable Dependabot alerts and security updates** via `gh api` (`PUT repos/hyperfnugg/webapp_poc/vulnerability-alerts`, then `PUT …/automated-security-fixes`). Confirm with `gh api repos/hyperfnugg/webapp_poc --jq .security_and_analysis`. *(manual)* (repo security settings; run only after the user approves)
+- [x] **Enable Dependabot alerts and security updates** via `gh api` (`PUT repos/hyperfnugg/webapp_poc/vulnerability-alerts`, then `PUT …/automated-security-fixes`). Confirm with `gh api repos/hyperfnugg/webapp_poc --jq .security_and_analysis`. *(manual)* (repo security settings; run only after the user approves)
 - [x] **Fix existing lint errors.** `npm run lint` fails on `main` with 2 `react-hooks/set-state-in-effect` errors (`App.tsx` clears the fun fact in an effect; `useAuthorized` in `items.ts` resets state in an effect). CI never ran lint, so nobody noticed. The required check would fail every PR until these are fixed. Behaviour must not change.
 - [x] **Commit: fix set-state-in-effect lint errors.** *(auto)*
-- [ ] **Add `.github/dependabot.yml`.**
+- [x] **Add `.github/dependabot.yml`.**
   - `npm`: weekly, `cooldown.default-days: 7`. Group `minor` + `patch` into one PR. Majors stay ungrouped, one PR each.
   - `@types/node`: ignore `version-update:semver-major`, so its major version stays matched to the Node version CI runs (24).
   - `github-actions`: weekly, `cooldown.default-days: 7`, all updates in one group.
   - Security updates are not grouped and ignore the cooldown, so each fix arrives as its own PR right away.
-- [ ] **Pin Actions to SHAs** in `deploy.yml`: `uses: actions/checkout@<sha> # v4.x.y`, and the same for `setup-node`, `upload-pages-artifact` and `deploy-pages`. Look up each tag's SHA with `gh api`.
-- [ ] **Add `.github/workflows/pr-check.yml`.**
+- [x] **Pin Actions to SHAs** in `deploy.yml`: `uses: actions/checkout@<sha> # v4.x.y`, and the same for `setup-node`, `upload-pages-artifact` and `deploy-pages`. Look up each tag's SHA with `gh api`.
+- [x] **Add `.github/workflows/pr-check.yml`.**
   - Trigger: `pull_request` to `main`.
   - Job `check`: checkout, setup-node 24 with npm cache, `npm ci`, `npm run build`, `npm run lint`. Actions pinned to SHAs.
   - Job `merge`: `needs: check`, runs only if `github.event.pull_request.user.login == 'dependabot[bot]'`. Permissions: `contents: write`, `pull-requests: write`, `actions: write`. Runs `gh pr merge --squash --delete-branch "$PR_URL"`, then `gh workflow run deploy.yml`.
-- [ ] **Commit: Dependabot config, PR check with auto-merge and deploy, SHA-pinned actions.** *(manual)* (CI workflows; review before committing)
+- [x] **Commit: Dependabot config, PR check with auto-merge and deploy, SHA-pinned actions.** *(manual)* (CI workflows; review before committing)
 - [ ] **Create ruleset on `main`** via `gh api repos/hyperfnugg/webapp_poc/rulesets`. It requires the `check` status check, and the repository admin role is on the bypass list so direct pushes to `main` still work. Confirm that a direct push still succeeds. *(manual)* (branch rules; run only after the user approves)
 - [ ] **Verify end to end.** Push. Wait for Dependabot to open its first PRs (enabling the config triggers a run). Watch at least one pass, merge and deploy with `gh run list` / `gh pr list --state merged`. If nothing is outdated, trigger a check with a throwaway PR that downgrades a patch version.
 - [ ] **Decide on Claude fixing failed PRs** after about 4 weeks of running. If failing Dependabot PRs are common, add steps for `claude-code-action`: it runs on a failed check for Dependabot PRs only, uses an `ANTHROPIC_API_KEY` stored as a Dependabot secret, and pushes fixes to the PR branch. If they're rare, delete this step. *(user)*

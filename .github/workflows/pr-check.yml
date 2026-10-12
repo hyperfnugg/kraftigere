@@ -1,0 +1,38 @@
+name: PR check
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '24'
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run build
+      - run: npm run lint
+
+  # Merging with GITHUB_TOKEN doesn't trigger deploy.yml, so dispatch it explicitly.
+  # See docs/adr/0001-unattended-dependency-updates.md.
+  merge:
+    needs: check
+    if: github.event.pull_request.user.login == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      actions: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      PR_URL: ${{ github.event.pull_request.html_url }}
+    steps:
+      - run: gh pr merge --squash --delete-branch "$PR_URL"
+      - run: gh workflow run deploy.yml --repo "$GITHUB_REPOSITORY" --ref main
