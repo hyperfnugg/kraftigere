@@ -36,16 +36,16 @@ Eighth milestone. Make the web app feel like an app on phones: installable to th
   - `useAuthorized`: only `permission-denied` means not authorized. Any other failure gives a "Can't connect" screen (with a sign-out button) instead of "Not authorized".
   - Lint, build, and existing tests pass.
 - [x] **Commit: offline cache, offline indicator, can't-connect screen.** *(manual)* (user-visible behaviour; review before committing)
-- [ ] **E2E: offline.** In `tests/e2e/`, using `context.setOffline()` against the dev server:
+- [x] **E2E: offline.** In `tests/e2e/`, using `context.setOffline()` against the dev server:
   - Going offline shows the offline line, and coming back online hides it.
   - An Entry added offline appears in a second browser after reconnecting.
   - Signed in with Firestore unreachable (route-abort requests to `127.0.0.1:8080` before sign-in) shows "Can't connect", not "Not authorized".
-- [ ] **E2E: installability.** A second Playwright project, with its own `webServer`: `vite build --mode e2e && vite preview` on port 4173.
+- [x] **E2E: installability.** A second Playwright project, with its own `webServer`: `vite build --mode e2e && vite preview` on port 4173.
   - The manifest is linked and has name "Kraft", `display: standalone` and the icons.
   - The service worker registers and controls the page.
   - After going offline, a reload still renders the app (sign-in screen).
   - `pr-check.yml` needs no change: `npm run test:e2e` runs both projects.
-- [ ] **Commit: e2e tests for offline and installability.** *(auto)*
+- [x] **Commit: e2e tests for offline and installability.** *(auto)*
 - [ ] **Deploy and install.** Push. On the live URL: install on an Android phone (Chrome's install prompt or menu → Install app) and on an iPhone (Share → Add to Home Screen). Check the icon, the name "Kraft", full-screen launch, sign-in, and that the List opens in airplane mode. *(user)* If iPhone sign-in fails, note it here and open a separate debug session.
 - [ ] **Move plan to `plans/done/`.** `git mv plans/active/08-installable-offline-app.md plans/done/08-installable-offline-app.md`.
 - [ ] **Commit: complete installable-offline-app milestone.** *(auto)*

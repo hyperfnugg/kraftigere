@@ -1,6 +1,9 @@
 import { defineConfig, devices } from '@playwright/test'
 
-const baseURL = 'http://localhost:5173/webapp_poc/'
+const base = '/webapp_poc/'
+const baseURL = `http://localhost:5173${base}`
+// A production-style build against the emulators, for service worker and manifest tests.
+const previewURL = `http://localhost:4173${base}`
 
 export default defineConfig({
   testDir: 'tests/e2e',
@@ -13,13 +16,25 @@ export default defineConfig({
   // The emulators are slow on their first requests after starting.
   expect: { timeout: 10_000 },
   use: { baseURL, trace: 'retain-on-failure' },
-  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
-  webServer: {
-    command: 'npm run dev',
-    url: baseURL,
-    reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
-    // SIGINT lets the Firebase CLI stop its emulator processes.
-    gracefulShutdown: { signal: 'SIGINT', timeout: 10_000 },
-  },
+  projects: [
+    { name: 'chromium', testIgnore: /pwa\.spec\.ts/, use: { ...devices['Desktop Chrome'] } },
+    { name: 'pwa', testMatch: /pwa\.spec\.ts/, use: { ...devices['Desktop Chrome'], baseURL: previewURL } },
+  ],
+  webServer: [
+    {
+      command: 'npm run dev',
+      url: baseURL,
+      reuseExistingServer: !process.env.CI,
+      timeout: 120_000,
+      // SIGINT lets the Firebase CLI stop its emulator processes.
+      gracefulShutdown: { signal: 'SIGINT', timeout: 10_000 },
+    },
+    {
+      command:
+        'vite build --mode e2e --outDir dist-e2e && vite preview --mode e2e --outDir dist-e2e --port 4173 --strictPort',
+      url: previewURL,
+      reuseExistingServer: !process.env.CI,
+      timeout: 120_000,
+    },
+  ],
 })
