@@ -21,14 +21,15 @@ const firebaseConfig = {
   appId: '1:934401063813:web:d54a68e4205017e9a2e2ec',
 }
 
-// Dev runs against the local emulators (`npm run dev`); `demo-` projects never reach real Firebase.
-const dev = import.meta.env.DEV
+// Everything except the production build runs against the local emulators (`npm run dev`,
+// `vite build --mode e2e`); `demo-` projects never reach real Firebase.
+export const useEmulators = import.meta.env.MODE !== 'production'
 
 export const app = initializeApp(
-  dev ? { apiKey: 'demo', authDomain: 'localhost', projectId: 'demo-kraftigere', appId: 'demo-app' } : firebaseConfig,
+  useEmulators ? { apiKey: 'demo', authDomain: 'localhost', projectId: 'demo-kraftigere', appId: 'demo-app' } : firebaseConfig,
 )
 
-if (!dev) {
+if (!useEmulators) {
   initializeAppCheck(app, {
     provider: new ReCaptchaV3Provider('6LdWdOosAAAAAD-CgahJPqpZb3pi8A06Bv5-rkh-'),
     isTokenAutoRefreshEnabled: true,
@@ -38,7 +39,7 @@ if (!dev) {
 export const auth = getAuth(app)
 export const db = getFirestore(app)
 
-if (dev) {
+if (useEmulators) {
   connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true })
   connectFirestoreEmulator(db, '127.0.0.1', 8080)
 }

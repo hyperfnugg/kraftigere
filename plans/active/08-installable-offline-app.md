@@ -29,7 +29,7 @@ Eighth milestone. Make the web app feel like an app on phones: installable to th
   - Service worker disabled in dev (default).
   - `npm run build` emits `manifest.webmanifest` and `sw.js`.
 - [x] **Commit: installable as Kraft with offline app shell.** *(auto)*
-- [ ] **Emulator flag for builds.** Make `src/firebase.ts` and `src/ai.ts` use emulators and the stub whenever `import.meta.env.MODE !== 'production'` instead of `DEV`, so that `vite build --mode e2e` gives a build that runs against emulators. Production `npm run build` must be unchanged; check that `dist/` contains no `demo-kraftigere`.
+- [x] **Emulator flag for builds.** Make `src/firebase.ts` and `src/ai.ts` use emulators and the stub whenever `import.meta.env.MODE !== 'production'` instead of `DEV`, so that `vite build --mode e2e` gives a build that runs against emulators. Production `npm run build` must be unchanged; check that `dist/` contains no `demo-kraftigere`.
 - [ ] **Offline data and UI.**
   - `src/firebase.ts`: `initializeFirestore(app, { localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }) })` in place of `getFirestore`.
   - "Offline: changes will sync" line at the top of the List while `navigator.onLine` is false (listen to `online`/`offline`).
