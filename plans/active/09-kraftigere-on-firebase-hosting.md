@@ -35,12 +35,12 @@ Ninth milestone. Move the app from GitHub Pages (`hyperfnugg.github.io/webapp_po
 - [x] **Same-domain sign-in.** In the production config in `src/firebase.ts`, set `authDomain: 'kraftigere.web.app'`. The emulator config is unchanged.
 - [x] **Name "kraftigere".** Manifest `name` and `short_name`, `<title>` in `index.html`, `package.json` `name` (and `package-lock.json` via `npm install`), README `#` title. Update any e2e test that checks the old name. Lint, build and all tests pass, and `dist/` contains no `demo-kraftigere`.
 - [x] **Commit: serve from the root path on kraftigere.web.app, sign in on the same domain, rename to kraftigere.** *(manual)* (auth and user-visible name; review before committing)
-- [ ] **Allow the new domain.** *(user)* In the consoles:
+- [x] **Allow the new domain.** *(user)* In the consoles:
   - Google Cloud → APIs & Services → Credentials → the browser API key: add `https://kraftigere.web.app/*` to the HTTP referrers (keep `kraftigere.firebaseapp.com`, see memory note on referrers).
   - The same page → the OAuth 2.0 web client: add `https://kraftigere.web.app/__/auth/handler` to the authorized redirect URIs.
   - reCAPTCHA admin → the App Check site key: add `kraftigere.web.app`.
   - Firebase Auth → Settings → Authorized domains: check that `kraftigere.web.app` is listed (it is by default).
-- [ ] **First deploy by hand.** *(user)* `npm run build && npx firebase deploy --only hosting --project kraftigere`. On `https://kraftigere.web.app/` on a desktop browser: Google sign-in works, the List loads, the fun fact (App Check + Gemini) loads, and DevTools shows the service worker active and the manifest name "kraftigere".
+- [x] **First deploy by hand.** *(user)* `npm run build && npx firebase deploy --only hosting --project kraftigere`. On `https://kraftigere.web.app/` on a desktop browser: Google sign-in works, the List loads, the fun fact (App Check + Gemini) loads, and DevTools shows the service worker active and the manifest name "kraftigere".
 - [ ] **Retire GitHub Pages.** *(manual)* (repo settings; run only after the user approves) `gh workflow disable deploy.yml`, then `gh api -X DELETE repos/hyperfnugg/webapp_poc/pages`. The user clears site data for `hyperfnugg.github.io` on any device that has opened it. Until the CI step lands, deploys are done by hand as above.
 - [ ] **Rename the repo.** *(manual)* (repo settings; run only after the user approves) `gh repo rename kraftigere`, then `git remote set-url origin https://github.com/hyperfnugg/kraftigere.git`. Check that the ruleset on `main` and the Dependabot settings carried over (`gh api repos/hyperfnugg/kraftigere/rulesets`, `gh api repos/hyperfnugg/kraftigere --jq .security_and_analysis`).
 - [ ] **Workload Identity Federation.** *(user)* Claude writes a wizard (`mattpocock-skills:wizard`) for these console steps, and the user runs it:

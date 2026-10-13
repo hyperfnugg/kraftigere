@@ -6,7 +6,7 @@
     "public": "dist",
     "headers": [
       {
-        "source": "/@(sw.js|index.html|manifest.webmanifest)",
+        "regex": "^/(index\\.html|sw\\.js|manifest\\.webmanifest)?$",
         "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
       },
       {
