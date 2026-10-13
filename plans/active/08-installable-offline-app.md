@@ -21,14 +21,14 @@ Eighth milestone. Make the web app feel like an app on phones: installable to th
 
 ## Steps
 
-- [ ] **Icons.** Download `emoji_u1f648.svg` from `googlefonts/noto-emoji`, pinned to a commit, into `public/icons/`, and add the Apache 2.0 notice as `public/icons/NOTICE`. Render PNGs with the Playwright Chromium already installed (no new dependency): 192 and 512 (`any`, emoji on cream), 512 maskable (emoji inside the central ~60% safe zone on cream), and a 180 `apple-touch-icon` (cream, no transparency). Keep the render script in `scripts/`.
-- [ ] **Manifest and service worker.** Add `vite-plugin-pwa` (with the ADR 0001 cooldown). Configure:
+- [x] **Icons.** Download `2D/svg/emoji_u1f648.svg` from `googlefonts/noto-emoji`, pinned to a commit, into `public/icons/`, and add the Apache 2.0 notice as `public/icons/NOTICE`. Render PNGs with the Playwright Chromium already installed (no new dependency): 192 and 512 (`any`, emoji on cream), 512 maskable (emoji inside the central ~60% safe zone on cream), and a 180 `apple-touch-icon` (cream, no transparency). Keep the render script in `scripts/`.
+- [x] **Manifest and service worker.** Add `vite-plugin-pwa` (with the ADR 0001 cooldown). Configure:
   - `registerType: 'autoUpdate'`.
   - Manifest: `name`/`short_name` "Kraft", `display: standalone`, `theme_color` and `background_color` `#FFF3D6`, the icons above, scope and start URL under the `/webapp_poc/` base.
   - `index.html`: title "Kraft", `theme-color` meta, `apple-touch-icon` link.
   - Service worker disabled in dev (default).
   - `npm run build` emits `manifest.webmanifest` and `sw.js`.
-- [ ] **Commit: installable as Kraft with offline app shell.** *(auto)*
+- [x] **Commit: installable as Kraft with offline app shell.** *(auto)*
 - [ ] **Emulator flag for builds.** Make `src/firebase.ts` and `src/ai.ts` use emulators and the stub whenever `import.meta.env.MODE !== 'production'` instead of `DEV`, so that `vite build --mode e2e` gives a build that runs against emulators. Production `npm run build` must be unchanged; check that `dist/` contains no `demo-kraftigere`.
 - [ ] **Offline data and UI.**
   - `src/firebase.ts`: `initializeFirestore(app, { localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }) })` in place of `getFirestore`.
@@ -60,3 +60,4 @@ Eighth milestone. Make the web app feel like an app on phones: installable to th
 ## Notes
 
 - 2026-10-13: Decided in a grilling session: a home-screen web app rather than a native wrapper (Capacitor would need an Apple developer account and TestFlight or App Store builds). The family uses both Android and iPhone. Silent updates. Noto over Twemoji (Apache 2.0, no credit needed in the app) and over Apple's emoji (not licensed for reuse). Known risk: Google sign-in in iPhone standalone mode can fail because the app (`hyperfnugg.github.io`) and sign-in (`kraftigere.firebaseapp.com`) are on different sites. The usual fix is serving both from the same domain (Firebase Hosting); deferred until it actually breaks.
+- 2026-10-13: Noto's root `LICENSE` became OFL in 2024 (for the fonts), but `2D/svg/LICENSE` is still Apache 2.0, which covers the SVG we use. `public/icons/NOTICE` records the source commit and that licence. The old Vite `favicon.svg` was replaced by the emoji SVG.
