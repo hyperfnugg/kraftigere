@@ -1,12 +1,12 @@
 import { useState, type FormEvent } from 'react'
 import { type User } from 'firebase/auth'
 import { generate } from './ai'
-import { signInWithGoogle, signOut, useUser } from './firebase'
+import { signInWithGoogle, signOut, useOnline, useUser } from './firebase'
 import {
   addEntry,
   removeEntry,
   toggleEntry,
-  useAuthorized,
+  useAccess,
   useEntries,
   type Entry,
 } from './entries'
@@ -32,7 +32,7 @@ type Fact = { entryId: string; text: string; loading: boolean }
 
 export default function App() {
   const { user, loading: userLoading } = useUser()
-  const { authorized, loading: authLoading } = useAuthorized(user)
+  const { access, loading: accessLoading } = useAccess(user)
 
   if (userLoading) return null
 
@@ -46,12 +46,16 @@ export default function App() {
     )
   }
 
-  if (authLoading) return null
+  if (accessLoading) return null
 
-  if (!authorized) {
+  if (access !== 'authorized') {
     return (
       <main style={centerStyle}>
-        <div>Not authorized — ask the admin to add your Google account.</div>
+        <div>
+          {access === 'unreachable'
+            ? "Can't connect — check your connection and try again."
+            : 'Not authorized — ask the admin to add your Google account.'}
+        </div>
         <button style={buttonStyle} onClick={() => signOut()}>
           Sign out
         </button>
@@ -64,6 +68,7 @@ export default function App() {
 
 function List({ user }: { user: User }) {
   const { entries } = useEntries()
+  const online = useOnline()
   const [text, setText] = useState('')
   const [fact, setFact] = useState<Fact | null>(null)
 
@@ -104,6 +109,9 @@ function List({ user }: { user: User }) {
         gap: '1rem',
       }}
     >
+      {!online && (
+        <div style={{ fontSize: '0.875rem', color: '#8a5a00' }}>Offline: changes will sync</div>
+      )}
       <header
         style={{
           display: 'flex',

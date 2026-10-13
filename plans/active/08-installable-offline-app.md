@@ -30,12 +30,12 @@ Eighth milestone. Make the web app feel like an app on phones: installable to th
   - `npm run build` emits `manifest.webmanifest` and `sw.js`.
 - [x] **Commit: installable as Kraft with offline app shell.** *(auto)*
 - [x] **Emulator flag for builds.** Make `src/firebase.ts` and `src/ai.ts` use emulators and the stub whenever `import.meta.env.MODE !== 'production'` instead of `DEV`, so that `vite build --mode e2e` gives a build that runs against emulators. Production `npm run build` must be unchanged; check that `dist/` contains no `demo-kraftigere`.
-- [ ] **Offline data and UI.**
+- [x] **Offline data and UI.**
   - `src/firebase.ts`: `initializeFirestore(app, { localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }) })` in place of `getFirestore`.
   - "Offline: changes will sync" line at the top of the List while `navigator.onLine` is false (listen to `online`/`offline`).
   - `useAuthorized`: only `permission-denied` means not authorized. Any other failure gives a "Can't connect" screen (with a sign-out button) instead of "Not authorized".
   - Lint, build, and existing tests pass.
-- [ ] **Commit: offline cache, offline indicator, can't-connect screen.** *(manual)* (user-visible behaviour; review before committing)
+- [x] **Commit: offline cache, offline indicator, can't-connect screen.** *(manual)* (user-visible behaviour; review before committing)
 - [ ] **E2E: offline.** In `tests/e2e/`, using `context.setOffline()` against the dev server:
   - Going offline shows the offline line, and coming back online hides it.
   - An Entry added offline appears in a second browser after reconnecting.

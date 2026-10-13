@@ -58,18 +58,23 @@ export function useEntries() {
   return { entries, loading }
 }
 
-export function useAuthorized(user: User | null) {
-  const [result, setResult] = useState<{ user: User; authorized: boolean } | null>(null)
+// 'unreachable' means the check failed for another reason than being denied, e.g. offline
+// with nothing cached.
+export type Access = 'authorized' | 'unauthorized' | 'unreachable'
+
+export function useAccess(user: User | null) {
+  const [result, setResult] = useState<{ user: User; access: Access } | null>(null)
 
   useEffect(() => {
     if (!user) return
     let cancelled = false
     getDoc(doc(db, 'config/family')).then(
       () => {
-        if (!cancelled) setResult({ user, authorized: true })
+        if (!cancelled) setResult({ user, access: 'authorized' })
       },
-      () => {
-        if (!cancelled) setResult({ user, authorized: false })
+      (e: { code?: string }) => {
+        if (!cancelled)
+          setResult({ user, access: e.code === 'permission-denied' ? 'unauthorized' : 'unreachable' })
       },
     )
     return () => {
@@ -77,6 +82,6 @@ export function useAuthorized(user: User | null) {
     }
   }, [user])
 
-  const authorized = user && result?.user === user ? result.authorized : null
-  return { authorized, loading: !!user && authorized === null }
+  const access = user && result?.user === user ? result.access : null
+  return { access, loading: !!user && access === null }
 }

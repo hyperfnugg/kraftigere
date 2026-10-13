@@ -9,8 +9,13 @@ import {
   signOut as firebaseSignOut,
   type User,
 } from 'firebase/auth'
-import { connectFirestoreEmulator, getFirestore } from 'firebase/firestore'
-import { useEffect, useState } from 'react'
+import {
+  connectFirestoreEmulator,
+  initializeFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager,
+} from 'firebase/firestore'
+import { useEffect, useState, useSyncExternalStore } from 'react'
 
 const firebaseConfig = {
   apiKey: 'AIzaSyAEAvJBBvR8i7DGtpcGhlc0YmcIC1_kuys',
@@ -37,7 +42,10 @@ if (!useEmulators) {
 }
 
 export const auth = getAuth(app)
-export const db = getFirestore(app)
+// Persistent cache: the List shows offline and offline changes sync on reconnect.
+export const db = initializeFirestore(app, {
+  localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
+})
 
 if (useEmulators) {
   connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true })
@@ -66,4 +74,17 @@ export function useUser() {
   }, [])
 
   return { user, loading }
+}
+
+function subscribeOnline(onChange: () => void) {
+  window.addEventListener('online', onChange)
+  window.addEventListener('offline', onChange)
+  return () => {
+    window.removeEventListener('online', onChange)
+    window.removeEventListener('offline', onChange)
+  }
+}
+
+export function useOnline() {
+  return useSyncExternalStore(subscribeOnline, () => navigator.onLine)
 }
