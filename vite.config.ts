@@ -5,14 +5,15 @@ import { VitePWA } from 'vite-plugin-pwa'
 const cream = '#FFF3D6'
 
 export default defineConfig({
-  base: '/webapp_poc/',
   plugins: [
     react(),
     VitePWA({
       registerType: 'autoUpdate',
+      // Firebase Hosting serves the sign-in handler under /__/auth/; never answer it with index.html.
+      workbox: { navigateFallbackDenylist: [/^\/__\//] },
       manifest: {
-        name: 'Kraft',
-        short_name: 'Kraft',
+        name: 'kraftigere',
+        short_name: 'kraftigere',
         display: 'standalone',
         theme_color: cream,
         background_color: cream,

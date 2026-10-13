@@ -1,4 +1,4 @@
-# Family shopping list
+# kraftigere
 
 A tiny shared shopping list for my family. Open a URL on your phone, add items, check them off. Everyone sees the same list.
 

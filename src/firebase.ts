@@ -19,7 +19,7 @@ import { useEffect, useState, useSyncExternalStore } from 'react'
 
 const firebaseConfig = {
   apiKey: 'AIzaSyAEAvJBBvR8i7DGtpcGhlc0YmcIC1_kuys',
-  authDomain: 'kraftigere.firebaseapp.com',
+  authDomain: 'kraftigere.web.app',
   projectId: 'kraftigere',
   storageBucket: 'kraftigere.firebasestorage.app',
   messagingSenderId: '934401063813',

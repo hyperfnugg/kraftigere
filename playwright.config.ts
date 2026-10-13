@@ -1,9 +1,8 @@
 import { defineConfig, devices } from '@playwright/test'
 
-const base = '/webapp_poc/'
-const baseURL = `http://localhost:5173${base}`
+const baseURL = 'http://localhost:5173/'
 // A production-style build against the emulators, for service worker and manifest tests.
-const previewURL = `http://localhost:4173${base}`
+const previewURL = 'http://localhost:4173/'
 
 export default defineConfig({
   testDir: 'tests/e2e',
