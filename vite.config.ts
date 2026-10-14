@@ -12,8 +12,8 @@ export default defineConfig({
       // Firebase Hosting serves the sign-in handler under /__/auth/; never answer it with index.html.
       workbox: { navigateFallbackDenylist: [/^\/__\//] },
       manifest: {
-        name: 'kraftigere',
-        short_name: 'kraftigere',
+        name: 'Kraft',
+        short_name: 'Kraft',
         display: 'standalone',
         theme_color: cream,
         background_color: cream,
