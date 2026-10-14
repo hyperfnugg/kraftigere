@@ -58,7 +58,7 @@ Ninth milestone. Move the app from GitHub Pages (`hyperfnugg.github.io/webapp_po
   - README: the Stack line says Firebase Hosting, and mentions of GitHub Pages are gone.
   - ADR 0001: `deploy.yml` now deploys to Firebase. The `GITHUB_TOKEN` and `workflow_dispatch` reasoning still holds.
   - Update the memory note on API key referrers if the allowed-sites list changed what it says.
-- [ ] **Commit: ADR 0002 and docs for Firebase Hosting.** *(auto)*
+- [x] **Commit: ADR 0002 and docs for Firebase Hosting.** *(auto)*
 - [ ] **Move plan to `plans/done/`.** `git mv plans/active/09-kraftigere-on-firebase-hosting.md plans/done/09-kraftigere-on-firebase-hosting.md`.
 - [ ] **Commit: complete kraftigere-on-firebase-hosting milestone.** *(auto)*
 
