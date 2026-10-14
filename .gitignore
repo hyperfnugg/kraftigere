@@ -29,3 +29,6 @@ dist-ssr
 /playwright-report/
 /.playwright-mcp/
 /dist-e2e/
+
+# Firebase CLI deploy cache
+.firebase/

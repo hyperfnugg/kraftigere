@@ -17,3 +17,4 @@ Every Dependabot PR (npm and GitHub Actions, majors included) is merged and depl
 - Runtime breakage the e2e cases don't cover will reach the family. This is accepted. Things that run only in production, such as App Check, real Google sign-in and Gemini, aren't exercised by the emulator-based tests.
 - A PR that fails the check stays open until a human (or, later, Claude in CI) fixes it. That includes security fixes that need a breaking major.
 - No update tooling can protect against a true zero-day (no fix exists yet). Dependabot alert emails are the backstop.
+- Merged updates deploy to Firebase Hosting and Firestore rules through the keyless deploy identity (ADR 0002). It only accepts runs on `main`, so a PR that changes a workflow can't deploy until it is merged.

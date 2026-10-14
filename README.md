@@ -19,7 +19,7 @@ A tiny shared shopping list for my family. Open a URL on your phone, add items, 
 
 ## Stack
 
-- **Frontend:** React + TypeScript, built with Vite, hosted as a static SPA on GitHub Pages. No router (single screen), no state manager (Firestore is the state).
+- **Frontend:** React + TypeScript, built with Vite, hosted as a static SPA on Firebase Hosting at `https://kraftigere.web.app/` (see `docs/adr/0002-firebase-hosting.md`). No router (single screen), no state manager (Firestore is the state).
 - **Styling:** inline styles where possible. No CSS framework, no animations, no transitions, no icon library — nothing that isn't load-bearing.
 - **Auth:** Firebase Auth with Google provider (Google SSO).
 - **State:** Firestore, access gated by security rules on the signed-in user.
