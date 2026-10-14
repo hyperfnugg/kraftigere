@@ -52,15 +52,15 @@ Ninth milestone. Move the app from GitHub Pages (`hyperfnugg.github.io/webapp_po
 - [x] **User-facing name back to "Kraft".** Manifest `name` and `short_name` in `vite.config.ts`, `<title>` in `index.html`, and plan 08's install step and done-when.
 - [x] **Commit: user-facing name Kraft.** *(manual)* (user-visible name; review before committing)
 - [x] **Verify the CI deploy.** *(user)* Push. The deploy run succeeds, the Firebase console shows a new Hosting release and a new Firestore rules release, and `https://kraftigere.web.app/` still signs in.
-- [ ] **Remove `github.io` from allowlists.** *(user)* Remove `hyperfnugg.github.io` from the API key's HTTP referrers, the reCAPTCHA site's domains and Firebase Auth's authorized domains.
+- [x] **Remove `github.io` from allowlists.** *(user)* Remove `hyperfnugg.github.io` from the API key's HTTP referrers, the reCAPTCHA site's domains and Firebase Auth's authorized domains.
 - [x] **Docs.**
   - `docs/adr/0002-firebase-hosting.md`: host on Firebase Hosting at `kraftigere.web.app`. Why: same-domain sign-in for the installed app, root path, headers, one deploy for hosting and rules. Consequences: an installed app and its offline cache belong to their domain, so moving domains again (including to a custom domain) means reinstalling. CI uses Workload Identity Federation bound to `hyperfnugg/kraftigere` on `main`, so renaming the repo again means updating the provider condition. Considered: staying on GitHub Pages (cross-site sign-in), a service account key (long-lived secret).
   - README: the Stack line says Firebase Hosting, and mentions of GitHub Pages are gone.
   - ADR 0001: `deploy.yml` now deploys to Firebase. The `GITHUB_TOKEN` and `workflow_dispatch` reasoning still holds.
   - Update the memory note on API key referrers if the allowed-sites list changed what it says.
 - [x] **Commit: ADR 0002 and docs for Firebase Hosting.** *(auto)*
-- [ ] **Move plan to `plans/done/`.** `git mv plans/active/09-kraftigere-on-firebase-hosting.md plans/done/09-kraftigere-on-firebase-hosting.md`.
-- [ ] **Commit: complete kraftigere-on-firebase-hosting milestone.** *(auto)*
+- [x] **Move plan to `plans/done/`.** `git mv plans/active/09-kraftigere-on-firebase-hosting.md plans/done/09-kraftigere-on-firebase-hosting.md`.
+- [x] **Commit: complete kraftigere-on-firebase-hosting milestone.** *(auto)*
 
 ## Done when
 
