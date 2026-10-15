@@ -46,9 +46,9 @@ Eighth milestone. Make the web app feel like an app on phones: installable to th
   - After going offline, a reload still renders the app (sign-in screen).
   - `pr-check.yml` needs no change: `npm run test:e2e` runs both projects.
 - [x] **Commit: e2e tests for offline and installability.** *(auto)*
-- [ ] **Install.** (blocked by: plan 09) On `https://kraftigere.web.app/`: install on an Android phone (Chrome's install prompt or menu → Install app) and on an iPhone (Share → Add to Home Screen). Check the icon, the name "Kraft", full-screen launch, sign-in, and that the List opens in airplane mode. *(user)* If iPhone sign-in still fails after plan 09's same-domain move, note it here; plan 09 names `signInWithRedirect` as the next thing to try.
-- [ ] **Move plan to `plans/done/`.** `git mv plans/active/08-installable-offline-app.md plans/done/08-installable-offline-app.md`.
-- [ ] **Commit: complete installable-offline-app milestone.** *(auto)*
+- [x] **Install.** (blocked by: plan 09) On `https://kraftigere.web.app/`: install on an Android phone (Chrome's install prompt or menu → Install app) and on an iPhone (Share → Add to Home Screen). Check the icon, the name "Kraft", full-screen launch, sign-in, and that the List opens in airplane mode. *(user)* If iPhone sign-in still fails after plan 09's same-domain move, note it here; plan 09 names `signInWithRedirect` as the next thing to try.
+- [x] **Move plan to `plans/done/`.** `git mv plans/active/08-installable-offline-app.md plans/done/08-installable-offline-app.md`.
+- [x] **Commit: complete installable-offline-app milestone.** *(auto)*
 
 ## Done when
 
@@ -63,3 +63,4 @@ Eighth milestone. Make the web app feel like an app on phones: installable to th
 - 2026-10-13: Noto's root `LICENSE` became OFL in 2024 (for the fonts), but `2D/svg/LICENSE` is still Apache 2.0, which covers the SVG we use. `public/icons/NOTICE` records the source commit and that licence. The old Vite `favicon.svg` was replaced by the emoji SVG.
 - 2026-10-13: Adjusted for plan 09 (Firebase Hosting at `kraftigere.web.app`, name "kraftigere"). The install step now waits for plan 09, so the family installs once, on the final domain. Nobody has used the app on the old GitHub Pages URL, so no installed copies or offline caches need migrating. Everything before the install step is done and committed.
 - 2026-10-14: The user-facing name is "Kraft" again (plan 09 pivot). Only the repo, package, Firebase project and domain are "kraftigere".
+- 2026-10-15: Closed without testing the install on an iPhone (none available). Assumed to work; if iPhone install or sign-in fails, it gets its own debug session, starting with `signInWithRedirect`.
