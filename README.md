@@ -1,21 +1,22 @@
 # kraftigere
 
-A tiny shared shopping list for my family. Open a URL on your phone, add items, check them off. Everyone sees the same list.
+**Kraft** is our family's coordination tool: the one place for what we need to buy, plan and do. It starts with a shared shopping list and grows with what the family actually uses. Where it's heading is in [`ROADMAP.md`](ROADMAP.md).
 
 ## Principles
 
-- **Tiny first.** Smallest thing that works. No settings page, no admin UI.
-- **Shared by default.** State syncs across devices in near-real-time.
-- **Low-friction access.** Open a URL on any phone browser — no install, one-tap Google sign-in.
-- **No backend to run.** Static frontend plus managed services only.
-- **Expand only when needed.** Add features when real use reveals the need.
+- **One place for the family.** Shared by default, synced across phones within seconds.
+- **Built to change.** The roadmap shifts as ideas come up. Small steps, easy to undo or rework.
+- **Low friction.** Installed on the home screen, one-tap Google sign-in, works offline.
+- **No backend to run.** Static frontend plus managed services, until a feature truly needs a server.
+- **AI where it saves effort.** For planning and suggestions, never required for the basics.
 
-## Features
+## What it does today
 
-- One shared list, scoped to signed-in family members.
-- Add item, check item off, remove item.
-- Updates appear on other devices within a few seconds.
-- Works on a phone browser.
+- One shared shopping List, for signed-in Family Members only.
+- Add an Entry, check it off, uncheck it, remove it.
+- Changes appear on other phones within a few seconds.
+- Installs to the home screen and works offline; changes sync when back online.
+- A fun fact from Gemini on the newest unchecked Entry.
 
 ## Stack
 

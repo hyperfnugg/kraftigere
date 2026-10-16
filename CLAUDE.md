@@ -10,6 +10,7 @@ Multi-step work lives in `plans/active/<NN>-<kebab-name>.md`, where `<NN>` is th
 - **Commits are per-step or per-coherent-chunk**, not one commit per plan. A plan will typically span several commits.
 - **When the plan is complete**, `git mv plans/active/<name>.md plans/done/<name>.md` in its own commit (or bundled with the final step if small).
 - One plan per milestone. Don't accumulate tiny TODOs here — those belong in conversation or a commit.
+- Ideas live in `ROADMAP.md`, one line each. An idea becomes a plan when work on it starts.
 - Don't duplicate plan content in `README.md` or this file.
 
 ## Commits

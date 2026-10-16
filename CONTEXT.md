@@ -1,18 +1,30 @@
-# Family lists
+# Family coordination
 
-Shared lists for a family: shopping, and later chores and other kinds. A Family's Lists are shared by all its Family Members.
+The family's one place for what to buy, plan and do. It starts with shared Lists, shopping first. A Family's Lists are shared by all its Family Members.
 
 ## Language
 
 ### Lists
 
 **List**:
-A collection of Entries belonging to at most one Family, which can have many Lists. Lists are never shared across Families. A possible future Personal List would belong to one Family Member and be visible only to them.
+A collection of Entries belonging to at most one Family, which can have many Lists, including several of the same List Kind (kids' clothes and IKEA are separate shopping Lists). Lists are never shared across Families.
 _Avoid_: Shopping list (one List Kind, not the general concept)
 
 **List Kind**:
-What a List is for, such as shopping or chores. Every Entry on a List is of the List's kind. Shopping is the only List Kind today.
+What a List is for, such as shopping or to-do. Every Entry on a List is of the List's kind, and the List Kind decides how the List behaves. Shopping is the only List Kind today.
 _Avoid_: List type, category
+
+**Groceries**:
+A List Kind that is a kind of shopping, for food and household goods bought again and again. A Groceries List has everything a shopping List has, plus behaviour of its own.
+_Avoid_: Food list
+
+**Personal List**:
+A List that belongs to one Family Member and is visible only to them. Every List is either the Family's or Personal, never shared by only some Family Members.
+_Avoid_: Private list
+
+**Template**:
+A saved List to start new Lists from, such as packing for a cabin trip. Creating a List from a Template copies its Entries. Later changes to the Template don't affect Lists already made from it.
+_Avoid_: Preset, blueprint
 
 **Entry**:
 One line on a List.
