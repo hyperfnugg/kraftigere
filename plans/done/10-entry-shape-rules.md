@@ -25,9 +25,9 @@ Tenth milestone. Make `firestore.rules` define the shape of an Entry, as ADR 000
 - [x] **Rules tests.** In `tests/rules/firestore.test.ts`: the seeded Entry gets a `createdAt`. The existing write case writes a valid Entry. New cases: a valid create succeeds; creates with an extra field, a missing field, an empty or too-long `text`, `checked: true`, or a client-chosen `createdAt` fail; toggling `checked` succeeds; changing `text` or adding a field on update fails. `npm run test:rules`, `npm run test:e2e`, lint and build pass.
 - [x] **Commit: Firestore rules define the Entry shape.** *(manual)* (security rules; review before committing)
 - [x] **Check production data.** *(user)* In the Firebase console, check that existing Entries in `entries` have only `text`, `checked` and `createdAt`. Updates only check the changed keys, so older extra fields wouldn't block checking off, but note any here.
-- [ ] **Deploy and check.** Push. CI deploys the rules. On `https://kraftigere.web.app/`: add, check off, uncheck and remove an Entry. *(user)*
-- [ ] **Move plan to `plans/done/`.** `git mv plans/active/10-entry-shape-rules.md plans/done/10-entry-shape-rules.md`, and remove it from **Now** in `ROADMAP.md`.
-- [ ] **Commit: complete entry-shape-rules milestone.** *(auto)*
+- [x] **Deploy and check.** Push. CI deploys the rules. On `https://kraftigere.web.app/`: add, check off, uncheck and remove an Entry. *(user)*
+- [x] **Move plan to `plans/done/`.** `git mv plans/active/10-entry-shape-rules.md plans/done/10-entry-shape-rules.md`, and remove it from **Now** in `ROADMAP.md`.
+- [x] **Commit: complete entry-shape-rules milestone.** *(auto)*
 
 ## Done when
 

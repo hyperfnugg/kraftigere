@@ -5,7 +5,6 @@ Where Kraft is heading. It changes often. Ideas are one line each, cheap to add 
 ## Now
 
 - [Dependency maintenance](plans/active/05-dependency-maintenance.md)
-- [Entry shape rules](plans/active/10-entry-shape-rules.md)
 
 ## Next
 
