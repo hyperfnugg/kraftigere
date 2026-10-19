@@ -18,7 +18,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "@firebase/rules-unit-testing": "^5.0.2",
+    "@firebase/rules-unit-testing": "^6.0.0",
     "@playwright/mcp": "^0.0.83",
     "@playwright/test": "^1.64.0",
     "@types/node": "^24.19.2",
