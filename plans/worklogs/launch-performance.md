@@ -36,6 +36,7 @@ Splitting the local cases (one-off runs):
 
 - **Cached launch is network-bound, even though the code is on the phone.** Most of the ~0.9 s is round trips: the access check (`getDoc` on `config/family`) waits for the server before anything renders, and Firestore's connection takes several round trips to set up. Parsing and running our code costs about 0.3 s on a 4x-slower CPU.
 - **Hard reload is download-bound.** It's our 257 KB bundle locally. The live site adds about 450 KB of reCAPTCHA (script, CSS, a Roboto font, a frame) for App Check, at launch, although only the Gemini fun fact needs App Check.
+- **The live hard reload's 1 MB is mostly reCAPTCHA.** Its 346 KB `recaptcha__en.js` downloads twice: once for the page, once more inside reCAPTCHA's hidden `www.google.com` frame. Normally the second copy comes from the HTTP cache (a cached first visit is about 670 KB); a hard reload disables the cache. In total reCAPTCHA is about 760 KB of the 1012 KB, against 217 KB for our app.
 - **Live, signed-out cached launch is fast (0.55 s).** No Firestore, and reCAPTCHA doesn't block the sign-in button.
 - Our bundle is a single 883 KB file (264 KB gzip, 217 KB brotli). Most of it is the Firestore SDK, which carries real-time sync and the offline cache. Firestore Lite would drop both, so it's not an option.
 
