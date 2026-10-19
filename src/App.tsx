@@ -134,6 +134,7 @@ function List({ user }: { user: User }) {
         <input
           value={text}
           onChange={(e) => setText(e.target.value)}
+          maxLength={500}
           placeholder="Add item"
           style={{ flex: 1, fontSize: '1rem', padding: '0.5rem' }}
         />

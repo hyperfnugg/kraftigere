@@ -17,12 +17,13 @@ Tenth milestone. Make `firestore.rules` define the shape of an Entry, as ADR 000
 
 ## Steps
 
-- [ ] **Shape rules.** In `firestore.rules`, split `/entries/{id}` into `read`, `create`, `update` and `delete`, all requiring `isFamily()`:
+- [x] **Shape rules.** In `firestore.rules`, split `/entries/{id}` into `read`, `create`, `update` and `delete`, all requiring `isFamily()`:
   - `create`: keys are exactly `text`, `checked`, `createdAt`. `text` is a string, 1 to 500 characters. `checked == false`. `createdAt == request.time` (what `serverTimestamp()` sends).
   - `update`: only `checked` changes, and it is a boolean.
   - `read` and `delete`: unchanged.
-- [ ] **Rules tests.** In `tests/rules/firestore.test.ts`: the seeded Entry gets a `createdAt`. The existing write case writes a valid Entry. New cases: a valid create succeeds; creates with an extra field, a missing field, an empty or too-long `text`, `checked: true`, or a client-chosen `createdAt` fail; toggling `checked` succeeds; changing `text` or adding a field on update fails. `npm run test:rules`, `npm run test:e2e`, lint and build pass.
-- [ ] **Commit: Firestore rules define the Entry shape.** *(manual)* (security rules; review before committing)
+  - The add input gets `maxLength={500}`, so the app can't send text the rules refuse (a refused offline add would silently disappear).
+- [x] **Rules tests.** In `tests/rules/firestore.test.ts`: the seeded Entry gets a `createdAt`. The existing write case writes a valid Entry. New cases: a valid create succeeds; creates with an extra field, a missing field, an empty or too-long `text`, `checked: true`, or a client-chosen `createdAt` fail; toggling `checked` succeeds; changing `text` or adding a field on update fails. `npm run test:rules`, `npm run test:e2e`, lint and build pass.
+- [x] **Commit: Firestore rules define the Entry shape.** *(manual)* (security rules; review before committing)
 - [ ] **Check production data.** *(user)* In the Firebase console, check that existing Entries in `entries` have only `text`, `checked` and `createdAt`. Updates only check the changed keys, so older extra fields wouldn't block checking off, but note any here.
 - [ ] **Deploy and check.** Push. CI deploys the rules. On `https://kraftigere.web.app/`: add, check off, uncheck and remove an Entry. *(user)*
 - [ ] **Move plan to `plans/done/`.** `git mv plans/active/10-entry-shape-rules.md plans/done/10-entry-shape-rules.md`, and remove it from **Now** in `ROADMAP.md`.

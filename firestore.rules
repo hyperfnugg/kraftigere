@@ -12,8 +12,21 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // The Entry shape the app writes. See docs/adr/0003-data-shape-changes.md.
+    function isNewEntry(data) {
+      return data.keys().hasOnly(['text', 'checked', 'createdAt']) &&
+             data.keys().hasAll(['text', 'checked', 'createdAt']) &&
+             data.text is string && data.text.size() >= 1 && data.text.size() <= 500 &&
+             data.checked == false &&
+             data.createdAt == request.time;
+    }
+
     match /entries/{entryId} {
-      allow read, write: if isFamily();
+      allow read, delete: if isFamily();
+      allow create: if isFamily() && isNewEntry(request.resource.data);
+      allow update: if isFamily() &&
+                       request.resource.data.diff(resource.data).affectedKeys().hasOnly(['checked']) &&
+                       request.resource.data.checked is bool;
     }
   }
 }
