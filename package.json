@@ -20,20 +20,20 @@
     "@eslint/js": "^10.0.1",
     "@firebase/rules-unit-testing": "^5.0.2",
     "@playwright/mcp": "^0.0.83",
-    "@playwright/test": "^1.63.0",
-    "@types/node": "^24.12.2",
+    "@playwright/test": "^1.64.0",
+    "@types/node": "^24.19.2",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.1",
     "eslint": "^10.2.1",
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.2",
-    "firebase-tools": "^15.32.1",
+    "firebase-tools": "^15.33.0",
     "globals": "^17.5.0",
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.71.1",
-    "vite": "^8.0.10",
+    "vite": "^8.3.4",
     "vite-plugin-pwa": "^2.0.0",
-    "vitest": "^5.0.3"
+    "vitest": "^5.0.4"
   }
 }
