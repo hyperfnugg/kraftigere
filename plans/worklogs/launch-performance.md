@@ -38,7 +38,17 @@ Splitting the local cases (one-off runs):
 - **Hard reload is download-bound.** It's our 257 KB bundle locally. The live site adds about 450 KB of reCAPTCHA (script, CSS, a Roboto font, a frame) for App Check, at launch, although only the Gemini fun fact needs App Check.
 - **The live hard reload's 1 MB is mostly reCAPTCHA.** Its 346 KB `recaptcha__en.js` downloads twice: once for the page, once more inside reCAPTCHA's hidden `www.google.com` frame. Normally the second copy comes from the HTTP cache (a cached first visit is about 670 KB); a hard reload disables the cache. In total reCAPTCHA is about 760 KB of the 1012 KB, against 217 KB for our app.
 - **Live, signed-out cached launch is fast (0.55 s).** No Firestore, and reCAPTCHA doesn't block the sign-in button.
-- Our bundle is a single 883 KB file (264 KB gzip, 217 KB brotli). Most of it is the Firestore SDK, which carries real-time sync and the offline cache. Firestore Lite would drop both, so it's not an option.
+- **Our bundle is a single 883 KB file (264 KB gzip, 217 KB brotli), and unused code is already removed.** Vite's build drops what isn't imported, and Firebase's modular SDK is built for that. A one-off build split by package:
+
+  | Part | Minified | Gzip |
+  |---|---|---|
+  | Firestore | 515 KB | 151 KB |
+  | Main file: React and React DOM, Firebase's shared core, our code | 225 KB | 71 KB |
+  | Firebase Auth | 70 KB | 21 KB |
+  | Firebase AI (Gemini) | 59 KB | 18 KB |
+  | App Check | 14 KB | 5 KB |
+
+  Firestore's size comes from real-time listeners, the offline cache, multi-tab support and its network protocol; Firestore Lite would drop the first two, so it's not an option. Only AI and App Check (23 KB gzip) are easy to load on demand, and doing so also keeps reCAPTCHA off launch. Preact instead of React would save about 40 KB gzip. Not worth it while cached launch is limited by Firestore's round trips rather than parsing.
 
 ## Hypotheses, not yet tested
 
