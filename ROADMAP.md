@@ -5,6 +5,7 @@ Where Kraft is heading. It changes often. Ideas are one line each, cheap to add 
 ## Now
 
 - [Dependency maintenance](plans/active/05-dependency-maintenance.md)
+- [Fast launch](plans/active/11-fast-launch.md)
 
 ## Next
 
