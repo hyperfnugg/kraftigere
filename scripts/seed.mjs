@@ -39,11 +39,16 @@ async function seedAccounts() {
 
 export async function seed() {
   await seedAccounts()
+  await setMembers(MEMBERS)
+}
+
+// Replaces the Family's members, as the Admin would in the console.
+export async function setMembers(members) {
   const res = await fetch(`${documents}/config/family`, {
     method: 'PATCH',
     headers,
     body: JSON.stringify({
-      fields: { members: { arrayValue: { values: MEMBERS.map((m) => ({ stringValue: m })) } } },
+      fields: { members: { arrayValue: { values: members.map((m) => ({ stringValue: m })) } } },
     }),
   })
   if (!res.ok) throw new Error(`seed failed: ${res.status} ${await res.text()}`)

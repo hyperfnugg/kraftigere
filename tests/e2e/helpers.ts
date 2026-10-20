@@ -1,6 +1,6 @@
 import { expect, type Page } from '@playwright/test'
 
-export { MEMBERS, OUTSIDER, reset, seed } from '../../scripts/seed.mjs'
+export { MEMBERS, OUTSIDER, reset, seed, setMembers } from '../../scripts/seed.mjs'
 
 // Completes the Auth emulator's fake Google popup with a seeded account.
 export async function completeGooglePopup(page: Page, email: string) {

@@ -1,5 +1,15 @@
 import { expect, test } from '@playwright/test'
-import { MEMBERS, OUTSIDER, addEntry, completeGooglePopup, entry, reset, seed, signIn } from './helpers'
+import {
+  MEMBERS,
+  OUTSIDER,
+  addEntry,
+  completeGooglePopup,
+  entry,
+  reset,
+  seed,
+  setMembers,
+  signIn,
+} from './helpers'
 
 test.beforeEach(async () => {
   await reset()
@@ -15,6 +25,15 @@ test('a non-member sees the not-authorized screen', async ({ page }) => {
   await completeGooglePopup(page, OUTSIDER)
   await expect(page.getByText('Not authorized')).toBeVisible()
   await expect(page.getByPlaceholder('Add item')).toHaveCount(0)
+})
+
+test('a Family Member removed by the Admin ends on Not authorized, despite the cached List', async ({ page }) => {
+  await signIn(page, MEMBERS[0])
+  await addEntry(page, 'milk')
+  await setMembers([MEMBERS[1]])
+  await page.reload()
+  await expect(page.getByText('Not authorized')).toBeVisible()
+  await expect(entry(page, 'milk')).toHaveCount(0)
 })
 
 test('add, check off, uncheck and remove an Entry', async ({ page }) => {

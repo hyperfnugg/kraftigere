@@ -6,6 +6,8 @@ import {
   deleteDoc,
   doc,
   getDoc,
+  getDocFromCache,
+  getDocFromServer,
   onSnapshot,
   orderBy,
   query,
@@ -68,14 +70,24 @@ export function useAccess(user: User | null) {
   useEffect(() => {
     if (!user) return
     let cancelled = false
-    getDoc(doc(db, 'config/family')).then(
+    const family = doc(db, 'config/family')
+    const set = (access: Access) => {
+      if (!cancelled) setResult({ user, access })
+    }
+    getDocFromCache(family).then(
       () => {
-        if (!cancelled) setResult({ user, access: 'authorized' })
+        // Seen before on this device: show the List now and confirm in the background.
+        // Only a denial overrides the cached answer; being offline doesn't.
+        set('authorized')
+        getDocFromServer(family).catch((e: { code?: string }) => {
+          if (e.code === 'permission-denied') set('unauthorized')
+        })
       },
-      (e: { code?: string }) => {
-        if (!cancelled)
-          setResult({ user, access: e.code === 'permission-denied' ? 'unauthorized' : 'unreachable' })
-      },
+      () =>
+        getDoc(family).then(
+          () => set('authorized'),
+          (e: { code?: string }) => set(e.code === 'permission-denied' ? 'unauthorized' : 'unreachable'),
+        ),
     )
     return () => {
       cancelled = true
