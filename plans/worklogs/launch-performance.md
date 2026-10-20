@@ -32,6 +32,17 @@ Splitting the local cases (one-off runs):
 | Local, cached | 846 ms | 322 ms |
 | Local, hard reload | 2436 ms | 238 ms |
 
+## After plan 11 steps 1–2, 2026-10-20
+
+App Check and Gemini load on the first fun fact; the List shows from the cache while access is checked.
+
+| Case | Baseline | After |
+|---|---|---|
+| Local, cached | 929 ms | 427 ms |
+| Local, hard reload | 2482 ms | 1914 ms |
+| Live signed out, cached | 552 ms | after deploy |
+| Live signed out, hard reload | 6471 ms / 1016 KB | after deploy |
+
 ## Findings
 
 - **Cached launch is network-bound, even though the code is on the phone.** Most of the ~0.9 s is round trips: the access check (`getDoc` on `config/family`) waits for the server before anything renders, and Firestore's connection takes several round trips to set up. Parsing and running our code costs about 0.3 s on a 4x-slower CPU.
