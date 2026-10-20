@@ -40,8 +40,8 @@ App Check and Gemini load on the first fun fact; the List shows from the cache w
 |---|---|---|
 | Local, cached | 929 ms | 427 ms |
 | Local, hard reload | 2482 ms | 1914 ms |
-| Live signed out, cached | 552 ms | after deploy |
-| Live signed out, hard reload | 6471 ms / 1016 KB | after deploy |
+| Live signed out, cached | 552 ms | 207 ms |
+| Live signed out, hard reload | 6471 ms / 1016 KB | 1464 ms / 208 KB |
 
 ## Findings
 
