@@ -23,10 +23,11 @@ Eleventh milestone. Make Kraft open faster, especially the installed app on Andr
 
 ## Steps
 
-- [ ] **Load App Check and Gemini on demand.** `src/firebase.ts` no longer imports or starts App Check. `src/ai.ts` imports `firebase/app-check` and `firebase/ai` dynamically on the first `generate()` call, starts App Check (same reCAPTCHA v3 key, auto refresh) and then the model, and reuses both on later calls. With emulators it still returns the stub without importing anything. Check:
-  - `npm run build` emits AI and App Check as separate chunks, and the main chunk shrinks by about 23 KB gzip.
+- [x] **Load App Check and Gemini on demand.** `src/firebase.ts` no longer imports or starts App Check. `src/ai.ts` imports `firebase/app-check` and `firebase/ai` dynamically on the first `generate()` call, starts App Check (same reCAPTCHA v3 key, auto refresh) and then the model, and reuses both on later calls. With emulators it still returns the stub without importing anything. Check:
+  - `npm run build` emits AI and App Check as separate chunks. The main chunk went from 264 to 252 KB gzip (12 KB rather than the estimated 23 KB; some code is shared with Firestore and Auth).
+  - The production build contacts no reCAPTCHA or Google host at launch (checked with `vite preview`).
   - Lint, build, rules and e2e tests pass (the fun-fact e2e covers the stub path).
-- [ ] **Commit: load App Check and Gemini only for the fun fact.** *(manual)* (App Check is a security control; review before committing)
+- [x] **Commit: load App Check and Gemini only for the fun fact.** *(manual)* (App Check is a security control; review before committing)
 - [ ] **Show the cached List first.** `useAccess` in `src/entries.ts`: read `config/family` from the cache first (`getDocFromCache`). If it's there, report `authorized` at once, then confirm against the server in the background. A `permission-denied` from the server switches to "Not authorized", and any other failure is ignored while the cached answer stands. With nothing cached, behave as today (wait for the server; `permission-denied` → not authorized, other failures → "Can't connect"). Add an e2e test: a Family Member signs in, is then removed from `config/family` (via the seed helpers, rules disabled), reloads, and ends on "Not authorized". Existing offline and not-authorized tests still pass.
 - [ ] **Commit: show the cached List while access is checked.** *(manual)* (access gate and user-visible behaviour; review before committing)
 - [ ] **Measure.** `npm run perf`. Add an "After steps 1–2" table to the worklog next to the baseline (local cached, local hard reload, live cached, live hard reload). The live numbers only change after deploying, so measure live after the next step.
@@ -52,3 +53,4 @@ Eleventh milestone. Make Kraft open faster, especially the installed app on Andr
 ## Notes
 
 - 2026-10-20: Made from the launch-performance worklog. Baseline (slow 4G, 4x CPU): local cached 929 ms, local hard reload 2482 ms, live signed-out cached 552 ms, live hard reload 6471 ms / 1016 KB (about 760 KB of it reCAPTCHA). Cached launch is network-bound (846 ms network-only against 322 ms CPU-only). The quieter update depends on the phone test after steps 1–2.
+- 2026-10-20: App Check is in monitoring (not enforced) for Firestore and Authentication, so step 1 works. With App Check loaded only for the fun fact, the monitoring graphs will show most Firestore and Auth requests as unverified. Never enforce App Check for them, or the List breaks.

@@ -1,5 +1,4 @@
 import { initializeApp } from 'firebase/app'
-import { initializeAppCheck, ReCaptchaV3Provider } from 'firebase/app-check'
 import {
   connectAuthEmulator,
   getAuth,
@@ -33,13 +32,6 @@ export const useEmulators = import.meta.env.MODE !== 'production'
 export const app = initializeApp(
   useEmulators ? { apiKey: 'demo', authDomain: 'localhost', projectId: 'demo-kraftigere', appId: 'demo-app' } : firebaseConfig,
 )
-
-if (!useEmulators) {
-  initializeAppCheck(app, {
-    provider: new ReCaptchaV3Provider('6LdWdOosAAAAAD-CgahJPqpZb3pi8A06Bv5-rkh-'),
-    isTokenAutoRefreshEnabled: true,
-  })
-}
 
 export const auth = getAuth(app)
 // Persistent cache: the List shows offline and offline changes sync on reconnect.
