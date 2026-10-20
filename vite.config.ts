@@ -4,7 +4,17 @@ import { VitePWA } from 'vite-plugin-pwa'
 
 const cream = '#FFF3D6'
 
+// Dependencies loaded at launch get their own chunk, so an ordinary deploy changes only the
+// small app chunk: phones download less after a deploy and keep Chrome's compiled code for
+// the libraries. Gemini and App Check stay out of it; they load on the first fun fact.
+function chunkFor(id: string) {
+  if (!id.includes('/node_modules/')) return
+  if (/\/node_modules\/(@firebase\/(ai|app-check)|firebase\/(ai|app-check))\//.test(id)) return
+  return 'libraries'
+}
+
 export default defineConfig({
+  build: { rolldownOptions: { output: { manualChunks: chunkFor } } },
   plugins: [
     react(),
     VitePWA({
