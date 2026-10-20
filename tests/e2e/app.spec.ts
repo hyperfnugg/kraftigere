@@ -18,13 +18,13 @@ test.beforeEach(async () => {
 
 test('a Family Member signs in and sees the List', async ({ page }) => {
   await signIn(page, MEMBERS[0])
-  await expect(page.getByPlaceholder('Add item')).toBeVisible()
+  await expect(page.getByPlaceholder('Add entry')).toBeVisible()
 })
 
 test('a non-member sees the not-authorized screen', async ({ page }) => {
   await completeGooglePopup(page, OUTSIDER)
   await expect(page.getByText('Not authorized')).toBeVisible()
-  await expect(page.getByPlaceholder('Add item')).toHaveCount(0)
+  await expect(page.getByPlaceholder('Add entry')).toHaveCount(0)
 })
 
 test('a Family Member removed by the Admin ends on Not authorized, despite the cached List', async ({ page }) => {

@@ -23,7 +23,7 @@ export async function signIn(page: Page, email: string) {
 }
 
 export async function addEntry(page: Page, text: string) {
-  await page.getByPlaceholder('Add item').fill(text)
+  await page.getByPlaceholder('Add entry').fill(text)
   await page.getByRole('button', { name: 'Add', exact: true }).click()
   await expect(entry(page, text)).toBeVisible()
 }
