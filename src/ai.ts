@@ -4,7 +4,7 @@ import { app, useEmulators } from './firebase'
 let model: Promise<GenerativeModel> | undefined
 
 // Loaded on the first fun fact, so App Check's reCAPTCHA and the AI SDK stay out of launch.
-// App Check only protects Gemini; Firestore and Auth must not enforce it.
+// App Check only protects Gemini; Firestore and Auth must not enforce it (ADR 0004).
 function loadModel() {
   model ??= (async () => {
     const [{ initializeAppCheck, ReCaptchaV3Provider }, { GoogleAIBackend, getAI, getGenerativeModel }] =
