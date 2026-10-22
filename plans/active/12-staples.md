@@ -33,8 +33,8 @@ Twelfth milestone. Today's List becomes the Groceries List, and every Entry adde
 - [x] **Autocomplete.** The app listens to `staples` (the persistent cache makes it instant and keeps it fresh, so no separate side-loading is needed). While typing, up to 5 suggestions show under the input: Staples whose name starts with the text first, then ones containing it, each group ordered by `addCount`. Tapping a suggestion adds an Entry for it. Submitting text adds the Staple whose normalized name matches, or creates a new one.
   - e2e: adding "Melk" twice and "melk " once gives one Staple with `addCount` 3. Typing "me" suggests it. Tapping the suggestion adds an Entry.
 - [x] **Commit: autocomplete over Staples.** *(auto)*
-- [ ] **Migration script.** `scripts/migrate-12-staples.mjs` using the Admin SDK: for each Entry without `staple`, create or count its Staple from `text` and set `staple`. It's idempotent: Entries that already have a Staple are skipped. Run it against the emulator with seeded data first. Running it against production is the next step. Update `scripts/seed.mjs` so seeded Entries have Staples.
-- [ ] **Commit: migration script for Staples.** *(auto)*
+- [x] **Migration script.** `scripts/migrate-12-staples.mjs` using the Admin SDK: for each Entry without `staple`, create or count its Staple from `text` and set `staple`. It's idempotent: Entries that already have a Staple are skipped. Run it against the emulator with seeded data first. Running it against production is the next step. (`scripts/seed.mjs` seeds no Entries, so it needs no change.)
+- [x] **Commit: migration script for Staples.** *(auto)*
 - [ ] **Deploy and migrate.** Push. CI deploys the rules and the app. Run the script against production with your own credentials. On `https://kraftigere.web.app/`: old Entries still show, adding "melk" suggests and counts. *(user)*
 - [ ] **Move plan to `plans/done/`.** `git mv plans/active/12-staples.md plans/done/12-staples.md`, and remove it from **Now** in `ROADMAP.md`.
 - [ ] **Commit: complete staples milestone.** *(auto)*
@@ -51,3 +51,4 @@ Twelfth milestone. Today's List becomes the Groceries List, and every Entry adde
   - Using the normalized name as the document id means a Staple can't be renamed without a new document. That's acceptable until aliases and merging arrive.
   - Two Family Members adding the same new Staple offline at once both "create" it. The second write becomes an update with `addCount` 1 instead of 2. Accepted.
   - Between deploying and running the migration, old Entries have no `staple`. Updates (check off) still work, since update rules only check `checked`.
+- 2026-10-22: Migration tried on the emulator: two spellings of milk became one Staple counted twice, an existing Staple was counted rather than replaced, Entries with a Staple were skipped, and a second run changed nothing. The script renames an existing Staple to the spelling last added, as the app does.
