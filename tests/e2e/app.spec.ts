@@ -5,6 +5,7 @@ import {
   addEntry,
   completeGooglePopup,
   entry,
+  openTab,
   reset,
   seed,
   setMembers,
@@ -36,19 +37,40 @@ test('a Family Member removed by the Admin ends on Not authorized, despite the c
   await expect(entry(page, 'milk')).toHaveCount(0)
 })
 
-test('add, check off, uncheck and remove an Entry', async ({ page }) => {
+test('add on Home, check off and uncheck in Shop, remove on Home', async ({ page }) => {
   await signIn(page, MEMBERS[0])
   await addEntry(page, 'milk')
-  const checkbox = entry(page, 'milk').getByRole('checkbox')
 
+  await openTab(page, 'Shop')
+  const checkbox = entry(page, 'milk').getByRole('checkbox')
   // The checkbox is controlled by Firestore, so it flips after the write, not on click.
   await checkbox.click()
   await expect(checkbox).toBeChecked()
   await checkbox.click()
   await expect(checkbox).not.toBeChecked()
 
+  await openTab(page, 'Home')
   await entry(page, 'milk').getByRole('button', { name: 'Remove' }).click()
   await expect(entry(page, 'milk')).toHaveCount(0)
+})
+
+test('checking off on Home takes two taps', async ({ page }) => {
+  await signIn(page, MEMBERS[0])
+  await addEntry(page, 'milk')
+  await expect(entry(page, 'milk').getByRole('button', { name: 'Check off' })).toHaveCount(0)
+
+  await entry(page, 'milk').getByText('milk').click()
+  await entry(page, 'milk').getByRole('button', { name: 'Check off' }).click()
+  await openTab(page, 'Shop')
+  await expect(entry(page, 'milk').getByRole('checkbox')).toBeChecked()
+})
+
+test('Shop shows unchecked Entries first', async ({ page }) => {
+  await signIn(page, MEMBERS[0])
+  for (const text of ['milk', 'eggs', 'bread']) await addEntry(page, text)
+  await openTab(page, 'Shop')
+  await entry(page, 'milk').getByRole('checkbox').click()
+  await expect(page.getByRole('listitem')).toHaveText(['eggs', 'bread', 'milk'])
 })
 
 test('an Entry added in one browser appears in another', async ({ browser }) => {
@@ -61,7 +83,7 @@ test('an Entry added in one browser appears in another', async ({ browser }) => 
   await expect(entry(bob, 'bread')).toBeVisible()
 })
 
-test('fun fact shows only on the bottom-most unchecked Entry', async ({ page }) => {
+test('fun fact shows only on the newest unchecked Entry', async ({ page }) => {
   await signIn(page, MEMBERS[0])
   await addEntry(page, 'milk')
   await addEntry(page, 'eggs')
@@ -73,8 +95,9 @@ test('fun fact shows only on the bottom-most unchecked Entry', async ({ page }) 
   await funFact('eggs').click()
   await expect(entry(page, 'eggs')).toContainText('Stub fun fact (dev).')
 
-  // Checking it off moves the button up and clears the fact.
-  await entry(page, 'eggs').getByRole('checkbox').click()
+  // Checking it off moves the button down and clears the fact.
+  await entry(page, 'eggs').getByText('eggs').click()
+  await entry(page, 'eggs').getByRole('button', { name: 'Check off' }).click()
   await expect(funFact('milk')).toBeVisible()
   await expect(page.getByText('Stub fun fact (dev).')).toHaveCount(0)
 })

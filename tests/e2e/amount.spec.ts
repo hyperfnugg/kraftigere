@@ -6,7 +6,7 @@ test.beforeEach(async () => {
   await seed()
 })
 
-test('tapping an Entry sets, changes and removes its amount', async ({ page }) => {
+test('tapping an Entry on Home sets, changes and removes its amount', async ({ page }) => {
   await signIn(page, MEMBERS[0])
   await addEntry(page, 'eggs')
   const amount = page.getByRole('textbox', { name: 'Amount' })
@@ -22,6 +22,9 @@ test('tapping an Entry sets, changes and removes its amount', async ({ page }) =
   await amount.blur()
   await expect(entry(page, 'eggs')).toContainText('eggs · 12')
 
+  // Tapping again closes it, and once more opens it.
+  await entry(page, 'eggs').getByText('eggs').click()
+  await expect(amount).toHaveCount(0)
   await entry(page, 'eggs').getByText('eggs').click()
   await amount.fill('')
   await amount.press('Enter')

@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { MEMBERS, addEntry, entry, reset, seed, signIn } from './helpers'
+import { MEMBERS, addEntry, entry, openTab, reset, seed, signIn } from './helpers'
 
 test.beforeEach(async () => {
   await reset()
@@ -10,6 +10,7 @@ test('Remove checked removes only the Checked Entries', async ({ page }) => {
   await signIn(page, MEMBERS[0])
   await addEntry(page, 'milk')
   await addEntry(page, 'eggs')
+  await openTab(page, 'Shop')
   await entry(page, 'milk').getByRole('checkbox').click()
   await expect(entry(page, 'milk').getByRole('checkbox')).toBeChecked()
 
@@ -25,6 +26,7 @@ test('Checked Entries are removed 15 minutes after the most recent check-off', a
   await signIn(page, MEMBERS[0])
   await addEntry(page, 'milk')
   await addEntry(page, 'eggs')
+  await openTab(page, 'Shop')
   await entry(page, 'milk').getByRole('checkbox').click()
   await expect(entry(page, 'milk').getByRole('checkbox')).toBeChecked()
 

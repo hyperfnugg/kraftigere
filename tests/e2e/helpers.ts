@@ -43,3 +43,8 @@ export async function readDoc(path: string) {
   if (!res.ok) throw new Error(`read failed: ${path} ${res.status}`)
   return (await res.json()).fields
 }
+
+export async function openTab(page: Page, name: 'Home' | 'Shop') {
+  await page.getByRole('button', { name, exact: true }).click()
+  await expect(page.getByRole('button', { name, exact: true })).toHaveAttribute('aria-pressed', 'true')
+}

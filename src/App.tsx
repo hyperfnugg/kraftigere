@@ -73,49 +73,15 @@ export default function App() {
   return <List user={user} />
 }
 
+const smallButtonStyle = { ...buttonStyle, fontSize: '0.875rem', padding: '0.25rem 0.75rem' }
+
+type Tab = 'Home' | 'Shop'
+
 function List({ user }: { user: User }) {
   const { entries } = useEntries()
-  const staples = useStaples()
   useRemoveCheckedAfterShopping(entries)
-  const checked = entries.filter((e) => e.checked)
   const online = useOnline()
-  const [text, setText] = useState('')
-  const [fact, setFact] = useState<Fact | null>(null)
-  const [editing, setEditing] = useState<{ entryId: string; amount: string } | null>(null)
-
-  function saveAmount() {
-    if (!editing) return
-    const entry = entries.find((e) => e.id === editing.entryId)
-    if (entry && (entry.amount ?? '') !== editing.amount.trim()) setAmount(entry.id, editing.amount)
-    setEditing(null)
-  }
-
-  const lastUnchecked = entries.findLast((e) => !e.checked)
-
-  if (fact && fact.entryId !== lastUnchecked?.id) setFact(null)
-
-  const suggestions = suggest(staples, text)
-
-  // Typed text that matches a Staple adds that Staple under its own name.
-  function onAdd(e: FormEvent) {
-    e.preventDefault()
-    const t = stapleName(text)
-    if (!t) return
-    addEntry(staples.find((s) => s.id === stapleId(t))?.name ?? t)
-    setText('')
-  }
-
-  async function showFunFact(entry: Entry) {
-    setFact({ entryId: entry.id, text: '', loading: true })
-    try {
-      const result = await generate(
-        `Share a fun fact about: ${entry.text}. One or two sentences, casual tone.`,
-      )
-      setFact({ entryId: entry.id, text: result.trim(), loading: false })
-    } catch {
-      setFact({ entryId: entry.id, text: 'Failed to fetch fun fact.', loading: false })
-    }
-  }
+  const [tab, setTab] = useState<Tab>('Home')
 
   return (
     <main
@@ -128,6 +94,7 @@ function List({ user }: { user: User }) {
         display: 'flex',
         flexDirection: 'column',
         gap: '1rem',
+        boxSizing: 'border-box',
       }}
     >
       {!online && (
@@ -143,14 +110,108 @@ function List({ user }: { user: User }) {
         }}
       >
         <span>{user.displayName ?? user.email}</span>
-        <button
-          onClick={() => signOut()}
-          style={{ ...buttonStyle, fontSize: '0.875rem', padding: '0.25rem 0.75rem' }}
-        >
+        <button onClick={() => signOut()} style={smallButtonStyle}>
           Sign out
         </button>
       </header>
 
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        {tab === 'Home' ? <Home entries={entries} /> : <Shop entries={entries} />}
+      </div>
+
+      <nav
+        style={{
+          position: 'sticky',
+          bottom: 0,
+          display: 'flex',
+          gap: '0.5rem',
+          padding: '0.5rem 0',
+          background: 'white',
+          borderTop: '1px solid #ddd',
+        }}
+      >
+        {(['Home', 'Shop'] as const).map((t) => (
+          <button
+            key={t}
+            onClick={() => setTab(t)}
+            aria-pressed={tab === t}
+            style={{
+              ...buttonStyle,
+              flex: 1,
+              fontWeight: tab === t ? 700 : 400,
+              color: tab === t ? 'black' : '#666',
+            }}
+          >
+            {t}
+          </button>
+        ))}
+      </nav>
+    </main>
+  )
+}
+
+const listStyle = {
+  listStyle: 'none',
+  padding: 0,
+  margin: 0,
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '0.5rem',
+} as const
+
+function Amount({ entry }: { entry: Entry }) {
+  return entry.amount ? <span style={{ color: '#666' }}> · {entry.amount}</span> : null
+}
+
+// "Quick, before I forget": adding and editing Groceries, newest first. Checking off takes
+// two taps here, to avoid misclicks.
+function Home({ entries }: { entries: Entry[] }) {
+  const staples = useStaples()
+  const [text, setText] = useState('')
+  const [fact, setFact] = useState<Fact | null>(null)
+  const [open, setOpen] = useState<{ entryId: string; amount: string } | null>(null)
+
+  const newestFirst = entries.toReversed()
+  const newestUnchecked = newestFirst.find((e) => !e.checked)
+
+  if (fact && fact.entryId !== newestUnchecked?.id) setFact(null)
+
+  const suggestions = suggest(staples, text)
+
+  // Typed text that matches a Staple adds that Staple under its own name.
+  function onAdd(e: FormEvent) {
+    e.preventDefault()
+    const t = stapleName(text)
+    if (!t) return
+    addEntry(staples.find((s) => s.id === stapleId(t))?.name ?? t)
+    setText('')
+  }
+
+  function saveAmount() {
+    if (!open) return
+    const entry = entries.find((e) => e.id === open.entryId)
+    if (entry && (entry.amount ?? '') !== open.amount.trim()) setAmount(entry.id, open.amount)
+  }
+
+  function toggleOpen(entry: Entry) {
+    if (open?.entryId === entry.id) setOpen(null)
+    else setOpen({ entryId: entry.id, amount: entry.amount ?? '' })
+  }
+
+  async function showFunFact(entry: Entry) {
+    setFact({ entryId: entry.id, text: '', loading: true })
+    try {
+      const result = await generate(
+        `Share a fun fact about: ${entry.text}. One or two sentences, casual tone.`,
+      )
+      setFact({ entryId: entry.id, text: result.trim(), loading: false })
+    } catch {
+      setFact({ entryId: entry.id, text: 'Failed to fetch fun fact.', loading: false })
+    }
+  }
+
+  return (
+    <>
       <form onSubmit={onAdd} style={{ display: 'flex', gap: '0.5rem' }}>
         <input
           value={text}
@@ -173,7 +234,7 @@ function List({ user }: { user: User }) {
                 addEntry(s.name)
                 setText('')
               }}
-              style={{ ...buttonStyle, padding: '0.25rem 0.75rem' }}
+              style={smallButtonStyle}
             >
               {s.name}
             </button>
@@ -181,85 +242,33 @@ function List({ user }: { user: User }) {
         </div>
       )}
 
-      {checked.length > 0 && (
-        <button
-          onClick={() => removeEntries(checked)}
-          style={{ ...buttonStyle, alignSelf: 'flex-end', fontSize: '0.875rem', padding: '0.25rem 0.75rem' }}
-        >
-          Remove checked
-        </button>
-      )}
-
-      <ul
-        style={{
-          listStyle: 'none',
-          padding: 0,
-          margin: 0,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '0.5rem',
-        }}
-      >
-        {entries.map((entry) => {
-          const isLastUnchecked = entry.id === lastUnchecked?.id
+      <ul style={listStyle}>
+        {newestFirst.map((entry) => {
+          const isOpen = open?.entryId === entry.id
           const showFact = fact?.entryId === entry.id
-          const factLoading = showFact && fact.loading
           return (
             <li
               key={entry.id}
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '0.25rem',
-                opacity: entry.checked ? 0.4 : 1,
-                fontSize: '1.125rem',
-              }}
+              style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', fontSize: '1.125rem' }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <input
-                  type="checkbox"
-                  checked={entry.checked}
-                  onChange={(e) => toggleEntry(entry.id, e.target.checked)}
-                  style={{ width: '1.25rem', height: '1.25rem' }}
-                />
-                {editing?.entryId === entry.id ? (
-                  <form
-                    onSubmit={(e) => {
-                      e.preventDefault()
-                      saveAmount()
-                    }}
-                    style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '0.5rem' }}
-                  >
-                    <span>{entry.text}</span>
-                    <input
-                      autoFocus
-                      value={editing.amount}
-                      onChange={(e) => setEditing({ ...editing, amount: e.target.value })}
-                      onBlur={saveAmount}
-                      maxLength={50}
-                      placeholder="Amount"
-                      aria-label="Amount"
-                      style={{ flex: 1, minWidth: 0, fontSize: '1rem', padding: '0.25rem' }}
-                    />
-                  </form>
-                ) : (
-                  <span
-                    onClick={() => setEditing({ entryId: entry.id, amount: entry.amount ?? '' })}
-                    style={{
-                      flex: 1,
-                      cursor: 'pointer',
-                      textDecoration: entry.checked ? 'line-through' : 'none',
-                    }}
-                  >
-                    {entry.text}
-                    {entry.amount && <span style={{ color: '#666' }}> · {entry.amount}</span>}
-                  </span>
-                )}
-                {isLastUnchecked && (
+                <span
+                  onClick={() => toggleOpen(entry)}
+                  style={{
+                    flex: 1,
+                    cursor: 'pointer',
+                    opacity: entry.checked ? 0.4 : 1,
+                    textDecoration: entry.checked ? 'line-through' : 'none',
+                  }}
+                >
+                  {entry.text}
+                  <Amount entry={entry} />
+                </span>
+                {entry.id === newestUnchecked?.id && (
                   <button
                     onClick={() => showFunFact(entry)}
-                    disabled={factLoading}
-                    style={{ ...buttonStyle, fontSize: '0.875rem', padding: '0.25rem 0.5rem' }}
+                    disabled={showFact && fact.loading}
+                    style={{ ...smallButtonStyle, padding: '0.25rem 0.5rem' }}
                   >
                     Fun fact
                   </button>
@@ -272,15 +281,39 @@ function List({ user }: { user: User }) {
                   ×
                 </button>
               </div>
-              {showFact && (
-                <div
-                  style={{
-                    paddingLeft: '2rem',
-                    fontSize: '0.9rem',
-                    color: '#666',
-                    fontStyle: 'italic',
+              {isOpen && (
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault()
+                    saveAmount()
+                    setOpen(null)
                   }}
+                  style={{ display: 'flex', gap: '0.5rem' }}
                 >
+                  <input
+                    autoFocus
+                    value={open.amount}
+                    onChange={(e) => setOpen({ ...open, amount: e.target.value })}
+                    onBlur={saveAmount}
+                    maxLength={50}
+                    placeholder="Amount"
+                    aria-label="Amount"
+                    style={{ flex: 1, minWidth: 0, fontSize: '1rem', padding: '0.25rem' }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      toggleEntry(entry.id, !entry.checked)
+                      setOpen(null)
+                    }}
+                    style={smallButtonStyle}
+                  >
+                    {entry.checked ? 'Uncheck' : 'Check off'}
+                  </button>
+                </form>
+              )}
+              {showFact && (
+                <div style={{ fontSize: '0.9rem', color: '#666', fontStyle: 'italic' }}>
                   {fact.loading ? 'Thinking…' : fact.text}
                 </div>
               )}
@@ -288,6 +321,40 @@ function List({ user }: { user: User }) {
           )
         })}
       </ul>
-    </main>
+    </>
+  )
+}
+
+// "I'm in the store": unchecked first, big text, one tap to check off.
+function Shop({ entries }: { entries: Entry[] }) {
+  const unchecked = entries.filter((e) => !e.checked)
+  const checked = entries.filter((e) => e.checked)
+
+  return (
+    <>
+      {checked.length > 0 && (
+        <button onClick={() => removeEntries(checked)} style={{ ...smallButtonStyle, alignSelf: 'flex-end' }}>
+          Remove checked
+        </button>
+      )}
+      <ul style={{ ...listStyle, gap: '0.75rem' }}>
+        {[...unchecked, ...checked].map((entry) => (
+          <li key={entry.id} style={{ fontSize: '1.375rem', opacity: entry.checked ? 0.4 : 1 }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={entry.checked}
+                onChange={(e) => toggleEntry(entry.id, e.target.checked)}
+                style={{ width: '1.5rem', height: '1.5rem' }}
+              />
+              <span style={{ textDecoration: entry.checked ? 'line-through' : 'none' }}>
+                {entry.text}
+                <Amount entry={entry} />
+              </span>
+            </label>
+          </li>
+        ))}
+      </ul>
+    </>
   )
 }
