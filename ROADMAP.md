@@ -13,13 +13,13 @@ Not decided yet.
 ## Ideas
 
 - Several Lists: create, name and switch between Lists of a List Kind.
-- Groceries as its own List Kind: quick re-adding of repeat buys, readable at a glance.
-- AI-assisted meal planner: its ingredients stay linked to their meals while the plan changes, likely kept apart from groceries added by hand.
-- Ordering from Oda: ordered Entries become Checked.
+- Groceries as its own List Kind: Staples, autocomplete, quick re-adding. See [Groceries and meals](docs/vision/groceries-and-meals.md#groceries).
+- Tabs per usage scenario (Home, Week, Shop, ...). See [Groceries and meals](docs/vision/groceries-and-meals.md#tabs-and-home).
+- AI-assisted meal planner: Guidelines, Week Notes, Menu, Recipes, Confirm to Groceries. See [Groceries and meals](docs/vision/groceries-and-meals.md#meal-planning).
+- Filling an Oda basket from Groceries. See [Groceries and meals](docs/vision/groceries-and-meals.md#ordering-from-oda-parked).
 - Categorized shopping Lists, such as kids' clothes and IKEA.
 - Templates, such as packing for a trip.
 - Personal Lists.
 - To-do Lists.
 - List Kinds that share behaviour (a hierarchy of kinds).
-- Autocomplete when adding Entries.
 - Calendar integration.
