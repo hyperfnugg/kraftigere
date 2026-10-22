@@ -40,9 +40,10 @@ Sixteenth milestone, and the first half of the AI-assisted meal planner. A Week 
   - Check which Gemini Flash models AI Logic offers when starting, and pick the newest. 2026-10-23: `gemini-3.8-flash` (stable, 2026-09-02).
   - e2e: make a Menu (stub), edit Tuesday, accept it.
 - [x] **Commit: AI proposes the Menu; fun fact removed.** *(manual)* (user-visible, and changes what Gemini is called with)
-- [ ] **Recipes with AI.** "Godta meny" writes every course's Recipe in parallel and shows progress. A Recipe opens from its day. The form edits servings, Ingredient rows and steps. The instruction box remakes that Recipe. Emulator stub returns a fixed Recipe.
+- [x] **Recipes with AI.** "Godta meny" writes every course's Recipe in parallel and shows progress. A Recipe opens from its day. The form edits servings, Ingredient rows and steps. The instruction box remakes that Recipe. Emulator stub returns a fixed Recipe.
   - e2e: accepting the Menu gives a Recipe for each course, and editing an Ingredient's amount stays after a reload.
-- [ ] **Commit: AI writes Recipes.** *(manual)* (user-visible; review first)
+  - A course added after accepting shows "Lag oppskrift", and removing a course removes its Recipe.
+- [x] **Commit: AI writes Recipes.** *(manual)* (user-visible; review first)
 - [ ] **Outdated.** Mark and show "Utdatert" as in Scope, and tap to remake after the warning.
   - e2e: editing Ukeplan after accepting the Menu shows Utdatert on the Menu and Recipes. Editing Tuesday's Meal marks only Tuesday's Recipes. Tapping and confirming remakes and clears the label.
 - [ ] **Commit: Outdated Menus and Recipes.** *(manual)* (user-visible; review first)
