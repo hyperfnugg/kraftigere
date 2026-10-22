@@ -44,9 +44,9 @@ Sixteenth milestone, and the first half of the AI-assisted meal planner. A Week 
   - e2e: accepting the Menu gives a Recipe for each course, and editing an Ingredient's amount stays after a reload.
   - A course added after accepting shows "Lag oppskrift", and removing a course removes its Recipe.
 - [x] **Commit: AI writes Recipes.** *(manual)* (user-visible; review first)
-- [ ] **Outdated.** Mark and show "Utdatert" as in Scope, and tap to remake after the warning.
+- [x] **Outdated.** Mark and show "Utdatert" as in Scope, and tap to remake after the warning.
   - e2e: editing Ukeplan after accepting the Menu shows Utdatert on the Menu and Recipes. Editing Tuesday's Meal marks only Tuesday's Recipes. Tapping and confirming remakes and clears the label.
-- [ ] **Commit: Outdated Menus and Recipes.** *(manual)* (user-visible; review first)
+- [x] **Commit: Outdated Menus and Recipes.** *(manual)* (user-visible; review first)
 - [ ] **ADR 0004 revisit.** Add a dated note to `docs/adr/0004-app-check-only-for-gemini.md`: revisited before the Menu. Føringer and Weeks get the same accepted risk as the List, and Oda is revisited in plan 18.
 - [ ] **Commit: ADR 0004 revisited for meal data.** *(auto)*
 - [ ] **Deploy and plan a real week.** Push. Write Føringer, plan next week, cook at least one Recipe. Note what felt wrong. *(user)*

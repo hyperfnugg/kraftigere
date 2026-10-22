@@ -1,13 +1,16 @@
+import type { Timestamp } from 'firebase/firestore'
 import { type FormEvent, useState } from 'react'
 import { makeMenu, makeRecipe } from './ai'
-import { addWeeks, isoWeekId, weekLabel } from './dates'
+import { addWeeks, isoWeekId, timeLabel, weekLabel } from './dates'
 import {
   DAYS,
   DAY_NAMES,
   MAX_COURSES,
   acceptMenu,
   recipeId,
+  menuOutdatedSince,
   readLatest,
+  recipeOutdatedSince,
   setGuidelines,
   setMadeMenu,
   setMadeRecipe,
@@ -18,6 +21,7 @@ import {
   useRecipes,
   useWeek,
   type Day,
+  type Guidelines,
   type Ingredient,
   type Menu,
   type Recipe,
@@ -117,7 +121,13 @@ export function WeekTab() {
             value={week.notes ?? ''}
             onSave={(text) => setNotes(weekId, text)}
           />
-          <MenuSection key={`menu-${weekId}`} weekId={weekId} week={week} recipes={recipes} />
+          <MenuSection
+            key={`menu-${weekId}`}
+            weekId={weekId}
+            week={week}
+            guidelines={guidelines}
+            recipes={recipes}
+          />
         </>
       )}
     </>
@@ -190,18 +200,36 @@ function Instruct({
   )
 }
 
+// "Utdatert" with when it became so. Tapping it remakes, after a warning that hand edits go.
+function Outdated({ since, disabled, onRemake }: { since: Timestamp; disabled: boolean; onRemake: () => void }) {
+  return (
+    <button
+      onClick={() => {
+        if (window.confirm('Lag på nytt? Endringer du har gjort forsvinner.')) onRemake()
+      }}
+      disabled={disabled}
+      style={{ ...smallButtonStyle, alignSelf: 'flex-start', color: '#8a5a00' }}
+    >
+      Utdatert · {timeLabel(since.toDate())}
+    </button>
+  )
+}
+
 function MenuSection({
   weekId,
   week,
+  guidelines,
   recipes,
 }: {
   weekId: string
   week: Week
+  guidelines: Guidelines
   recipes: Record<string, StoredRecipe>
 }) {
   const { busy, error, run } = useJob()
   const [openRecipe, setOpenRecipe] = useState<string | null>(null)
   const menu = week.menu
+  const menuOutdated = menuOutdatedSince(week, guidelines)
 
   // Makes the Menu from the latest Guidelines and Week Notes, or remakes the current one
   // following an instruction.
@@ -248,6 +276,9 @@ function MenuSection({
   return (
     <section style={sectionStyle}>
       <h3 style={headingStyle}>Meny</h3>
+      {menuOutdated && (
+        <Outdated since={menuOutdated} disabled={!!busy} onRemake={() => run('Lager meny…', () => make())} />
+      )}
       {!menu && (
         <button onClick={() => run('Lager meny…', () => make())} disabled={!!busy} style={buttonStyle}>
           Lag meny
@@ -270,8 +301,9 @@ function MenuSection({
                 const id = recipeId(d, i)
                 const recipe = recipes[id]
                 if (recipe) {
+                  const outdated = recipeOutdatedSince(recipe, d, week, guidelines)
                   return (
-                    <div key={id} style={sectionStyle}>
+                    <div key={id} role="group" aria-label={`Oppskrift ${course}`} style={sectionStyle}>
                       <button
                         onClick={() => setOpenRecipe(openRecipe === id ? null : id)}
                         aria-expanded={openRecipe === id}
@@ -279,6 +311,13 @@ function MenuSection({
                       >
                         Oppskrift: {course}
                       </button>
+                      {outdated && (
+                        <Outdated
+                          since={outdated}
+                          disabled={!!busy}
+                          onRemake={() => run('Lager oppskrift…', (p) => makeRecipes([{ day: d, course: i }], p))}
+                        />
+                      )}
                       {openRecipe === id && (
                         <RecipeForm weekId={weekId} day={d} recipe={recipe} disabled={!!busy} run={run} />
                       )}
@@ -397,11 +436,7 @@ function RecipeForm({
   }
 
   return (
-    <div
-      role="group"
-      aria-label={`Oppskrift ${recipe.course}`}
-      style={{ ...sectionStyle, padding: '0.5rem', border: '1px solid #ddd' }}
-    >
+    <div style={{ ...sectionStyle, padding: '0.5rem', border: '1px solid #ddd' }}>
       <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
         <SavedInput
           label="Porsjoner"

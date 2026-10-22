@@ -143,7 +143,9 @@ export function setMadeMenu(weekId: string, menu: Menu, before?: Menu) {
   const mealsAt = Object.fromEntries(
     DAYS.filter((d) => JSON.stringify(menu[d]) !== JSON.stringify(before?.[d])).map((d) => [d, serverTimestamp()]),
   )
-  return setDoc(doc(db, 'weeks', weekId), { menu, menuAt: serverTimestamp(), mealsAt }, { merge: true })
+  // An empty map would replace mealsAt rather than merge into it.
+  const stamps = Object.keys(mealsAt).length > 0 ? { mealsAt } : {}
+  return setDoc(doc(db, 'weeks', weekId), { menu, menuAt: serverTimestamp(), ...stamps }, { merge: true })
 }
 
 // A Meal edited by hand. Recipes for courses that no longer exist are removed.
