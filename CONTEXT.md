@@ -4,10 +4,13 @@ The family's one place for what to buy, plan and do. It starts with shared Lists
 
 ## Language
 
+The app speaks Norwegian (bokmål); code, docs and Firestore use the English terms. Each term's _UI_ line gives the word the Family sees.
+
 ### Lists
 
 **List**:
 A collection of Entries belonging to at most one Family, which can have many Lists, including several of the same List Kind (kids' clothes and IKEA are separate shopping Lists). Lists are never shared across Families.
+_UI_: "liste" ("lista" when it means the Family's one List)
 _Avoid_: Shopping list (one List Kind, not the general concept)
 
 **List Kind**:
@@ -16,14 +19,17 @@ _Avoid_: List type, category
 
 **Groceries**:
 A List Kind that is a kind of shopping, for food and household goods bought again and again. A Groceries List has everything a shopping List has, plus behaviour of its own.
+_UI_: "Dagligvarer"
 _Avoid_: Food list
 
 **Staple**:
 Something the Family keeps buying, named the way they say it, such as "melk" or "bleier". A Staple has a name unique within the Family, remembers how often it is added, and names a preferred Ware and the Wares acceptable in its place. A Staple can exist before any Ware is attached to it. Every Entry added by hand to Groceries refers to a Staple.
+_UI_: "Basisvare"
 _Avoid_: Favourite, regular, item
 
 **Ware**:
 A specific thing that goes in the basket, such as 1.5 l whole milk, lasting beyond any one Entry. A Ware has a name unique within the Family. Whole and low fat milk are different Wares. A Ware is the Family's own idea of the thing, not a shop's product.
+_UI_: "Vare"
 _Avoid_: Product, grocery, item, article
 
 **Substitute**:
@@ -40,64 +46,96 @@ _Avoid_: Preset, blueprint
 
 **Entry**:
 One line on a List.
+_UI_: not named; the add field asks "Hva trenger vi?" and its button says "Legg til"
 _Avoid_: Item, product, task
 
 **Note**:
 Free text on an Entry saying anything more about it, such as "lots" or "the lactose-free one".
+_UI_: "Notat"
 _Avoid_: Amount, comment, description
 
 **Checked**:
 The state of an Entry that has been dealt with, whether bought, done, or otherwise. A Family Member *checks off* an Entry and can *uncheck* it. Checking off an Entry because it is already at home is still checking it off.
+_UI_: "Avkrysset"; checking off is "krysse av"
 _Avoid_: Done, bought, completed
 
 **Remove**:
 Permanently deleting an Entry from a List. This is the only way an Entry leaves a List. It is distinct from checking it off.
+_UI_: "Fjern"; removing all Checked Entries is "Fjern avkryssede"
 _Avoid_: Delete, clear, archive
 
 ### Meals
 
 **Guidelines**:
 The Family's standing guidance for planning meals, applying to every week, such as cooking time, dislikes and intolerances. The people it mentions are whoever eats, who need not be Family Members.
+_UI_: "Føringer"
 _Avoid_: Preferences, profile, rules
 
 **Week Notes**:
 Guidance for planning one particular week, such as guests on Monday or a freezer full of venison.
+_UI_: "Ukeplan"
 _Avoid_: Weekly guidelines
 
 **Menu**:
 Which Meal is eaten on which day of one week. The AI proposes it from the Guidelines and Week Notes, and a Family Member edits and accepts it.
+_UI_: "Meny"
 _Avoid_: Meal plan, plan, week plan
 
 **Meal**:
 What is eaten on one day of a Menu, possibly several courses, each with its own Recipe.
+_UI_: "Måltid"
 _Avoid_: Dinner, dish
 
 **Recipe**:
 How to cook one course of a Meal, including its Ingredients.
+_UI_: "Oppskrift"
 _Avoid_: Dish
 
 **Ingredient**:
 One line of a Recipe saying what is needed and how much, worded to say how strict the need is ("whole milk" versus "milk, any"). At Confirm each Ingredient is matched either to a Ware, when the Recipe needs exactly that, or to a Staple, when whatever the Family usually buys will do. The Family's matches are remembered.
+_UI_: "Ingrediens"
 _Avoid_: Grocery, item
 
 **Confirm**:
 The moment a Family Member is done with a week's Recipes, which sends their Ingredients to Groceries.
+_UI_: "Iverksett"
 _Avoid_: Commit, submit, finalize
 
 **Outdated**:
 The state of a Menu or Recipe whose Guidelines or Week Notes changed after it was made. It stays as it is until a Family Member asks the AI to remake it.
+_UI_: "Utdatert"
 _Avoid_: Stale, dirty
+
+### Tabs
+
+**Home**:
+The tab for "quick, before I forget": adding to Groceries and editing it, never checking off.
+_UI_: 🏠, read out as "Hjem"
+_Avoid_: Add, inbox
+
+**Week**:
+The tab for planning one week of meals. A week runs Monday to Sunday and is the ISO week.
+_UI_: "Uke", with weeks labelled like "Uke 44 · 26. okt–1. nov"
+_Avoid_: Planner, calendar
+
+**Shop**:
+The tab for "I'm in the store": Groceries with unchecked first and one tap to check off.
+_UI_: "Handle"
+_Avoid_: Store, buy
 
 ### People
 
 **Family**:
 The group of people who share Lists. It is always a family, never a team, group, or organisation.
+_UI_: "Familie"
 _Avoid_: Group, household, team, tenant
 
 **Family Member**:
 A person, identified by their Google account, who belongs to exactly one Family. Being a Family Member is the only way into the app.
+_UI_: "Familiemedlem"
 _Avoid_: User, member (without "Family")
 
 **Admin**:
 The single person who maintains Families and their Family Members. This is a system-wide role. No Family has its own head.
+_UI_: "admin"
 _Avoid_: Owner, head of family

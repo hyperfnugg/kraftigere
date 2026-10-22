@@ -18,8 +18,8 @@ Fifteenth milestone. The Family works in Norwegian, so all text in the app becom
 
 ## Steps
 
-- [ ] **Glossary UI words.** In `CONTEXT.md`, add a `_UI_:` line to each term that appears in the app or soon will. Agreed so far: Home 🏠, Week "Uke", Shop "Handle", Guidelines "Føringer", Week Notes "Ukeplan", Menu "Meny", Meal "Måltid", Recipe "Oppskrift", Ingredient "Ingrediens", Confirm "Iverksett", Note "Notat", Outdated "Utdatert", Remove "Fjern", Checked "Avkrysset". Propose the rest and confirm with the user.
-- [ ] **Commit: Norwegian UI words in glossary.** *(auto)*
+- [x] **Glossary UI words.** In `CONTEXT.md`, add a `_UI_:` line to each term that appears in the app or soon will. Agreed so far: Home 🏠, Week "Uke", Shop "Handle", Guidelines "Føringer", Week Notes "Ukeplan", Menu "Meny", Meal "Måltid", Recipe "Oppskrift", Ingredient "Ingrediens", Confirm "Iverksett", Note "Notat", Outdated "Utdatert", Remove "Fjern", Checked "Avkrysset". Proposed by the agent, for the user to confirm: List "liste", Groceries "Dagligvarer", Staple "Basisvare", Ware "Vare", Family "Familie", Family Member "Familiemedlem", and Home, Week and Shop as tab terms.
+- [x] **Commit: Norwegian UI words in glossary.** *(auto)*
 - [ ] **Translate the UI.** Every string in `src/`, plus `index.html` and the manifest. Tab bar: 🏠 · Handle. "Remove checked" becomes "Fjern avkryssede".
   - e2e: update selectors and expected text in `tests/e2e/`.
 - [ ] **Commit: Norwegian UI.** *(manual)* (user-visible text everywhere; review the wording)
