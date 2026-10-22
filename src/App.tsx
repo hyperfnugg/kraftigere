@@ -5,6 +5,7 @@ import { signInWithGoogle, signOut, useOnline, useUser } from './firebase'
 import {
   addEntry,
   removeEntry,
+  stapleName,
   toggleEntry,
   useAccess,
   useEntries,
@@ -78,7 +79,7 @@ function List({ user }: { user: User }) {
 
   function onAdd(e: FormEvent) {
     e.preventDefault()
-    const t = text.trim()
+    const t = stapleName(text)
     if (!t) return
     addEntry(t)
     setText('')
@@ -134,7 +135,7 @@ function List({ user }: { user: User }) {
         <input
           value={text}
           onChange={(e) => setText(e.target.value)}
-          maxLength={500}
+          maxLength={100}
           placeholder="Add entry"
           style={{ flex: 1, fontSize: '1rem', padding: '0.5rem' }}
         />

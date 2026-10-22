@@ -24,12 +24,12 @@ Twelfth milestone. Today's List becomes the Groceries List, and every Entry adde
 
 ## Steps
 
-- [ ] **Glossary.** In `CONTEXT.md`, the List Kind entry says Groceries is the only List Kind today, and today's List is the Groceries List.
-- [ ] **Staple data and rules.** A Staple is `/staples/{id}` with `name` (string, 1–100 characters), `addCount` (int) and `lastAddedAt` (timestamp). The document id is the normalized name (trimmed, lower case, inner whitespace collapsed, `/` replaced), so uniqueness costs no query and works offline. An Entry gains `staple` (the Staple id) and keeps `text` as the Staple's name at the time it was added, so the List renders without looking up Staples.
+- [x] **Glossary.** In `CONTEXT.md`, the List Kind entry says Groceries is the only List Kind today, and today's List is the Groceries List.
+- [x] **Staple data and rules.** A Staple is `/staples/{id}` with `name` (string, 1–100 characters), `addCount` (int) and `lastAddedAt` (timestamp). The document id is the normalized name (trimmed, lower case, inner whitespace collapsed, `/` replaced), so uniqueness costs no query and works offline. An Entry gains `staple` (the Staple id) and keeps `text` as the Staple's name at the time it was added, so the List renders without looking up Staples.
   - Adding is one `writeBatch`: create the Entry, and set the Staple with `merge` and `addCount: increment(1)`, `lastAddedAt: serverTimestamp()`.
   - Rules: Staple create must have exactly these fields with `addCount == 1` and `lastAddedAt == request.time`. Staple update may only raise `addCount` by 1 and set `lastAddedAt == request.time`. Staples can't be deleted. Entry create requires `staple`, and `existsAfter` on that Staple. Entry updates stay as they are.
   - Rules tests for each accepted and refused case, in `tests/rules/firestore.test.ts`.
-- [ ] **Commit: Staples in data and rules.** *(manual)* (security rules; review before committing)
+- [x] **Commit: Staples in data and rules.** *(manual)* (security rules; review before committing)
 - [ ] **Autocomplete.** The app listens to `staples` (the persistent cache makes it instant and keeps it fresh, so no separate side-loading is needed). While typing, up to 5 suggestions show under the input: Staples whose name starts with the text first, then ones containing it, each group ordered by `addCount`. Tapping a suggestion adds an Entry for it. Submitting text adds the Staple whose normalized name matches, or creates a new one.
   - e2e: adding "Melk" twice and "melk " once gives one Staple with `addCount` 3. Typing "me" suggests it. Tapping the suggestion adds an Entry.
 - [ ] **Commit: autocomplete over Staples.** *(auto)*

@@ -1,18 +1,19 @@
 import { type User } from 'firebase/auth'
 import {
   type Timestamp,
-  addDoc,
   collection,
   deleteDoc,
   doc,
   getDoc,
   getDocFromCache,
   getDocFromServer,
+  increment,
   onSnapshot,
   orderBy,
   query,
   serverTimestamp,
   updateDoc,
+  writeBatch,
 } from 'firebase/firestore'
 import { useEffect, useState } from 'react'
 import { db } from './firebase'
@@ -20,16 +21,39 @@ import { db } from './firebase'
 export type Entry = {
   id: string
   text: string
+  staple: string
   checked: boolean
   createdAt: Timestamp | null
 }
 
-export function addEntry(text: string) {
-  return addDoc(collection(db, 'entries'), {
-    text,
+// How a Staple's name is written: trimmed, inner whitespace collapsed.
+export function stapleName(text: string) {
+  return text.trim().replace(/\s+/g, ' ')
+}
+
+// A Staple's id is its normalized name, so "Melk" and "melk " are the same Staple.
+// Ids can't contain "/" or be "." or "..", or look like __reserved__.
+export function stapleId(name: string) {
+  const id = stapleName(name).toLowerCase().replaceAll('/', '∕')
+  return /^\.\.?$|^__.*__$/.test(id) ? `~${id}` : id
+}
+
+// Adds an Entry for the Staple with this name, creating the Staple or counting the add.
+export function addEntry(name: string) {
+  const staple = stapleId(name)
+  const batch = writeBatch(db)
+  batch.set(doc(collection(db, 'entries')), {
+    text: name,
+    staple,
     checked: false,
     createdAt: serverTimestamp(),
   })
+  batch.set(
+    doc(db, 'staples', staple),
+    { name, addCount: increment(1), lastAddedAt: serverTimestamp() },
+    { merge: true },
+  )
+  return batch.commit()
 }
 
 export function toggleEntry(id: string, checked: boolean) {

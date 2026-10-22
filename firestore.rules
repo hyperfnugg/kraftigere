@@ -13,12 +13,36 @@ service cloud.firestore {
     }
 
     // The Entry shape the app writes. See docs/adr/0003-data-shape-changes.md.
+    // An Entry is added in the same batch that creates or counts its Staple, and
+    // keeps the Staple's name as its text.
     function isNewEntry(data) {
-      return data.keys().hasOnly(['text', 'checked', 'createdAt']) &&
-             data.keys().hasAll(['text', 'checked', 'createdAt']) &&
-             data.text is string && data.text.size() >= 1 && data.text.size() <= 500 &&
+      return data.keys().hasOnly(['text', 'staple', 'checked', 'createdAt']) &&
+             data.keys().hasAll(['text', 'staple', 'checked', 'createdAt']) &&
+             data.staple is string &&
+             getAfter(/databases/$(database)/documents/staples/$(data.staple)).data.name == data.text &&
              data.checked == false &&
              data.createdAt == request.time;
+    }
+
+    function isStapleName(name) {
+      return name is string && name.size() >= 1 && name.size() <= 100;
+    }
+
+    // A Staple's id is its normalized name, so names are unique without a query.
+    match /staples/{stapleId} {
+      allow read: if isFamily();
+      allow create: if isFamily() &&
+                       request.resource.data.keys().hasOnly(['name', 'addCount', 'lastAddedAt']) &&
+                       request.resource.data.keys().hasAll(['name', 'addCount', 'lastAddedAt']) &&
+                       isStapleName(request.resource.data.name) &&
+                       request.resource.data.addCount == 1 &&
+                       request.resource.data.lastAddedAt == request.time;
+      // Each add counts once. The name may change to the spelling last added.
+      allow update: if isFamily() &&
+                       request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'addCount', 'lastAddedAt']) &&
+                       isStapleName(request.resource.data.name) &&
+                       request.resource.data.addCount == resource.data.addCount + 1 &&
+                       request.resource.data.lastAddedAt == request.time;
     }
 
     match /entries/{entryId} {

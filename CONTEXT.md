@@ -11,7 +11,7 @@ A collection of Entries belonging to at most one Family, which can have many Lis
 _Avoid_: Shopping list (one List Kind, not the general concept)
 
 **List Kind**:
-What a List is for, such as shopping or to-do. Every Entry on a List is of the List's kind, and the List Kind decides how the List behaves. Shopping is the only List Kind today.
+What a List is for, such as shopping or to-do. Every Entry on a List is of the List's kind, and the List Kind decides how the List behaves. Groceries is the only List Kind in use today, and the Family's one List is its Groceries List.
 _Avoid_: List type, category
 
 **Groceries**:

@@ -11,10 +11,13 @@ import {
   doc,
   getDoc,
   getDocs,
+  increment,
   serverTimestamp,
   setDoc,
   Timestamp,
   updateDoc,
+  writeBatch,
+  type Firestore,
 } from 'firebase/firestore'
 import { afterAll, beforeAll, beforeEach, describe, test } from 'vitest'
 
@@ -34,7 +37,8 @@ beforeEach(async () => {
   await env.clearFirestore()
   await env.withSecurityRulesDisabled(async (ctx) => {
     await setDoc(doc(ctx.firestore(), 'config/family'), { members: [MEMBER] })
-    await setDoc(doc(ctx.firestore(), 'entries/e1'), { text: 'milk', checked: false, createdAt: Timestamp.now() })
+    await setDoc(doc(ctx.firestore(), 'staples/milk'), { name: 'milk', addCount: 1, lastAddedAt: Timestamp.now() })
+    await setDoc(doc(ctx.firestore(), 'entries/e1'), { text: 'milk', staple: 'milk', checked: false, createdAt: Timestamp.now() })
   })
 })
 
@@ -44,48 +48,67 @@ const member = () => env.authenticatedContext('alice', { email: MEMBER }).firest
 const outsider = () => env.authenticatedContext('eve', { email: OUTSIDER }).firestore()
 const anon = () => env.unauthenticatedContext().firestore()
 
-// What the app's addEntry writes.
-const newEntry = (fields: object = {}) => ({ text: 'eggs', checked: false, createdAt: serverTimestamp(), ...fields })
+// What the app's addEntry writes: the Entry, and its Staple created or counted in the same batch.
+const newEntry = (fields: object = {}) => ({
+  text: 'eggs',
+  staple: 'eggs',
+  checked: false,
+  createdAt: serverTimestamp(),
+  ...fields,
+})
+const countedStaple = (name = 'eggs') => ({ name, addCount: increment(1), lastAddedAt: serverTimestamp() })
+
+let n = 0
+// A fresh Entry id each time, so every Entry write is a create rather than an update.
+function add(db: Firestore, entry: object = newEntry(), staple: object | null = countedStaple(), stapleId = 'eggs') {
+  const batch = writeBatch(db)
+  batch.set(doc(db, `entries/new${n++}`), entry)
+  if (staple) batch.set(doc(db, `staples/${stapleId}`), staple, { merge: true })
+  return batch.commit()
+}
 
 describe('/entries', () => {
   test('a Family Member can read and write', async () => {
     const db = member()
     await assertSucceeds(getDocs(collection(db, 'entries')))
-    await assertSucceeds(setDoc(doc(db, 'entries/e2'), newEntry()))
+    await assertSucceeds(add(db))
     await assertSucceeds(deleteDoc(doc(db, 'entries/e1')))
   })
 
   test('a signed-in non-member cannot read or write', async () => {
     const db = outsider()
     await assertFails(getDocs(collection(db, 'entries')))
-    await assertFails(setDoc(doc(db, 'entries/e2'), newEntry()))
+    await assertFails(add(db))
   })
 
   test('a signed-out user cannot read or write', async () => {
     const db = anon()
     await assertFails(getDocs(collection(db, 'entries')))
-    await assertFails(setDoc(doc(db, 'entries/e2'), newEntry()))
-  })})
+    await assertFails(add(db))
+  })
+})
 
 describe('/entries shape', () => {
-  let n = 0
-  // A fresh id each time, so every write is a create rather than an update.
-  const create = (data: object) => setDoc(doc(member(), `entries/new${n++}`), data)
+  const create = (entry: object, staple: object | null = countedStaple()) => add(member(), entry, staple)
 
-  test('a new Entry with text, checked false and server time is accepted', async () => {
+  test('a new Entry for a new Staple is accepted', async () => {
     await assertSucceeds(create(newEntry()))
-    await assertSucceeds(create(newEntry({ text: 'x'.repeat(500) })))
+  })
+
+  test('a new Entry for an existing Staple is accepted', async () => {
+    await assertSucceeds(add(member(), newEntry({ text: 'milk', staple: 'milk' }), countedStaple('milk'), 'milk'))
   })
 
   test('a new Entry with an extra or missing field is refused', async () => {
     await assertFails(create(newEntry({ quantity: 2 })))
-    await assertFails(create({ text: 'eggs', checked: false }))
+    await assertFails(create({ text: 'eggs', checked: false, createdAt: serverTimestamp() }))
+    await assertFails(create({ staple: 'eggs', checked: false, createdAt: serverTimestamp() }))
   })
 
-  test('a new Entry with empty, too long or non-string text is refused', async () => {
-    await assertFails(create(newEntry({ text: '' })))
-    await assertFails(create(newEntry({ text: 'x'.repeat(501) })))
-    await assertFails(create(newEntry({ text: 42 })))
+  test('a new Entry without its Staple, or with other text than the Staple name, is refused', async () => {
+    await assertFails(create(newEntry(), null))
+    await assertFails(create(newEntry({ text: 'Eggs' })))
+    await assertFails(create(newEntry({ staple: 'nope' })))
   })
 
   test('a new Entry that is already Checked or has a client-chosen time is refused', async () => {
@@ -100,6 +123,48 @@ describe('/entries shape', () => {
     await assertFails(updateDoc(e1, { checked: 'yes' }))
     await assertFails(updateDoc(e1, { text: 'oat milk' }))
     await assertFails(updateDoc(e1, { quantity: 2 }))
+  })
+})
+
+describe('/staples', () => {
+  const staple = (id = 'eggs') => doc(member(), `staples/${id}`)
+
+  test('a Family Member can read, a non-member cannot', async () => {
+    await assertSucceeds(getDocs(collection(member(), 'staples')))
+    await assertFails(getDocs(collection(outsider(), 'staples')))
+    await assertFails(getDocs(collection(anon(), 'staples')))
+  })
+
+  test('a new Staple has a name, an add count of 1 and server time', async () => {
+    await assertSucceeds(setDoc(staple(), countedStaple()))
+    await assertSucceeds(setDoc(staple('long'), countedStaple('x'.repeat(100))))
+  })
+
+  test('a new Staple with a bad name, count, time or extra field is refused', async () => {
+    await assertFails(setDoc(staple(), countedStaple('')))
+    await assertFails(setDoc(staple(), countedStaple('x'.repeat(101))))
+    await assertFails(setDoc(staple(), { name: 'eggs', addCount: 2, lastAddedAt: serverTimestamp() }))
+    await assertFails(setDoc(staple(), { name: 'eggs', addCount: 1, lastAddedAt: Timestamp.now() }))
+    await assertFails(setDoc(staple(), { ...countedStaple(), ware: 'x' }))
+    await assertFails(setDoc(staple(), { name: 'eggs', addCount: 1 }))
+  })
+
+  test('an add counts once and may respell the name', async () => {
+    await assertSucceeds(setDoc(staple('milk'), countedStaple('milk'), { merge: true }))
+    await assertSucceeds(setDoc(staple('milk'), countedStaple('Milk'), { merge: true }))
+  })
+
+  test('an update that counts more than once, sets the time or adds a field is refused', async () => {
+    const milk = staple('milk')
+    await assertFails(updateDoc(milk, { addCount: increment(2), lastAddedAt: serverTimestamp() }))
+    await assertFails(updateDoc(milk, { addCount: 5, lastAddedAt: serverTimestamp() }))
+    await assertFails(updateDoc(milk, { addCount: increment(1), lastAddedAt: Timestamp.now() }))
+    await assertFails(updateDoc(milk, { name: 'oat milk' }))
+    await assertFails(updateDoc(milk, { addCount: increment(1), lastAddedAt: serverTimestamp(), ware: 'x' }))
+  })
+
+  test('a Staple cannot be deleted', async () => {
+    await assertFails(deleteDoc(staple('milk')))
   })
 })
 
