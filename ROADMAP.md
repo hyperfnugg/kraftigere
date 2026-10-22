@@ -8,13 +8,13 @@ Where Kraft is heading. It changes often. Ideas are one line each, cheap to add 
 
 ## Next
 
-Not decided yet.
+- [Staples](plans/active/12-staples.md)
+- [Removing Checked Entries, and amounts](plans/active/13-checked-and-amounts.md)
+- [Home and Shop tabs](plans/active/14-home-and-shop-tabs.md)
 
 ## Ideas
 
 - Several Lists: create, name and switch between Lists of a List Kind.
-- Groceries as its own List Kind: Staples, autocomplete, quick re-adding. See [Groceries and meals](docs/vision/groceries-and-meals.md#groceries).
-- Tabs per usage scenario (Home, Week, Shop, ...). See [Groceries and meals](docs/vision/groceries-and-meals.md#tabs-and-home).
 - AI-assisted meal planner: Guidelines, Week Notes, Menu, Recipes, Confirm to Groceries. See [Groceries and meals](docs/vision/groceries-and-meals.md#meal-planning).
 - Filling an Oda basket from Groceries. See [Groceries and meals](docs/vision/groceries-and-meals.md#ordering-from-oda-parked).
 - Categorized shopping Lists, such as kids' clothes and IKEA.
