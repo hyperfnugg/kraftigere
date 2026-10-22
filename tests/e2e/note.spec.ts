@@ -6,27 +6,27 @@ test.beforeEach(async () => {
   await seed()
 })
 
-test('tapping an Entry on Home sets, changes and removes its amount', async ({ page }) => {
+test('tapping an Entry on Home sets, changes and removes its Note', async ({ page }) => {
   await signIn(page, MEMBERS[0])
   await addEntry(page, 'eggs')
-  const amount = page.getByRole('textbox', { name: 'Amount' })
+  const note = page.getByRole('textbox', { name: 'Note' })
 
   await entry(page, 'eggs').getByText('eggs').click()
-  await amount.fill('lots')
-  await amount.press('Enter')
+  await note.fill('lots')
+  await note.press('Enter')
   await expect(entry(page, 'eggs')).toContainText('eggs · lots')
 
   await entry(page, 'eggs').getByText('eggs').click()
-  await expect(amount).toHaveValue('lots')
-  await amount.fill('12')
-  await amount.blur()
-  await expect(entry(page, 'eggs')).toContainText('eggs · 12')
+  await expect(note).toHaveValue('lots')
+  await note.fill('the big pack')
+  await note.blur()
+  await expect(entry(page, 'eggs')).toContainText('eggs · the big pack')
 
   // Tapping again closes it, and once more opens it.
   await entry(page, 'eggs').getByText('eggs').click()
-  await expect(amount).toHaveCount(0)
+  await expect(note).toHaveCount(0)
   await entry(page, 'eggs').getByText('eggs').click()
-  await amount.fill('')
-  await amount.press('Enter')
+  await note.fill('')
+  await note.press('Enter')
   await expect(entry(page, 'eggs')).not.toContainText('·')
 })

@@ -144,29 +144,31 @@ describe('/entries shape', () => {
   })
 })
 
-describe('/entries amount', () => {
-  test('a new Entry may have an amount of 1 to 50 characters', async () => {
-    await assertSucceeds(add(member(), newEntry({ amount: 'lots' })))
-    await assertSucceeds(add(member(), newEntry({ amount: 'x'.repeat(50) })))
-    await assertFails(add(member(), newEntry({ amount: '' })))
-    await assertFails(add(member(), newEntry({ amount: 'x'.repeat(51) })))
-    await assertFails(add(member(), newEntry({ amount: 12 })))
+describe('/entries note', () => {
+  test('a new Entry may have a Note of 1 to 200 characters', async () => {
+    await assertSucceeds(add(member(), newEntry({ note: 'lots' })))
+    await assertSucceeds(add(member(), newEntry({ note: 'x'.repeat(200) })))
+    await assertFails(add(member(), newEntry({ note: '' })))
+    await assertFails(add(member(), newEntry({ note: 'x'.repeat(201) })))
+    await assertFails(add(member(), newEntry({ note: 12 })))
+    await assertFails(add(member(), newEntry({ amount: 'lots' })))
   })
 
-  test('an update may set, change or remove the amount', async () => {
+  test('an update may set, change or remove the Note', async () => {
     const e1 = doc(member(), 'entries/e1')
-    await assertSucceeds(updateDoc(e1, { amount: '12' }))
-    await assertSucceeds(updateDoc(e1, { amount: 'lots' }))
-    await assertSucceeds(updateDoc(e1, { amount: deleteField() }))
-    await assertFails(updateDoc(e1, { amount: '' }))
-    await assertFails(updateDoc(e1, { amount: 'x'.repeat(51) }))
+    await assertSucceeds(updateDoc(e1, { note: '12' }))
+    await assertSucceeds(updateDoc(e1, { note: 'the lactose-free one' }))
+    await assertSucceeds(updateDoc(e1, { note: deleteField() }))
+    await assertFails(updateDoc(e1, { note: '' }))
+    await assertFails(updateDoc(e1, { note: 'x'.repeat(201) }))
+    await assertFails(updateDoc(e1, { amount: 'lots' }))
   })
 
-  test('the amount of a Checked Entry can change without touching its check-off', async () => {
+  test('the Note of a Checked Entry can change without touching its check-off', async () => {
     const e1 = doc(member(), 'entries/e1')
     await assertSucceeds(updateDoc(e1, { checked: true, checkedAt: serverTimestamp() }))
-    await assertSucceeds(updateDoc(e1, { amount: '2' }))
-    await assertFails(updateDoc(e1, { amount: '3', checkedAt: clientTime }))
+    await assertSucceeds(updateDoc(e1, { note: '2' }))
+    await assertFails(updateDoc(e1, { note: '3', checkedAt: clientTime }))
     await assertFails(updateDoc(e1, { checkedAt: clientTime }))
   })
 })

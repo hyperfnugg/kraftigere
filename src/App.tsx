@@ -6,7 +6,7 @@ import {
   addEntry,
   removeEntries,
   removeEntry,
-  setAmount,
+  setNote,
   stapleId,
   stapleName,
   suggest,
@@ -159,17 +159,17 @@ const listStyle = {
   gap: '0.5rem',
 } as const
 
-function Amount({ entry }: { entry: Entry }) {
-  return entry.amount ? <span style={{ color: '#666' }}> · {entry.amount}</span> : null
+function Note({ entry }: { entry: Entry }) {
+  return entry.note ? <span style={{ color: '#666' }}> · {entry.note}</span> : null
 }
 
-// "Quick, before I forget": adding and editing Groceries, newest first. Checking off takes
-// two taps here, to avoid misclicks.
+// "Quick, before I forget": adding and editing Groceries, newest first. Entries are never
+// checked off here. Removing takes two taps, to avoid misclicks.
 function Home({ entries }: { entries: Entry[] }) {
   const staples = useStaples()
   const [text, setText] = useState('')
   const [fact, setFact] = useState<Fact | null>(null)
-  const [open, setOpen] = useState<{ entryId: string; amount: string } | null>(null)
+  const [open, setOpen] = useState<{ entryId: string; note: string } | null>(null)
 
   const newestFirst = entries.toReversed()
   const newestUnchecked = newestFirst.find((e) => !e.checked)
@@ -187,15 +187,15 @@ function Home({ entries }: { entries: Entry[] }) {
     setText('')
   }
 
-  function saveAmount() {
+  function saveNote() {
     if (!open) return
     const entry = entries.find((e) => e.id === open.entryId)
-    if (entry && (entry.amount ?? '') !== open.amount.trim()) setAmount(entry.id, open.amount)
+    if (entry && (entry.note ?? '') !== open.note.trim()) setNote(entry.id, open.note)
   }
 
   function toggleOpen(entry: Entry) {
     if (open?.entryId === entry.id) setOpen(null)
-    else setOpen({ entryId: entry.id, amount: entry.amount ?? '' })
+    else setOpen({ entryId: entry.id, note: entry.note ?? '' })
   }
 
   async function showFunFact(entry: Entry) {
@@ -262,7 +262,7 @@ function Home({ entries }: { entries: Entry[] }) {
                   }}
                 >
                   {entry.text}
-                  <Amount entry={entry} />
+                  <Note entry={entry} />
                 </span>
                 {entry.id === newestUnchecked?.id && (
                   <button
@@ -273,42 +273,35 @@ function Home({ entries }: { entries: Entry[] }) {
                     Fun fact
                   </button>
                 )}
-                <button
-                  onClick={() => removeEntry(entry.id)}
-                  aria-label="Remove"
-                  style={{ ...buttonStyle, padding: '0.25rem 0.5rem' }}
-                >
-                  ×
-                </button>
               </div>
               {isOpen && (
                 <form
                   onSubmit={(e) => {
                     e.preventDefault()
-                    saveAmount()
+                    saveNote()
                     setOpen(null)
                   }}
                   style={{ display: 'flex', gap: '0.5rem' }}
                 >
                   <input
                     autoFocus
-                    value={open.amount}
-                    onChange={(e) => setOpen({ ...open, amount: e.target.value })}
-                    onBlur={saveAmount}
-                    maxLength={50}
-                    placeholder="Amount"
-                    aria-label="Amount"
+                    value={open.note}
+                    onChange={(e) => setOpen({ ...open, note: e.target.value })}
+                    onBlur={saveNote}
+                    maxLength={200}
+                    placeholder="Note"
+                    aria-label="Note"
                     style={{ flex: 1, minWidth: 0, fontSize: '1rem', padding: '0.25rem' }}
                   />
                   <button
                     type="button"
                     onClick={() => {
-                      toggleEntry(entry.id, !entry.checked)
+                      removeEntry(entry.id)
                       setOpen(null)
                     }}
                     style={smallButtonStyle}
                   >
-                    {entry.checked ? 'Uncheck' : 'Check off'}
+                    Remove
                   </button>
                 </form>
               )}
@@ -349,7 +342,7 @@ function Shop({ entries }: { entries: Entry[] }) {
               />
               <span style={{ textDecoration: entry.checked ? 'line-through' : 'none' }}>
                 {entry.text}
-                <Amount entry={entry} />
+                <Note entry={entry} />
               </span>
             </label>
           </li>

@@ -24,7 +24,7 @@ export type Entry = {
   text: string
   staple: string
   checked: boolean
-  amount?: string
+  note?: string
   // Missing on Entries checked off before checkedAt existed.
   checkedAt?: Timestamp
   createdAt: Timestamp | null
@@ -107,10 +107,10 @@ export function toggleEntry(id: string, checked: boolean) {
   )
 }
 
-// An empty amount removes it.
-export function setAmount(id: string, amount: string) {
-  const a = amount.trim()
-  return updateDoc(doc(db, 'entries', id), { amount: a || deleteField() })
+// An empty Note removes it.
+export function setNote(id: string, note: string) {
+  const n = note.trim()
+  return updateDoc(doc(db, 'entries', id), { note: n || deleteField() })
 }
 
 export function removeEntry(id: string) {

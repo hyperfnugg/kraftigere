@@ -32,7 +32,7 @@ Today's List becomes the Groceries List. Examples: "melk", "bleier", "epler", "s
 
 - **Adding.** Typing shows autocomplete over the Family's Staples, ranked by both text match and how often each Staple is added, with recent adds weighted more. Picking a Staple adds an Entry for it. Text that matches no Staple creates a new Staple with only a name. A Ware can be attached later.
 - **Fast autocomplete.** The lookup must feel instant, so the app keeps the Staples and their frequencies locally and refreshes them lazily.
-- **Amount.** A hand-added Entry has an optional free-text amount, usually empty ("I'm out of eggs, buy lots").
+- **Note.** A hand-added Entry has an optional free-text Note, usually empty ("I'm out of eggs, buy lots", "the lactose-free one").
 - **Checking off.** A Checked Entry stays on the List, greyed out, so the shopper can see what's done. "Remove checked" removes all of them at once. Fifteen minutes after the most recent check-off on Groceries, all Checked Entries are removed automatically. Unchecking doesn't restart the timer. Something found at home is just checked off.
 - **History.** History lives on Staples, so removing Entries loses nothing.
 
@@ -48,7 +48,7 @@ The app has tabs for usage scenarios, each built for what you're doing at that m
 
 | Tab | Scenario | Contains |
 |---|---|---|
-| **Home** | "Quick, before I forget" | Quick-add to every List currently in play. Groceries editing, sorted by frequency/recent |
+| **Home** | "Quick, before I forget" | Quick-add to every List currently in play. Groceries editing, newest first: Notes and removing, never checking off |
 | **Week** | "I'm planning the week" | Guidelines, Week Notes, Menu, Recipes, Confirm. Also outlining the week's to-dos |
 | **Shop** | "I'm in the store" | Groceries: unchecked first, big text, check-off |
 | **Lists** | Other Lists | IKEA, kids' clothes and the like, when Several Lists arrives |
@@ -98,7 +98,7 @@ When Guidelines or Week Notes change after a Menu or Recipes exist, those become
 
 ## Order of work
 
-- **Groceries.** Staples, autocomplete, the free-text amount, "Remove checked" and the 15-minute removal, on today's List. Changing the Entry shape follows ADR 0003: an existing Entry becomes an Entry for a Staple created from its text. Wares can wait.
+- **Groceries.** Staples, autocomplete, Notes, "Remove checked" and the 15-minute removal, on today's List. Changing the Entry shape follows ADR 0003: an existing Entry becomes an Entry for a Staple created from its text. Wares can wait.
 - **Home and Shop tabs.**
 - **Several Lists.**
 - **Meal planner.** This is where Wares, matching and Confirm arrive.

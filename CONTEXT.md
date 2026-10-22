@@ -42,6 +42,10 @@ _Avoid_: Preset, blueprint
 One line on a List.
 _Avoid_: Item, product, task
 
+**Note**:
+Free text on an Entry saying anything more about it, such as "lots" or "the lactose-free one".
+_Avoid_: Amount, comment, description
+
 **Checked**:
 The state of an Entry that has been dealt with, whether bought, done, or otherwise. A Family Member *checks off* an Entry and can *uncheck* it. Checking off an Entry because it is already at home is still checking it off.
 _Avoid_: Done, bought, completed

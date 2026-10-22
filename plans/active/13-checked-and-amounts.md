@@ -25,14 +25,17 @@ Thirteenth milestone. Checked Entries on Groceries go away once shopping is over
 - [x] **Commit: remove Checked Entries by hand and after 15 minutes.** *(auto)*
 - [x] **Amount.** An Entry may have `amount` (string, 1–50 characters). Tapping an Entry's text opens an inline field for it, and an empty field removes it. The List shows it after the name: "egg · lots". Rules: `amount` is optional on create and the only other field updates may change. Rules tests.
 - [x] **Commit: free-text amounts on Entries.** *(manual)* (security rules)
-- [ ] **Deploy and check.** Push. On `https://kraftigere.web.app/`: check off, Remove checked, set an amount, and wait out the 15 minutes once. *(user)*
+- [x] **Deploy and check.** Push. On `https://kraftigere.web.app/`: check off, Remove checked, set an amount, and wait out the 15 minutes once. *(user)*
+- [x] **Note instead of amount.** The free text on an Entry is a Note (`note`, 1–200 characters), since it's used for more than amounts. Rules and rules tests renamed. `scripts/migrate-13-amount-to-note.mjs` renames `amount` on existing Entries, tried on the emulator (renamed once, a second run changed nothing).
+- [x] **Commit: Notes replace amounts; Home removes instead of checking off.** *(manual)* (security rules; also lands plan 14's Home change)
+- [ ] **Deploy and migrate.** Push. Run `node scripts/migrate-13-amount-to-note.mjs kraftigere`. On `https://kraftigere.web.app/`: an amount set earlier shows as a Note. *(user)*
 - [ ] **Move plan to `plans/done/`.** `git mv plans/active/13-checked-and-amounts.md plans/done/13-checked-and-amounts.md`, and remove it from **Now** in `ROADMAP.md`.
 - [ ] **Commit: complete checked-and-amounts milestone.** *(auto)*
 
 ## Done when
 
 - Checked Entries disappear 15 minutes after the most recent check-off, and at once with "Remove checked".
-- An Entry can show a free-text amount.
+- An Entry can show a free-text Note.
 
 ## Notes
 

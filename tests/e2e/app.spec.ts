@@ -50,19 +50,21 @@ test('add on Home, check off and uncheck in Shop, remove on Home', async ({ page
   await expect(checkbox).not.toBeChecked()
 
   await openTab(page, 'Home')
+  await entry(page, 'milk').getByText('milk').click()
   await entry(page, 'milk').getByRole('button', { name: 'Remove' }).click()
   await expect(entry(page, 'milk')).toHaveCount(0)
 })
 
-test('checking off on Home takes two taps', async ({ page }) => {
+test('Home removes in two taps and never checks off', async ({ page }) => {
   await signIn(page, MEMBERS[0])
   await addEntry(page, 'milk')
-  await expect(entry(page, 'milk').getByRole('button', { name: 'Check off' })).toHaveCount(0)
+  await expect(entry(page, 'milk').getByRole('button', { name: 'Remove' })).toHaveCount(0)
+  await expect(entry(page, 'milk').getByRole('checkbox')).toHaveCount(0)
 
   await entry(page, 'milk').getByText('milk').click()
-  await entry(page, 'milk').getByRole('button', { name: 'Check off' }).click()
-  await openTab(page, 'Shop')
-  await expect(entry(page, 'milk').getByRole('checkbox')).toBeChecked()
+  await expect(entry(page, 'milk').getByRole('button', { name: /check/i })).toHaveCount(0)
+  await entry(page, 'milk').getByRole('button', { name: 'Remove' }).click()
+  await expect(entry(page, 'milk')).toHaveCount(0)
 })
 
 test('Shop shows unchecked Entries first', async ({ page }) => {
@@ -95,9 +97,11 @@ test('fun fact shows only on the newest unchecked Entry', async ({ page }) => {
   await funFact('eggs').click()
   await expect(entry(page, 'eggs')).toContainText('Stub fun fact (dev).')
 
-  // Checking it off moves the button down and clears the fact.
-  await entry(page, 'eggs').getByText('eggs').click()
-  await entry(page, 'eggs').getByRole('button', { name: 'Check off' }).click()
+  // Checking it off in Shop moves the button down and clears the fact.
+  await openTab(page, 'Shop')
+  await entry(page, 'eggs').getByRole('checkbox').click()
+  await expect(entry(page, 'eggs').getByRole('checkbox')).toBeChecked()
+  await openTab(page, 'Home')
   await expect(funFact('milk')).toBeVisible()
   await expect(page.getByText('Stub fun fact (dev).')).toHaveCount(0)
 })

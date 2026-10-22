@@ -72,7 +72,9 @@ test('with the field empty, the most added Staples not already waiting show', as
   await expect(entry(page, 'eggs')).toBeVisible()
   await expect(suggestions).toHaveText(['milk', 'bread'])
 
-  await entry(page, 'eggs').getByText('eggs').click()
-  await entry(page, 'eggs').getByRole('button', { name: 'Check off' }).click()
+  await openTab(page, 'Shop')
+  await entry(page, 'eggs').getByRole('checkbox').click()
+  await expect(entry(page, 'eggs').getByRole('checkbox')).toBeChecked()
+  await openTab(page, 'Home')
   await expect(suggestions).toHaveText(['milk', 'eggs', 'bread'])
 })
