@@ -3,6 +3,8 @@ import {
   collection,
   deleteDoc,
   doc,
+  getDoc,
+  getDocFromCache,
   onSnapshot,
   serverTimestamp,
   setDoc,
@@ -115,6 +117,17 @@ export function useRecipes(weekId: string) {
     [weekId],
   )
   return result?.weekId === weekId ? result.recipes : {}
+}
+
+// The latest Guidelines and week, including edits saved a moment ago (as you leave a field
+// to tap a button), for sending to the AI.
+export async function readLatest(weekId: string) {
+  const read = (path: string) => getDocFromCache(doc(db, path)).catch(() => getDoc(doc(db, path)))
+  const [guidelines, week] = await Promise.all([read('config/guidelines'), read(`weeks/${weekId}`)])
+  return {
+    guidelines: (guidelines.data(estimate) as Guidelines | undefined) ?? { text: '' },
+    week: (week.data(estimate) as Week | undefined) ?? {},
+  }
 }
 
 export function setGuidelines(text: string) {

@@ -1,6 +1,5 @@
 import { useState, type FormEvent } from 'react'
 import { type User } from 'firebase/auth'
-import { generate } from './ai'
 import { WeekTab } from './Week'
 import { signInWithGoogle, signOut, useOnline, useUser } from './firebase'
 import {
@@ -35,8 +34,6 @@ const buttonStyle = {
   padding: '0.5rem 1rem',
   cursor: 'pointer',
 }
-
-type Fact = { entryId: string; text: string; loading: boolean }
 
 export default function App() {
   const { user, loading: userLoading } = useUser()
@@ -178,13 +175,9 @@ function Note({ entry }: { entry: Entry }) {
 function Home({ entries }: { entries: Entry[] }) {
   const staples = useStaples()
   const [text, setText] = useState('')
-  const [fact, setFact] = useState<Fact | null>(null)
   const [open, setOpen] = useState<{ entryId: string; note: string } | null>(null)
 
   const newestFirst = entries.toReversed()
-  const newestUnchecked = newestFirst.find((e) => !e.checked)
-
-  if (fact && fact.entryId !== newestUnchecked?.id) setFact(null)
 
   const suggestions = suggest(staples, text, entries)
 
@@ -206,18 +199,6 @@ function Home({ entries }: { entries: Entry[] }) {
   function toggleOpen(entry: Entry) {
     if (open?.entryId === entry.id) setOpen(null)
     else setOpen({ entryId: entry.id, note: entry.note ?? '' })
-  }
-
-  async function showFunFact(entry: Entry) {
-    setFact({ entryId: entry.id, text: '', loading: true })
-    try {
-      const result = await generate(
-        `Share a fun fact about: ${entry.text}. One or two sentences, casual tone.`,
-      )
-      setFact({ entryId: entry.id, text: result.trim(), loading: false })
-    } catch {
-      setFact({ entryId: entry.id, text: 'Failed to fetch fun fact.', loading: false })
-    }
   }
 
   return (
@@ -255,7 +236,6 @@ function Home({ entries }: { entries: Entry[] }) {
       <ul style={listStyle}>
         {newestFirst.map((entry) => {
           const isOpen = open?.entryId === entry.id
-          const showFact = fact?.entryId === entry.id
           return (
             <li
               key={entry.id}
@@ -274,15 +254,6 @@ function Home({ entries }: { entries: Entry[] }) {
                   {entry.text}
                   <Note entry={entry} />
                 </span>
-                {entry.id === newestUnchecked?.id && (
-                  <button
-                    onClick={() => showFunFact(entry)}
-                    disabled={showFact && fact.loading}
-                    style={{ ...smallButtonStyle, padding: '0.25rem 0.5rem' }}
-                  >
-                    Fun fact
-                  </button>
-                )}
               </div>
               {isOpen && (
                 <form
@@ -314,11 +285,6 @@ function Home({ entries }: { entries: Entry[] }) {
                     Fjern
                   </button>
                 </form>
-              )}
-              {showFact && (
-                <div style={{ fontSize: '0.9rem', color: '#666', fontStyle: 'italic' }}>
-                  {fact.loading ? 'Thinking…' : fact.text}
-                </div>
               )}
             </li>
           )

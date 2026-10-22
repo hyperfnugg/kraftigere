@@ -84,24 +84,3 @@ test('an Entry added in one browser appears in another', async ({ browser }) => 
   await addEntry(alice, 'bread')
   await expect(entry(bob, 'bread')).toBeVisible()
 })
-
-test('fun fact shows only on the newest unchecked Entry', async ({ page }) => {
-  await signIn(page, MEMBERS[0])
-  await addEntry(page, 'milk')
-  await addEntry(page, 'eggs')
-  const funFact = (text: string) => entry(page, text).getByRole('button', { name: 'Fun fact' })
-
-  await expect(funFact('eggs')).toBeVisible()
-  await expect(funFact('milk')).toHaveCount(0)
-
-  await funFact('eggs').click()
-  await expect(entry(page, 'eggs')).toContainText('Stub fun fact (dev).')
-
-  // Checking it off in Shop moves the button down and clears the fact.
-  await openTab(page, 'Handle')
-  await entry(page, 'eggs').getByRole('checkbox').click()
-  await expect(entry(page, 'eggs').getByRole('checkbox')).toBeChecked()
-  await openTab(page, 'Hjem')
-  await expect(funFact('milk')).toBeVisible()
-  await expect(page.getByText('Stub fun fact (dev).')).toHaveCount(0)
-})

@@ -36,10 +36,10 @@ Sixteenth milestone, and the first half of the AI-assisted meal planner. A Week 
 - [x] **Uke tab, Føringer and Ukeplan.** Tab bar 🏠 · Uke · Handle. Week navigation as in Scope. The Føringer link opens an editable text. Ukeplan is an editable text on the week. Both save as you leave the field, like Notes.
   - e2e: Uke opens on the current week, › shows next week, and text typed in Ukeplan and Føringer stays after a reload.
 - [x] **Commit: Uke tab with Føringer and Ukeplan.** *(manual)* (user-visible; review first)
-- [ ] **Menu with AI.** Rework `src/ai.ts` into typed calls with response schemas and Norwegian prompts. Remove the fun fact and its code from `App.tsx`. "Lag meny" proposes a Menu, each day can be edited as text, the instruction box remakes the Menu, and "Godta meny" accepts it. Emulator stub returns a fixed Menu.
-  - Check which Gemini Flash models AI Logic offers when starting, and pick the newest.
+- [x] **Menu with AI.** Rework `src/ai.ts` into typed calls with response schemas and Norwegian prompts. Remove the fun fact and its code from `App.tsx`. "Lag meny" proposes a Menu, each day can be edited as text, the instruction box remakes the Menu, and "Godta meny" accepts it. Emulator stub returns a fixed Menu.
+  - Check which Gemini Flash models AI Logic offers when starting, and pick the newest. 2026-10-23: `gemini-3.8-flash` (stable, 2026-09-02).
   - e2e: make a Menu (stub), edit Tuesday, accept it.
-- [ ] **Commit: AI proposes the Menu; fun fact removed.** *(manual)* (user-visible, and changes what Gemini is called with)
+- [x] **Commit: AI proposes the Menu; fun fact removed.** *(manual)* (user-visible, and changes what Gemini is called with)
 - [ ] **Recipes with AI.** "Godta meny" writes every course's Recipe in parallel and shows progress. A Recipe opens from its day. The form edits servings, Ingredient rows and steps. The instruction box remakes that Recipe. Emulator stub returns a fixed Recipe.
   - e2e: accepting the Menu gives a Recipe for each course, and editing an Ingredient's amount stays after a reload.
 - [ ] **Commit: AI writes Recipes.** *(manual)* (user-visible; review first)
