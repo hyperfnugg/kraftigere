@@ -24,6 +24,13 @@ service cloud.firestore {
              data.createdAt == request.time;
     }
 
+    // Checking off records when; unchecking forgets it.
+    function isEntryUpdate(before, after) {
+      return after.diff(before).affectedKeys().hasOnly(['checked', 'checkedAt']) &&
+             ((after.checked == true && after.checkedAt == request.time) ||
+              (after.checked == false && !('checkedAt' in after)));
+    }
+
     function isStapleName(name) {
       return name is string && name.size() >= 1 && name.size() <= 100;
     }
@@ -48,9 +55,7 @@ service cloud.firestore {
     match /entries/{entryId} {
       allow read, delete: if isFamily();
       allow create: if isFamily() && isNewEntry(request.resource.data);
-      allow update: if isFamily() &&
-                       request.resource.data.diff(resource.data).affectedKeys().hasOnly(['checked']) &&
-                       request.resource.data.checked is bool;
+      allow update: if isFamily() && isEntryUpdate(resource.data, request.resource.data);
     }
   }
 }

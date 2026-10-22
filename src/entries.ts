@@ -3,6 +3,7 @@ import {
   type Timestamp,
   collection,
   deleteDoc,
+  deleteField,
   doc,
   getDoc,
   getDocFromCache,
@@ -91,8 +92,12 @@ export function addEntry(name: string) {
   return batch.commit()
 }
 
+// Checking off records when, so Checked Entries can be removed after shopping.
 export function toggleEntry(id: string, checked: boolean) {
-  return updateDoc(doc(db, 'entries', id), { checked })
+  return updateDoc(
+    doc(db, 'entries', id),
+    checked ? { checked, checkedAt: serverTimestamp() } : { checked, checkedAt: deleteField() },
+  )
 }
 
 export function removeEntry(id: string) {

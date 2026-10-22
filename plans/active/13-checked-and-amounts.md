@@ -18,8 +18,8 @@ Thirteenth milestone. Checked Entries on Groceries go away once shopping is over
 
 ## Steps
 
-- [ ] **Checked timestamp.** Checking off sets `checkedAt` to the server time, and unchecking removes it. Rules: an update may change only `checked` and `checkedAt`. `checked == true` requires `checkedAt == request.time`, and `checked == false` requires no `checkedAt`. Rules tests for each case.
-- [ ] **Commit: Entries remember when they were checked off.** *(manual)* (security rules)
+- [x] **Checked timestamp.** Checking off sets `checkedAt` to the server time, and unchecking removes it. Rules: an update may change only `checked` and `checkedAt`. `checked == true` requires `checkedAt == request.time`, and `checked == false` requires no `checkedAt`. Rules tests for each case.
+- [x] **Commit: Entries remember when they were checked off.** *(manual)* (security rules)
 - [ ] **Remove checked.** A "Remove checked" button, shown when any Entry is Checked, removes them all in one batch. The app also does this by itself when the newest `checkedAt` is more than 15 minutes old. It checks on open and on a timer while open. Checked Entries without `checkedAt` (checked before this plan) count as old.
   - e2e: Remove checked removes only Checked Entries. With the clock moved 16 minutes past a check-off, they're gone. At 14 minutes they're still there.
 - [ ] **Commit: remove Checked Entries by hand and after 15 minutes.** *(auto)*
@@ -37,3 +37,4 @@ Thirteenth milestone. Checked Entries on Groceries go away once shopping is over
 ## Notes
 
 - 2026-10-22: Decided in the grilling session: 15 minutes, counted from the most recent check-off on the List, and unchecking doesn't restart it. Unchecking the newest Checked Entry makes the next newest count, which can bring removal forward. Accepted.
+- 2026-10-22: An installed app still on the old code checks off without `checkedAt`, which the rules now refuse, so the check-off reverts until the app updates on its next online launch. Accepted per ADR 0003.

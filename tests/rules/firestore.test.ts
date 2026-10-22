@@ -8,6 +8,7 @@ import {
 import {
   collection,
   deleteDoc,
+  deleteField,
   doc,
   getDoc,
   getDocs,
@@ -116,13 +117,26 @@ describe('/entries shape', () => {
     await assertFails(create(newEntry({ createdAt: Timestamp.now() })))
   })
 
-  test('an update may only check off or uncheck', async () => {
+  test('checking off records the server time, unchecking removes it', async () => {
     const e1 = doc(member(), 'entries/e1')
-    await assertSucceeds(updateDoc(e1, { checked: true }))
-    await assertSucceeds(updateDoc(e1, { checked: false }))
-    await assertFails(updateDoc(e1, { checked: 'yes' }))
+    await assertSucceeds(updateDoc(e1, { checked: true, checkedAt: serverTimestamp() }))
+    await assertSucceeds(updateDoc(e1, { checked: false, checkedAt: deleteField() }))
+  })
+
+  test('checking off without the server time, or unchecking without removing it, is refused', async () => {
+    const e1 = doc(member(), 'entries/e1')
+    await assertFails(updateDoc(e1, { checked: true }))
+    await assertFails(updateDoc(e1, { checked: true, checkedAt: Timestamp.now() }))
+    await assertSucceeds(updateDoc(e1, { checked: true, checkedAt: serverTimestamp() }))
+    await assertFails(updateDoc(e1, { checked: false }))
+    await assertFails(updateDoc(e1, { checked: 'yes', checkedAt: serverTimestamp() }))
+  })
+
+  test('an update may not change anything else', async () => {
+    const e1 = doc(member(), 'entries/e1')
     await assertFails(updateDoc(e1, { text: 'oat milk' }))
     await assertFails(updateDoc(e1, { quantity: 2 }))
+    await assertFails(updateDoc(e1, { staple: 'eggs' }))
   })
 })
 
