@@ -5,7 +5,6 @@ Where Kraft is heading. It changes often. Ideas are one line each, cheap to add 
 ## Now
 
 - [Dependency maintenance](plans/active/05-dependency-maintenance.md)
-- [Staples](plans/active/12-staples.md)
 - [Removing Checked Entries, and amounts](plans/active/13-checked-and-amounts.md)
 - [Home and Shop tabs](plans/active/14-home-and-shop-tabs.md)
 

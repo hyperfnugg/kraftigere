@@ -38,9 +38,9 @@ Twelfth milestone. Today's List becomes the Groceries List, and every Entry adde
 - [x] **Suggestions always showing.** With the add field empty, the 5 most added Staples show as suggestions, leaving out Staples already on the List unchecked. Typing switches to matches as before.
   - e2e: with the field empty, the most added Staples show in order, and one already unchecked on the List doesn't. Checking it off brings it back.
 - [x] **Commit: suggestions show with the add field empty.** *(auto)*
-- [ ] **Deploy and migrate.** Push. CI deploys the rules and the app. Run the script against production with your own credentials. On `https://kraftigere.web.app/`: old Entries still show, adding "melk" suggests and counts. *(user)*
-- [ ] **Move plan to `plans/done/`.** `git mv plans/active/12-staples.md plans/done/12-staples.md`, and remove it from **Now** in `ROADMAP.md`.
-- [ ] **Commit: complete staples milestone.** *(auto)*
+- [x] **Deploy and migrate.** Push. CI deploys the rules and the app. Run the script against production with your own credentials. On `https://kraftigere.web.app/`: old Entries still show, adding "melk" suggests and counts. *(user)*
+- [x] **Move plan to `plans/done/`.** `git mv plans/active/12-staples.md plans/done/12-staples.md`, and remove it from **Now** in `ROADMAP.md`.
+- [x] **Commit: complete staples milestone.** *(auto)*
 
 ## Done when
 
@@ -55,3 +55,4 @@ Twelfth milestone. Today's List becomes the Groceries List, and every Entry adde
   - Two Family Members adding the same new Staple offline at once both "create" it. The second write becomes an update with `addCount` 1 instead of 2. Accepted.
   - Between deploying and running the migration, old Entries have no `staple`. Updates (check off) still work, since update rules only check `checked`.
 - 2026-10-22: Migration tried on the emulator: two spellings of milk became one Staple counted twice, an existing Staple was counted rather than replaced, Entries with a Staple were skipped, and a second run changed nothing. The script renames an existing Staple to the spelling last added, as the app does.
+- 2026-10-22: Deployed, and the production migration ran successfully.
