@@ -29,8 +29,8 @@ Sixteenth milestone, and the first half of the AI-assisted meal planner. A Week 
 
 ## Steps
 
-- [ ] **Glossary and vision.** In `CONTEXT.md`, Outdated also covers a Recipe whose own Meal changed, and a Meal is dinner. In `docs/vision/groceries-and-meals.md`, update the Outdated section to match: tapping "Utdatert" remakes after a warning.
-- [ ] **Commit: glossary and vision for week planning.** *(auto)*
+- [x] **Glossary and vision.** In `CONTEXT.md`, Outdated also covers a Recipe whose own Meal changed, and a Meal is dinner. In `docs/vision/groceries-and-meals.md`, update the Outdated section to match: tapping "Utdatert" remakes after a warning.
+- [x] **Commit: glossary and vision for week planning.** *(auto)*
 - [ ] **Week data and rules.** `/config/guidelines` holds `text`. `/weeks/{isoWeek}` holds `notes`, the Menu (seven days, each with a list of courses), Recipes keyed by day and course, and the timestamps needed for Outdated (when Føringer, Ukeplan and each Meal last changed, and when each Menu and Recipe was made). Pick the exact shape while building. Rules: Family Members only, with field types and size limits checked, following ADR 0003. Rules tests in `tests/rules/firestore.test.ts`.
 - [ ] **Commit: week data and rules.** *(manual)* (security rules; review before committing)
 - [ ] **Uke tab, Føringer and Ukeplan.** Tab bar 🏠 · Uke · Handle. Week navigation as in Scope. The Føringer link opens an editable text. Ukeplan is an editable text on the week. Both save as you leave the field, like Notes.

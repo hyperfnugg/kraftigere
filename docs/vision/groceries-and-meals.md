@@ -68,13 +68,13 @@ One week at a time. A Family Member goes through these stages, and the AI does t
   The people named are whoever eats. They're free text, not Family Members.
 - **Week Notes** (this week only). Example:
   > Monday Mary's parents visit: 3 courses, 1.5 hours prep. Wednesday Peter is away. We have A LOT of venison in the freezer.
-- **Menu.** The AI proposes a Meal for each day. The Family Member edits it directly or instructs the AI ("Mary's father doesn't like fish"), then accepts it.
+- **Menu.** The AI proposes a Meal, dinner, for each day. The Family Member edits it directly or instructs the AI ("Mary's father doesn't like fish"), then accepts it.
 - **Recipes.** The AI writes a Recipe for each course of each Meal. Ingredient amounts are in grams unless stated otherwise. The Family Member edits them directly or instructs the AI ("steam the strawberries, don't boil them").
 - **Confirm.** Ingredients go to Groceries (below).
 
 ### Outdated
 
-When Guidelines or Week Notes change after a Menu or Recipes exist, those become **Outdated**, with a timestamp. Nothing is remade until a Family Member asks, because automatic remaking costs AI calls and would overwrite their edits. Later improvement: remaking that keeps hand edits.
+When Guidelines or Week Notes change after a Menu or Recipes exist, those become **Outdated**, with a timestamp. A Recipe also becomes Outdated when its own Meal changes. Nothing is remade until a Family Member asks, because automatic remaking costs AI calls and would overwrite their edits. Tapping "Utdatert" asks "Lag på nytt? Endringer du har gjort forsvinner." and then remakes. Later improvement: remaking that keeps hand edits.
 
 ### Confirm
 

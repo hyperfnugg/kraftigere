@@ -82,7 +82,7 @@ _UI_: "Meny"
 _Avoid_: Meal plan, plan, week plan
 
 **Meal**:
-What is eaten on one day of a Menu, possibly several courses, each with its own Recipe.
+The dinner eaten on one day of a Menu, possibly several courses, each with its own Recipe. A day can have no Meal.
 _UI_: "Måltid"
 _Avoid_: Dinner, dish
 
@@ -102,7 +102,7 @@ _UI_: "Iverksett"
 _Avoid_: Commit, submit, finalize
 
 **Outdated**:
-The state of a Menu or Recipe whose Guidelines or Week Notes changed after it was made. It stays as it is until a Family Member asks the AI to remake it.
+The state of a Menu whose Guidelines or Week Notes changed after it was made, or of a Recipe whose Guidelines, Week Notes or own Meal changed after it was made. It stays as it is until a Family Member asks the AI to remake it, which loses their hand edits.
 _UI_: "Utdatert"
 _Avoid_: Stale, dirty
 
