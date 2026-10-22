@@ -24,9 +24,9 @@ Fourteenth milestone. Split today's single screen into the first two tabs for us
 - [x] **Commit: Home and Shop tabs.** *(manual)* (user-visible layout change; review first)
 - [x] **Deploy and check.** Push. Try both tabs in the store once. *(user)*
 - [x] **Home removes, never checks off.** The second tap's "Check off" becomes "Remove", and the row's × goes. Lands in plan 13's Note commit.
-- [ ] **Deploy and check.** Push with plan 13's Note change. On Home, tap an Entry and remove it. *(user)*
-- [ ] **Move plan to `plans/done/`.** `git mv plans/active/14-home-and-shop-tabs.md plans/done/14-home-and-shop-tabs.md`, and remove it from **Now** in `ROADMAP.md`.
-- [ ] **Commit: complete home-and-shop-tabs milestone.** *(auto)*
+- [x] **Deploy and check.** Push with plan 13's Note change. On Home, tap an Entry and remove it. *(user)*
+- [x] **Move plan to `plans/done/`.** `git mv plans/active/14-home-and-shop-tabs.md plans/done/14-home-and-shop-tabs.md`, and remove it from **Now** in `ROADMAP.md`.
+- [x] **Commit: complete home-and-shop-tabs milestone.** *(auto)*
 
 ## Done when
 
@@ -37,3 +37,4 @@ Fourteenth milestone. Split today's single screen into the first two tabs for us
 - 2026-10-22: Comes after plans 12 and 13 so the tabs get split once, with Staples and Remove checked already in place. Home keeps check-off, but behind a second tap to avoid misclicks (user decision).
 - 2026-10-22: Fun fact moved with Home's newest-first order: it now shows on the newest unchecked Entry (the top one). Tapping an Entry on Home opens its amount and a "Check off"/"Uncheck" button. Enter saves and closes, and leaving the field saves. Shop has no Remove button per Entry.
 - 2026-10-22: After trying it live: Home only removes, never checks off (user decision). Removing moved behind the second tap, replacing the row's ×.
+- 2026-10-22: Pushed with plan 13's Note change.

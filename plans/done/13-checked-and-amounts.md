@@ -28,9 +28,9 @@ Thirteenth milestone. Checked Entries on Groceries go away once shopping is over
 - [x] **Deploy and check.** Push. On `https://kraftigere.web.app/`: check off, Remove checked, set an amount, and wait out the 15 minutes once. *(user)*
 - [x] **Note instead of amount.** The free text on an Entry is a Note (`note`, 1–200 characters), since it's used for more than amounts. Rules and rules tests renamed. `scripts/migrate-13-amount-to-note.mjs` renames `amount` on existing Entries, tried on the emulator (renamed once, a second run changed nothing).
 - [x] **Commit: Notes replace amounts; Home removes instead of checking off.** *(manual)* (security rules; also lands plan 14's Home change)
-- [ ] **Deploy and migrate.** Push. Run `node scripts/migrate-13-amount-to-note.mjs kraftigere`. On `https://kraftigere.web.app/`: an amount set earlier shows as a Note. *(user)*
-- [ ] **Move plan to `plans/done/`.** `git mv plans/active/13-checked-and-amounts.md plans/done/13-checked-and-amounts.md`, and remove it from **Now** in `ROADMAP.md`.
-- [ ] **Commit: complete checked-and-amounts milestone.** *(auto)*
+- [x] **Deploy and migrate.** Push. Run `node scripts/migrate-13-amount-to-note.mjs kraftigere`. On `https://kraftigere.web.app/`: an amount set earlier shows as a Note. *(user)*
+- [x] **Move plan to `plans/done/`.** `git mv plans/active/13-checked-and-amounts.md plans/done/13-checked-and-amounts.md`, and remove it from **Now** in `ROADMAP.md`.
+- [x] **Commit: complete checked-and-amounts milestone.** *(auto)*
 
 ## Done when
 
@@ -42,3 +42,4 @@ Thirteenth milestone. Checked Entries on Groceries go away once shopping is over
 - 2026-10-22: Decided in the grilling session: 15 minutes, counted from the most recent check-off on the List, and unchecking doesn't restart it. Unchecking the newest Checked Entry makes the next newest count, which can bring removal forward. Accepted.
 - 2026-10-22: An installed app still on the old code checks off without `checkedAt`, which the rules now refuse, so the check-off reverts until the app updates on its next online launch. Accepted per ADR 0003.
 - 2026-10-22: Rules tests use a fixed past time for "client-chosen time is refused". On the local emulator a client's `Timestamp.now()` once coincided with `request.time` and was accepted, a flake.
+- 2026-10-22: Pushed, and the Note migration ran in production.
