@@ -226,3 +226,141 @@ describe('config/family', () => {
     await assertFails(getDoc(doc(outsider(), 'config/family')))
   })
 })
+
+describe('config/guidelines', () => {
+  const guidelines = (db: Firestore) => doc(db, 'config/guidelines')
+
+  test('a Family Member can read and write the text, stamped now', async () => {
+    await assertSucceeds(setDoc(guidelines(member()), { text: 'Fredag er taco.', updatedAt: serverTimestamp() }))
+    await assertSucceeds(setDoc(guidelines(member()), { text: '', updatedAt: serverTimestamp() }))
+    await assertSucceeds(getDoc(guidelines(member())))
+  })
+
+  test('a non-member cannot read or write', async () => {
+    await assertFails(getDoc(guidelines(outsider())))
+    await assertFails(setDoc(guidelines(outsider()), { text: 'x', updatedAt: serverTimestamp() }))
+  })
+
+  test('a long text, a client time or an extra field is refused', async () => {
+    await assertFails(setDoc(guidelines(member()), { text: 'x'.repeat(5001), updatedAt: serverTimestamp() }))
+    await assertFails(setDoc(guidelines(member()), { text: 'x', updatedAt: clientTime }))
+    await assertFails(setDoc(guidelines(member()), { text: 'x' }))
+    await assertFails(setDoc(guidelines(member()), { text: 'x', updatedAt: serverTimestamp(), by: 'alice' }))
+  })
+})
+
+const emptyMenu = { mon: [], tue: [], wed: [], thu: [], fri: [], sat: [], sun: [] }
+const allDays = (value: unknown) => Object.fromEntries(Object.keys(emptyMenu).map((d) => [d, value]))
+// What setMadeMenu writes the first time: every day stamped.
+const madeMenu = (menu: object = { ...emptyMenu, tue: ['Taco'] }) => ({
+  menu,
+  menuAt: serverTimestamp(),
+  mealsAt: allDays(serverTimestamp()),
+})
+
+describe('/weeks', () => {
+  const week = (db: Firestore, id = '2026-W44') => doc(db, `weeks/${id}`)
+
+  test('a Family Member can write Week Notes, stamped now', async () => {
+    await assertSucceeds(setDoc(week(member()), { notes: 'Gjester mandag.', notesAt: serverTimestamp() }, { merge: true }))
+    await assertSucceeds(setDoc(week(member()), { notes: '', notesAt: serverTimestamp() }, { merge: true }))
+    await assertSucceeds(getDoc(week(member())))
+  })
+
+  test('a non-member cannot read or write', async () => {
+    await assertFails(getDoc(week(outsider())))
+    await assertFails(setDoc(week(outsider()), { notes: 'x', notesAt: serverTimestamp() }))
+  })
+
+  test('a week id that is not an ISO week is refused', async () => {
+    await assertFails(setDoc(week(member(), '2026-44'), { notes: 'x', notesAt: serverTimestamp() }))
+    await assertFails(setDoc(week(member(), 'next'), { notes: 'x', notesAt: serverTimestamp() }))
+  })
+
+  test('Week Notes that are too long, unstamped or stamped by the client are refused', async () => {
+    await assertFails(setDoc(week(member()), { notes: 'x'.repeat(5001), notesAt: serverTimestamp() }))
+    await assertFails(setDoc(week(member()), { notes: 'x' }))
+    await assertFails(setDoc(week(member()), { notes: 'x', notesAt: clientTime }))
+    await assertFails(setDoc(week(member()), { notes: 'x', notesAt: serverTimestamp(), guests: 2 }))
+  })
+
+  test('a made Menu has all seven days and every changed day stamped', async () => {
+    await assertSucceeds(setDoc(week(member()), madeMenu()))
+    await assertFails(setDoc(week(member(), '2026-W45'), { ...madeMenu(), mealsAt: {} }))
+    await assertFails(setDoc(week(member(), '2026-W45'), madeMenu({ tue: ['Taco'] })))
+    await assertFails(setDoc(week(member(), '2026-W45'), madeMenu({ ...emptyMenu, xmas: [] })))
+    await assertFails(setDoc(week(member(), '2026-W45'), { ...madeMenu(), menuAt: clientTime }))
+    await assertFails(setDoc(week(member(), '2026-W45'), madeMenu({ ...emptyMenu, tue: 'Taco' })))
+    await assertFails(setDoc(week(member(), '2026-W45'), madeMenu({ ...emptyMenu, tue: ['a', 'b', 'c', 'd', 'e'] })))
+  })
+
+  test('editing a Meal stamps that day, and other days stay as they were', async () => {
+    await assertSucceeds(setDoc(week(member()), madeMenu()))
+    const w = week(member())
+    await assertSucceeds(updateDoc(w, { 'menu.tue': ['Taco', 'Is'], 'mealsAt.tue': serverTimestamp() }))
+    await assertFails(updateDoc(w, { 'menu.wed': ['Suppe'] }))
+    await assertFails(updateDoc(w, { 'menu.wed': ['Suppe'], 'mealsAt.wed': clientTime }))
+    await assertFails(updateDoc(w, { 'mealsAt.thu': clientTime }))
+    await assertSucceeds(updateDoc(w, { accepted: true }))
+    await assertFails(updateDoc(w, { accepted: 'yes' }))
+  })
+
+  test('remaking the Menu stamps only the days that changed', async () => {
+    await assertSucceeds(setDoc(week(member()), madeMenu()))
+    const remade = { menu: { ...emptyMenu, tue: ['Taco'], wed: ['Suppe'] }, menuAt: serverTimestamp() }
+    await assertSucceeds(setDoc(week(member()), { ...remade, mealsAt: { wed: serverTimestamp() } }, { merge: true }))
+    await assertFails(setDoc(week(member()), { ...remade, menu: { ...remade.menu, fri: ['Pizza'] } }, { merge: true }))
+  })
+
+  test('accepting needs a Menu', async () => {
+    await assertFails(setDoc(week(member()), { accepted: true }))
+  })
+})
+
+describe('/weeks/{week}/recipes', () => {
+  const recipe = (db: Firestore, id = 'tue-0') => doc(db, `weeks/2026-W44/recipes/${id}`)
+  const made = (fields: object = {}) => ({
+    course: 'Taco',
+    servings: 4,
+    ingredients: [{ text: 'kjøttdeig', amount: 400, unit: 'g' }],
+    steps: 'Stek kjøttet.',
+    madeAt: serverTimestamp(),
+    ...fields,
+  })
+
+  test('a Family Member can write a made Recipe and edit it by hand', async () => {
+    await assertSucceeds(setDoc(recipe(member()), made()))
+    await assertSucceeds(updateDoc(recipe(member()), { servings: 6 }))
+    await assertSucceeds(updateDoc(recipe(member()), { ingredients: [], steps: '' }))
+    await assertSucceeds(setDoc(recipe(member()), made()))
+    await assertSucceeds(getDoc(recipe(member())))
+    await assertSucceeds(deleteDoc(recipe(member())))
+  })
+
+  test('a non-member cannot read or write', async () => {
+    await assertFails(getDoc(recipe(outsider())))
+    await assertFails(setDoc(recipe(outsider()), made()))
+  })
+
+  test('a Recipe id must name a day and a course', async () => {
+    await assertFails(setDoc(recipe(member(), 'tue'), made()))
+    await assertFails(setDoc(recipe(member(), 'xmas-0'), made()))
+    await assertFails(setDoc(recipe(member(), 'tue-4'), made()))
+  })
+
+  test('a Recipe in the wrong shape is refused', async () => {
+    await assertFails(setDoc(recipe(member()), made({ course: '' })))
+    await assertFails(setDoc(recipe(member()), made({ servings: 0 })))
+    await assertFails(setDoc(recipe(member()), made({ servings: 2.5 })))
+    await assertFails(setDoc(recipe(member()), made({ ingredients: 'kjøttdeig' })))
+    await assertFails(setDoc(recipe(member()), made({ ingredients: Array(61).fill({ text: 'x', amount: 1, unit: 'g' }) })))
+    await assertFails(setDoc(recipe(member()), made({ steps: 'x'.repeat(10001) })))
+    await assertFails(setDoc(recipe(member()), made({ rating: 5 })))
+    await assertFails(setDoc(recipe(member()), made({ madeAt: clientTime })))
+  })
+
+  test('a hand edit cannot move madeAt to a client time', async () => {
+    await assertSucceeds(setDoc(recipe(member()), made()))
+    await assertFails(updateDoc(recipe(member()), { madeAt: clientTime }))
+  })
+})

@@ -67,5 +67,86 @@ service cloud.firestore {
       allow create: if isFamily() && isNewEntry(request.resource.data);
       allow update: if isFamily() && isEntryUpdate(resource.data, request.resource.data);
     }
+
+    // Guidelines: one text for the Family. updatedAt is when it last changed, for Outdated.
+    match /config/guidelines {
+      allow read: if isFamily();
+      allow write: if isFamily() &&
+                      request.resource.data.keys().hasOnly(['text', 'updatedAt']) &&
+                      request.resource.data.keys().hasAll(['text', 'updatedAt']) &&
+                      isLongText(request.resource.data.text) &&
+                      request.resource.data.updatedAt == request.time;
+    }
+
+    function isLongText(text) {
+      return text is string && text.size() <= 5000;
+    }
+
+    // A week's changed field stamped now, or left alone.
+    function stampedIfChanged(changed, field, after) {
+      return !changed.hasAny([field]) || after[field] == request.time;
+    }
+
+    // A Meal is a list of courses. A day whose Meal changes stamps it in mealsAt, so its
+    // Recipes become Outdated.
+    function isMealChange(before, after, day) {
+      let meal = after.menu[day];
+      let mealChanged = before.get('menu', {}).get(day, null) != meal;
+      let stampChanged = before.get('mealsAt', {}).get(day, null) != after.mealsAt.get(day, null);
+      return meal is list && meal.size() <= 4 &&
+             (!(mealChanged || stampChanged) || after.mealsAt.get(day, null) == request.time);
+    }
+
+    function isMenu(before, after) {
+      let days = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+      return after.menu is map && after.menu.keys().hasOnly(days) && after.menu.keys().hasAll(days) &&
+             after.mealsAt is map && after.mealsAt.keys().hasOnly(days) &&
+             isMealChange(before, after, 'mon') && isMealChange(before, after, 'tue') &&
+             isMealChange(before, after, 'wed') && isMealChange(before, after, 'thu') &&
+             isMealChange(before, after, 'fri') && isMealChange(before, after, 'sat') &&
+             isMealChange(before, after, 'sun');
+    }
+
+    // A week, by ISO week id like 2026-W44: Week Notes and the Menu. notesAt and menuAt
+    // say when Week Notes last changed and when the AI last made the Menu.
+    function isWeek(before, after) {
+      let changed = after.diff(before).affectedKeys();
+      return after.keys().hasOnly(['notes', 'notesAt', 'menu', 'menuAt', 'mealsAt', 'accepted']) &&
+             (!('notes' in after) || (isLongText(after.notes) && after.notesAt == request.time) ||
+              !changed.hasAny(['notes', 'notesAt'])) &&
+             ('notes' in after) == ('notesAt' in after) &&
+             (!('menu' in after) || isMenu(before, after)) &&
+             ('menu' in after) == ('mealsAt' in after) &&
+             (!('menuAt' in after) || ('menu' in after && stampedIfChanged(changed, 'menuAt', after))) &&
+             (!('accepted' in after) || (after.accepted is bool && 'menu' in after));
+    }
+
+    match /weeks/{weekId} {
+      allow read: if isFamily();
+      allow create: if isFamily() && weekId.matches('^[0-9]{4}-W[0-9]{2}$') &&
+                       isWeek({}, request.resource.data);
+      allow update: if isFamily() && isWeek(resource.data, request.resource.data);
+
+      // A Recipe for one course of one day's Meal, with id like tue-0. madeAt is when the
+      // AI last made it; hand edits leave it alone. The rules can't loop, so they check
+      // that ingredients is a short list but not the shape of each Ingredient.
+      function isRecipe(before, after) {
+        return after.keys().hasOnly(['course', 'servings', 'ingredients', 'steps', 'madeAt']) &&
+               after.keys().hasAll(['course', 'servings', 'ingredients', 'steps', 'madeAt']) &&
+               after.course is string && after.course.size() >= 1 && after.course.size() <= 200 &&
+               after.servings is int && after.servings >= 1 && after.servings <= 50 &&
+               after.ingredients is list && after.ingredients.size() <= 60 &&
+               after.steps is string && after.steps.size() <= 10000 &&
+               after.madeAt is timestamp &&
+               (after.madeAt == request.time || after.madeAt == before.get('madeAt', null));
+      }
+
+      match /recipes/{recipeId} {
+        allow read, delete: if isFamily();
+        allow create: if isFamily() && recipeId.matches('^(mon|tue|wed|thu|fri|sat|sun)-[0-3]$') &&
+                         isRecipe({}, request.resource.data);
+        allow update: if isFamily() && isRecipe(resource.data, request.resource.data);
+      }
+    }
   }
 }
