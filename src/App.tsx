@@ -47,7 +47,7 @@ export default function App() {
     return (
       <main style={centerStyle}>
         <button style={buttonStyle} onClick={() => signInWithGoogle()}>
-          Sign in with Google
+          Logg inn med Google
         </button>
       </main>
     )
@@ -60,11 +60,11 @@ export default function App() {
       <main style={centerStyle}>
         <div>
           {access === 'unreachable'
-            ? "Can't connect — check your connection and try again."
-            : 'Not authorized — ask the admin to add your Google account.'}
+            ? "Får ikke kontakt. Sjekk nettet og prøv igjen."
+            : 'Ingen tilgang. Be admin legge til Google-kontoen din.'}
         </div>
         <button style={buttonStyle} onClick={() => signOut()}>
-          Sign out
+          Logg ut
         </button>
       </main>
     )
@@ -76,6 +76,11 @@ export default function App() {
 const smallButtonStyle = { ...buttonStyle, fontSize: '0.875rem', padding: '0.25rem 0.75rem' }
 
 type Tab = 'Home' | 'Shop'
+
+const TABS = [
+  { tab: 'Home', label: '🏠', name: 'Hjem' },
+  { tab: 'Shop', label: 'Handle', name: 'Handle' },
+] as const
 
 function List({ user }: { user: User }) {
   const { entries } = useEntries()
@@ -98,7 +103,7 @@ function List({ user }: { user: User }) {
       }}
     >
       {!online && (
-        <div style={{ fontSize: '0.875rem', color: '#8a5a00' }}>Offline: changes will sync</div>
+        <div style={{ fontSize: '0.875rem', color: '#8a5a00' }}>Frakoblet: endringer lagres når nettet er tilbake</div>
       )}
       <header
         style={{
@@ -111,7 +116,7 @@ function List({ user }: { user: User }) {
       >
         <span>{user.displayName ?? user.email}</span>
         <button onClick={() => signOut()} style={smallButtonStyle}>
-          Sign out
+          Logg ut
         </button>
       </header>
 
@@ -130,11 +135,12 @@ function List({ user }: { user: User }) {
           borderTop: '1px solid #ddd',
         }}
       >
-        {(['Home', 'Shop'] as const).map((t) => (
+        {TABS.map(({ tab: t, label, name }) => (
           <button
             key={t}
             onClick={() => setTab(t)}
             aria-pressed={tab === t}
+            aria-label={name}
             style={{
               ...buttonStyle,
               flex: 1,
@@ -142,7 +148,7 @@ function List({ user }: { user: User }) {
               color: tab === t ? 'black' : '#666',
             }}
           >
-            {t}
+            {label}
           </button>
         ))}
       </nav>
@@ -217,11 +223,11 @@ function Home({ entries }: { entries: Entry[] }) {
           value={text}
           onChange={(e) => setText(e.target.value)}
           maxLength={100}
-          placeholder="Add entry"
+          placeholder="Hva trenger vi?"
           style={{ flex: 1, fontSize: '1rem', padding: '0.5rem' }}
         />
         <button type="submit" style={buttonStyle}>
-          Add
+          Legg til
         </button>
       </form>
 
@@ -289,8 +295,8 @@ function Home({ entries }: { entries: Entry[] }) {
                     onChange={(e) => setOpen({ ...open, note: e.target.value })}
                     onBlur={saveNote}
                     maxLength={200}
-                    placeholder="Note"
-                    aria-label="Note"
+                    placeholder="Notat"
+                    aria-label="Notat"
                     style={{ flex: 1, minWidth: 0, fontSize: '1rem', padding: '0.25rem' }}
                   />
                   <button
@@ -301,7 +307,7 @@ function Home({ entries }: { entries: Entry[] }) {
                     }}
                     style={smallButtonStyle}
                   >
-                    Remove
+                    Fjern
                   </button>
                 </form>
               )}
@@ -327,7 +333,7 @@ function Shop({ entries }: { entries: Entry[] }) {
     <>
       {checked.length > 0 && (
         <button onClick={() => removeEntries(checked)} style={{ ...smallButtonStyle, alignSelf: 'flex-end' }}>
-          Remove checked
+          Fjern avkryssede
         </button>
       )}
       <ul style={{ ...listStyle, gap: '0.75rem' }}>

@@ -8,7 +8,7 @@ export { MEMBERS, OUTSIDER, reset, seed, setMembers } from '../../scripts/seed.m
 export async function completeGooglePopup(page: Page, email: string) {
   await page.goto('./')
   const popupPromise = page.waitForEvent('popup')
-  await page.getByRole('button', { name: 'Sign in with Google' }).click()
+  await page.getByRole('button', { name: 'Logg inn med Google' }).click()
   const popup = await popupPromise
   // The seeded accounts are listed in the popup. Clicks before its script is ready
   // are dropped, so retry until the popup closes.
@@ -21,12 +21,12 @@ export async function completeGooglePopup(page: Page, email: string) {
 
 export async function signIn(page: Page, email: string) {
   await completeGooglePopup(page, email)
-  await expect(page.getByRole('button', { name: 'Sign out' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Logg ut' })).toBeVisible()
 }
 
 export async function addEntry(page: Page, text: string) {
-  await page.getByPlaceholder('Add entry').fill(text)
-  await page.getByRole('button', { name: 'Add', exact: true }).click()
+  await page.getByPlaceholder('Hva trenger vi?').fill(text)
+  await page.getByRole('button', { name: 'Legg til', exact: true }).click()
   await expect(entry(page, text)).toBeVisible()
 }
 
@@ -44,7 +44,7 @@ export async function readDoc(path: string) {
   return (await res.json()).fields
 }
 
-export async function openTab(page: Page, name: 'Home' | 'Shop') {
+export async function openTab(page: Page, name: 'Hjem' | 'Handle') {
   await page.getByRole('button', { name, exact: true }).click()
   await expect(page.getByRole('button', { name, exact: true })).toHaveAttribute('aria-pressed', 'true')
 }

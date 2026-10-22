@@ -29,5 +29,5 @@ test('the service worker opens the app offline', async ({ page, context }) => {
 
   await context.setOffline(true)
   await page.reload()
-  await expect(page.getByRole('button', { name: 'Sign in with Google' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Logg inn med Google' })).toBeVisible()
 })

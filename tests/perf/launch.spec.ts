@@ -85,7 +85,7 @@ test.describe('live site, signed out, until the sign-in button shows', () => {
     await waitForServiceWorker(page)
     const cdp = await throttle(page)
     await report('live, cached', () =>
-      time(cdp, () => page.reload(), page.getByRole('button', { name: 'Sign in with Google' })),
+      time(cdp, () => page.reload(), page.getByRole('button', { name: 'Logg inn med Google' })),
     )
   })
 
@@ -94,7 +94,7 @@ test.describe('live site, signed out, until the sign-in button shows', () => {
     const cdp = await throttle(page)
     await hardReloadMode(cdp)
     await report('live, hard reload', () =>
-      time(cdp, () => page.reload(), page.getByRole('button', { name: 'Sign in with Google' })),
+      time(cdp, () => page.reload(), page.getByRole('button', { name: 'Logg inn med Google' })),
     )
   })
 })

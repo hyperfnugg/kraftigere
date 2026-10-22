@@ -10,8 +10,8 @@ test('adding the same Staple in different spellings counts one Staple', async ({
   await signIn(page, MEMBERS[0])
   await addEntry(page, 'Melk')
   await addEntry(page, 'Melk')
-  await page.getByPlaceholder('Add entry').fill('melk ')
-  await page.getByRole('button', { name: 'Add', exact: true }).click()
+  await page.getByPlaceholder('Hva trenger vi?').fill('melk ')
+  await page.getByRole('button', { name: 'Legg til', exact: true }).click()
   await expect(entry(page, 'Melk')).toHaveCount(3)
 
   await expect(async () => {
@@ -24,34 +24,34 @@ test('adding the same Staple in different spellings counts one Staple', async ({
 test('typing suggests Staples, and tapping one adds it', async ({ page }) => {
   await signIn(page, MEMBERS[0])
   await addEntry(page, 'Melk')
-  await page.getByPlaceholder('Add entry').fill('me')
+  await page.getByPlaceholder('Hva trenger vi?').fill('me')
   await page.getByRole('button', { name: 'Melk' }).click()
   await expect(entry(page, 'Melk')).toHaveCount(2)
-  await expect(page.getByPlaceholder('Add entry')).toHaveValue('')
+  await expect(page.getByPlaceholder('Hva trenger vi?')).toHaveValue('')
 })
 
 test('suggestions starting with the text come first, then by how often they are added', async ({ page }) => {
   await signIn(page, MEMBERS[0])
-  const input = page.getByPlaceholder('Add entry')
+  const input = page.getByPlaceholder('Hva trenger vi?')
   for (const name of ['nutmeg', 'nutmeg', 'nutmeg', 'egg noodles', 'eggs', 'eggs']) {
     await input.fill(name)
     await input.press('Enter')
   }
   await expect(page.getByRole('listitem')).toHaveCount(6)
   await input.fill('eg')
-  const suggestions = page.getByRole('button').filter({ hasText: /eg/ })
+  const suggestions = page.getByRole('button', { name: /^(eggs|egg noodles|nutmeg)$/ })
   await expect(suggestions).toHaveText(['eggs', 'egg noodles', 'nutmeg'])
 })
 
 test('with the field empty, the most added Staples not already waiting show', async ({ page }) => {
   await signIn(page, MEMBERS[0])
-  const input = page.getByPlaceholder('Add entry')
+  const input = page.getByPlaceholder('Hva trenger vi?')
   for (const name of ['milk', 'milk', 'milk', 'milk', 'eggs', 'eggs', 'bread']) {
     await input.fill(name)
     await input.press('Enter')
   }
   await expect(page.getByRole('listitem')).toHaveCount(7)
-  await openTab(page, 'Shop')
+  await openTab(page, 'Handle')
   // Shop moves each Entry down as it's checked, so always take the first unchecked one.
   const unchecked = page.getByRole('checkbox', { checked: false })
   for (let left = 7; left > 0; left--) {
@@ -59,9 +59,9 @@ test('with the field empty, the most added Staples not already waiting show', as
     await unchecked.first().click()
   }
   await expect(unchecked).toHaveCount(0)
-  await page.getByRole('button', { name: 'Remove checked' }).click()
+  await page.getByRole('button', { name: 'Fjern avkryssede' }).click()
   await expect(page.getByRole('listitem')).toHaveCount(0)
-  await openTab(page, 'Home')
+  await openTab(page, 'Hjem')
 
   const suggestions = page.getByRole('button', { name: /^(milk|eggs|bread)$/ })
   await expect(suggestions).toHaveText(['milk', 'eggs', 'bread'])
@@ -72,9 +72,9 @@ test('with the field empty, the most added Staples not already waiting show', as
   await expect(entry(page, 'eggs')).toBeVisible()
   await expect(suggestions).toHaveText(['milk', 'bread'])
 
-  await openTab(page, 'Shop')
+  await openTab(page, 'Handle')
   await entry(page, 'eggs').getByRole('checkbox').click()
   await expect(entry(page, 'eggs').getByRole('checkbox')).toBeChecked()
-  await openTab(page, 'Home')
+  await openTab(page, 'Hjem')
   await expect(suggestions).toHaveText(['milk', 'eggs', 'bread'])
 })

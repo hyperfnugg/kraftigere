@@ -7,6 +7,6 @@ export default async function warmUp(config: FullConfig) {
   const browser = await chromium.launch()
   const page = await browser.newPage({ baseURL: config.projects[0].use.baseURL })
   await completeGooglePopup(page, OUTSIDER)
-  await page.getByText('Not authorized').waitFor({ timeout: 15_000 }).catch(() => {})
+  await page.getByText('Ingen tilgang').waitFor({ timeout: 15_000 }).catch(() => {})
   await browser.close()
 }

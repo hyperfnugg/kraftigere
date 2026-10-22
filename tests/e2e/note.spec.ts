@@ -9,7 +9,7 @@ test.beforeEach(async () => {
 test('tapping an Entry on Home sets, changes and removes its Note', async ({ page }) => {
   await signIn(page, MEMBERS[0])
   await addEntry(page, 'eggs')
-  const note = page.getByRole('textbox', { name: 'Note' })
+  const note = page.getByRole('textbox', { name: 'Notat' })
 
   await entry(page, 'eggs').getByText('eggs').click()
   await note.fill('lots')

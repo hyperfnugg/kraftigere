@@ -10,14 +10,14 @@ test('Remove checked removes only the Checked Entries', async ({ page }) => {
   await signIn(page, MEMBERS[0])
   await addEntry(page, 'milk')
   await addEntry(page, 'eggs')
-  await openTab(page, 'Shop')
+  await openTab(page, 'Handle')
   await entry(page, 'milk').getByRole('checkbox').click()
   await expect(entry(page, 'milk').getByRole('checkbox')).toBeChecked()
 
-  await page.getByRole('button', { name: 'Remove checked' }).click()
+  await page.getByRole('button', { name: 'Fjern avkryssede' }).click()
   await expect(entry(page, 'milk')).toHaveCount(0)
   await expect(entry(page, 'eggs')).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Remove checked' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Fjern avkryssede' })).toHaveCount(0)
 })
 
 test('Checked Entries are removed 15 minutes after the most recent check-off', async ({ page }) => {
@@ -26,7 +26,7 @@ test('Checked Entries are removed 15 minutes after the most recent check-off', a
   await signIn(page, MEMBERS[0])
   await addEntry(page, 'milk')
   await addEntry(page, 'eggs')
-  await openTab(page, 'Shop')
+  await openTab(page, 'Handle')
   await entry(page, 'milk').getByRole('checkbox').click()
   await expect(entry(page, 'milk').getByRole('checkbox')).toBeChecked()
 

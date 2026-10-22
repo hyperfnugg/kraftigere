@@ -8,7 +8,7 @@ test.beforeEach(async () => {
 
 test('the offline line shows while offline', async ({ page, context }) => {
   await signIn(page, MEMBERS[0])
-  const line = page.getByText('Offline: changes will sync')
+  const line = page.getByText('Frakoblet: endringer lagres når nettet er tilbake')
   await expect(line).toHaveCount(0)
 
   await context.setOffline(true)
@@ -42,6 +42,6 @@ test("Firestore unreachable shows Can't connect, not Not authorized", async ({ p
   await cdp.send('Network.setBlockedURLs', { urls: ['*127.0.0.1:8080*'] })
 
   await completeGooglePopup(page, MEMBERS[0])
-  await expect(page.getByText("Can't connect")).toBeVisible()
-  await expect(page.getByText('Not authorized')).toHaveCount(0)
+  await expect(page.getByText('Får ikke kontakt')).toBeVisible()
+  await expect(page.getByText('Ingen tilgang')).toHaveCount(0)
 })

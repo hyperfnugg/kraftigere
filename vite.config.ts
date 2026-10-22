@@ -24,6 +24,7 @@ export default defineConfig({
       manifest: {
         name: 'Kraft',
         short_name: 'Kraft',
+        lang: 'nb',
         display: 'standalone',
         theme_color: cream,
         background_color: cream,
