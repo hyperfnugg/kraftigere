@@ -4,6 +4,7 @@ import { generate } from './ai'
 import { signInWithGoogle, signOut, useOnline, useUser } from './firebase'
 import {
   addEntry,
+  removeEntries,
   removeEntry,
   stapleId,
   stapleName,
@@ -11,6 +12,7 @@ import {
   toggleEntry,
   useAccess,
   useEntries,
+  useRemoveCheckedAfterShopping,
   useStaples,
   type Entry,
 } from './entries'
@@ -73,6 +75,8 @@ export default function App() {
 function List({ user }: { user: User }) {
   const { entries } = useEntries()
   const staples = useStaples()
+  useRemoveCheckedAfterShopping(entries)
+  const checked = entries.filter((e) => e.checked)
   const online = useOnline()
   const [text, setText] = useState('')
   const [fact, setFact] = useState<Fact | null>(null)
@@ -166,6 +170,15 @@ function List({ user }: { user: User }) {
             </button>
           ))}
         </div>
+      )}
+
+      {checked.length > 0 && (
+        <button
+          onClick={() => removeEntries(checked)}
+          style={{ ...buttonStyle, alignSelf: 'flex-end', fontSize: '0.875rem', padding: '0.25rem 0.75rem' }}
+        >
+          Remove checked
+        </button>
       )}
 
       <ul

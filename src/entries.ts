@@ -24,6 +24,8 @@ export type Entry = {
   text: string
   staple: string
   checked: boolean
+  // Missing on Entries checked off before checkedAt existed.
+  checkedAt?: Timestamp
   createdAt: Timestamp | null
 }
 
@@ -104,6 +106,30 @@ export function removeEntry(id: string) {
   return deleteDoc(doc(db, 'entries', id))
 }
 
+export function removeEntries(entries: Entry[]) {
+  const batch = writeBatch(db)
+  for (const e of entries) batch.delete(doc(db, 'entries', e.id))
+  return batch.commit()
+}
+
+const SHOPPING_OVER_MS = 15 * 60_000
+
+// Removes all Checked Entries once 15 minutes have passed since the most recent check-off.
+// Runs while the app is open, so with no app open it happens on the next open.
+export function useRemoveCheckedAfterShopping(entries: Entry[]) {
+  useEffect(() => {
+    const checked = entries.filter((e) => e.checked)
+    if (checked.length === 0) return
+    const newest = Math.max(...checked.map((e) => e.checkedAt?.toMillis() ?? 0))
+    const check = () => {
+      if (Date.now() - newest > SHOPPING_OVER_MS) removeEntries(checked)
+    }
+    check()
+    const timer = setInterval(check, 30_000)
+    return () => clearInterval(timer)
+  }, [entries])
+}
+
 export function useEntries() {
   const [entries, setEntries] = useState<Entry[]>([])
   const [loading, setLoading] = useState(true)
@@ -114,7 +140,8 @@ export function useEntries() {
       setEntries(
         snap.docs.map((d) => ({
           id: d.id,
-          ...(d.data() as Omit<Entry, 'id'>),
+          // Estimate pending server times, so a check-off made offline has a time at once.
+          ...(d.data({ serverTimestamps: 'estimate' }) as Omit<Entry, 'id'>),
         })),
       )
       setLoading(false)
