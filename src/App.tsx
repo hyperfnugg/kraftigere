@@ -176,7 +176,7 @@ function Home({ entries }: { entries: Entry[] }) {
 
   if (fact && fact.entryId !== newestUnchecked?.id) setFact(null)
 
-  const suggestions = suggest(staples, text)
+  const suggestions = suggest(staples, text, entries)
 
   // Typed text that matches a Staple adds that Staple under its own name.
   function onAdd(e: FormEvent) {

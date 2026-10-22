@@ -67,11 +67,15 @@ export function useStaples() {
 }
 
 // Up to 5 Staples for what's typed: names starting with it first, then names containing
-// it, each ordered by how often they're added.
-export function suggest(staples: Staple[], text: string) {
-  const t = stapleId(text)
-  if (!t) return []
+// it, each ordered by how often they're added. With nothing typed, the most added Staples
+// that aren't already waiting on the List.
+export function suggest(staples: Staple[], text: string, entries: Entry[]) {
   const byCount = (a: Staple, b: Staple) => b.addCount - a.addCount
+  const t = stapleId(text)
+  if (!t) {
+    const waiting = new Set(entries.filter((e) => !e.checked).map((e) => e.staple))
+    return staples.filter((s) => !waiting.has(s.id)).sort(byCount).slice(0, 5)
+  }
   const starting = staples.filter((s) => s.id.startsWith(t)).sort(byCount)
   const containing = staples.filter((s) => !s.id.startsWith(t) && s.id.includes(t)).sort(byCount)
   return [...starting, ...containing].slice(0, 5)

@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { MEMBERS, addEntry, entry, readDoc, reset, seed, signIn } from './helpers'
+import { MEMBERS, addEntry, entry, openTab, readDoc, reset, seed, signIn } from './helpers'
 
 test.beforeEach(async () => {
   await reset()
@@ -41,4 +41,38 @@ test('suggestions starting with the text come first, then by how often they are 
   await input.fill('eg')
   const suggestions = page.getByRole('button').filter({ hasText: /eg/ })
   await expect(suggestions).toHaveText(['eggs', 'egg noodles', 'nutmeg'])
+})
+
+test('with the field empty, the most added Staples not already waiting show', async ({ page }) => {
+  await signIn(page, MEMBERS[0])
+  const input = page.getByPlaceholder('Add entry')
+  for (const name of ['milk', 'milk', 'milk', 'milk', 'eggs', 'eggs', 'bread']) {
+    await input.fill(name)
+    await input.press('Enter')
+  }
+  await expect(page.getByRole('listitem')).toHaveCount(7)
+  await openTab(page, 'Shop')
+  // Shop moves each Entry down as it's checked, so always take the first unchecked one.
+  const unchecked = page.getByRole('checkbox', { checked: false })
+  for (let left = 7; left > 0; left--) {
+    await expect(unchecked).toHaveCount(left)
+    await unchecked.first().click()
+  }
+  await expect(unchecked).toHaveCount(0)
+  await page.getByRole('button', { name: 'Remove checked' }).click()
+  await expect(page.getByRole('listitem')).toHaveCount(0)
+  await openTab(page, 'Home')
+
+  const suggestions = page.getByRole('button', { name: /^(milk|eggs|bread)$/ })
+  await expect(suggestions).toHaveText(['milk', 'eggs', 'bread'])
+
+  // Tapping one puts it on the List, so it leaves the suggestions until checked off.
+  // (eggs is then added 3 times, still behind milk's 4.)
+  await page.getByRole('button', { name: 'eggs', exact: true }).click()
+  await expect(entry(page, 'eggs')).toBeVisible()
+  await expect(suggestions).toHaveText(['milk', 'bread'])
+
+  await entry(page, 'eggs').getByText('eggs').click()
+  await entry(page, 'eggs').getByRole('button', { name: 'Check off' }).click()
+  await expect(suggestions).toHaveText(['milk', 'eggs', 'bread'])
 })

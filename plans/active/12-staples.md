@@ -35,6 +35,9 @@ Twelfth milestone. Today's List becomes the Groceries List, and every Entry adde
 - [x] **Commit: autocomplete over Staples.** *(auto)*
 - [x] **Migration script.** `scripts/migrate-12-staples.mjs` using the Admin SDK: for each Entry without `staple`, create or count its Staple from `text` and set `staple`. It's idempotent: Entries that already have a Staple are skipped. Run it against the emulator with seeded data first. Running it against production is the next step. (`scripts/seed.mjs` seeds no Entries, so it needs no change.)
 - [x] **Commit: migration script for Staples.** *(auto)*
+- [x] **Suggestions always showing.** With the add field empty, the 5 most added Staples show as suggestions, leaving out Staples already on the List unchecked. Typing switches to matches as before.
+  - e2e: with the field empty, the most added Staples show in order, and one already unchecked on the List doesn't. Checking it off brings it back.
+- [x] **Commit: suggestions show with the add field empty.** *(auto)*
 - [ ] **Deploy and migrate.** Push. CI deploys the rules and the app. Run the script against production with your own credentials. On `https://kraftigere.web.app/`: old Entries still show, adding "melk" suggests and counts. *(user)*
 - [ ] **Move plan to `plans/done/`.** `git mv plans/active/12-staples.md plans/done/12-staples.md`, and remove it from **Now** in `ROADMAP.md`.
 - [ ] **Commit: complete staples milestone.** *(auto)*
