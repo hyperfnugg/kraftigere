@@ -6,6 +6,7 @@ import {
   addEntry,
   removeEntries,
   removeEntry,
+  setAmount,
   stapleId,
   stapleName,
   suggest,
@@ -80,6 +81,14 @@ function List({ user }: { user: User }) {
   const online = useOnline()
   const [text, setText] = useState('')
   const [fact, setFact] = useState<Fact | null>(null)
+  const [editing, setEditing] = useState<{ entryId: string; amount: string } | null>(null)
+
+  function saveAmount() {
+    if (!editing) return
+    const entry = entries.find((e) => e.id === editing.entryId)
+    if (entry && (entry.amount ?? '') !== editing.amount.trim()) setAmount(entry.id, editing.amount)
+    setEditing(null)
+  }
 
   const lastUnchecked = entries.findLast((e) => !e.checked)
 
@@ -213,14 +222,39 @@ function List({ user }: { user: User }) {
                   onChange={(e) => toggleEntry(entry.id, e.target.checked)}
                   style={{ width: '1.25rem', height: '1.25rem' }}
                 />
-                <span
-                  style={{
-                    flex: 1,
-                    textDecoration: entry.checked ? 'line-through' : 'none',
-                  }}
-                >
-                  {entry.text}
-                </span>
+                {editing?.entryId === entry.id ? (
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault()
+                      saveAmount()
+                    }}
+                    style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                  >
+                    <span>{entry.text}</span>
+                    <input
+                      autoFocus
+                      value={editing.amount}
+                      onChange={(e) => setEditing({ ...editing, amount: e.target.value })}
+                      onBlur={saveAmount}
+                      maxLength={50}
+                      placeholder="Amount"
+                      aria-label="Amount"
+                      style={{ flex: 1, minWidth: 0, fontSize: '1rem', padding: '0.25rem' }}
+                    />
+                  </form>
+                ) : (
+                  <span
+                    onClick={() => setEditing({ entryId: entry.id, amount: entry.amount ?? '' })}
+                    style={{
+                      flex: 1,
+                      cursor: 'pointer',
+                      textDecoration: entry.checked ? 'line-through' : 'none',
+                    }}
+                  >
+                    {entry.text}
+                    {entry.amount && <span style={{ color: '#666' }}> · {entry.amount}</span>}
+                  </span>
+                )}
                 {isLastUnchecked && (
                   <button
                     onClick={() => showFunFact(entry)}

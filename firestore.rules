@@ -16,19 +16,29 @@ service cloud.firestore {
     // An Entry is added in the same batch that creates or counts its Staple, and
     // keeps the Staple's name as its text.
     function isNewEntry(data) {
-      return data.keys().hasOnly(['text', 'staple', 'checked', 'createdAt']) &&
+      return data.keys().hasOnly(['text', 'staple', 'checked', 'createdAt', 'amount']) &&
              data.keys().hasAll(['text', 'staple', 'checked', 'createdAt']) &&
+             (!('amount' in data) || isAmount(data.amount)) &&
              data.staple is string &&
              getAfter(/databases/$(database)/documents/staples/$(data.staple)).data.name == data.text &&
              data.checked == false &&
              data.createdAt == request.time;
     }
 
-    // Checking off records when; unchecking forgets it.
+    // A free-text amount, such as "lots" or "12".
+    function isAmount(amount) {
+      return amount is string && amount.size() >= 1 && amount.size() <= 50;
+    }
+
+    // An update checks off or unchecks, or sets or removes the amount. Checking off
+    // records when; unchecking forgets it.
     function isEntryUpdate(before, after) {
-      return after.diff(before).affectedKeys().hasOnly(['checked', 'checkedAt']) &&
-             ((after.checked == true && after.checkedAt == request.time) ||
-              (after.checked == false && !('checkedAt' in after)));
+      let changed = after.diff(before).affectedKeys();
+      return changed.hasOnly(['checked', 'checkedAt', 'amount']) &&
+             (!changed.hasAny(['checked', 'checkedAt']) ||
+              (after.checked == true && after.checkedAt == request.time) ||
+              (after.checked == false && !('checkedAt' in after))) &&
+             (!('amount' in after) || isAmount(after.amount));
     }
 
     function isStapleName(name) {

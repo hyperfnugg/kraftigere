@@ -45,6 +45,10 @@ beforeEach(async () => {
 
 afterAll(() => env.cleanup())
 
+// A time chosen by the client. Fixed in the past: on the local emulator, Timestamp.now()
+// can coincide with request.time and be accepted.
+const clientTime = Timestamp.fromMillis(0)
+
 const member = () => env.authenticatedContext('alice', { email: MEMBER }).firestore()
 const outsider = () => env.authenticatedContext('eve', { email: OUTSIDER }).firestore()
 const anon = () => env.unauthenticatedContext().firestore()
@@ -114,7 +118,7 @@ describe('/entries shape', () => {
 
   test('a new Entry that is already Checked or has a client-chosen time is refused', async () => {
     await assertFails(create(newEntry({ checked: true })))
-    await assertFails(create(newEntry({ createdAt: Timestamp.now() })))
+    await assertFails(create(newEntry({ createdAt: clientTime })))
   })
 
   test('checking off records the server time, unchecking removes it', async () => {
@@ -126,7 +130,7 @@ describe('/entries shape', () => {
   test('checking off without the server time, or unchecking without removing it, is refused', async () => {
     const e1 = doc(member(), 'entries/e1')
     await assertFails(updateDoc(e1, { checked: true }))
-    await assertFails(updateDoc(e1, { checked: true, checkedAt: Timestamp.now() }))
+    await assertFails(updateDoc(e1, { checked: true, checkedAt: clientTime }))
     await assertSucceeds(updateDoc(e1, { checked: true, checkedAt: serverTimestamp() }))
     await assertFails(updateDoc(e1, { checked: false }))
     await assertFails(updateDoc(e1, { checked: 'yes', checkedAt: serverTimestamp() }))
@@ -137,6 +141,33 @@ describe('/entries shape', () => {
     await assertFails(updateDoc(e1, { text: 'oat milk' }))
     await assertFails(updateDoc(e1, { quantity: 2 }))
     await assertFails(updateDoc(e1, { staple: 'eggs' }))
+  })
+})
+
+describe('/entries amount', () => {
+  test('a new Entry may have an amount of 1 to 50 characters', async () => {
+    await assertSucceeds(add(member(), newEntry({ amount: 'lots' })))
+    await assertSucceeds(add(member(), newEntry({ amount: 'x'.repeat(50) })))
+    await assertFails(add(member(), newEntry({ amount: '' })))
+    await assertFails(add(member(), newEntry({ amount: 'x'.repeat(51) })))
+    await assertFails(add(member(), newEntry({ amount: 12 })))
+  })
+
+  test('an update may set, change or remove the amount', async () => {
+    const e1 = doc(member(), 'entries/e1')
+    await assertSucceeds(updateDoc(e1, { amount: '12' }))
+    await assertSucceeds(updateDoc(e1, { amount: 'lots' }))
+    await assertSucceeds(updateDoc(e1, { amount: deleteField() }))
+    await assertFails(updateDoc(e1, { amount: '' }))
+    await assertFails(updateDoc(e1, { amount: 'x'.repeat(51) }))
+  })
+
+  test('the amount of a Checked Entry can change without touching its check-off', async () => {
+    const e1 = doc(member(), 'entries/e1')
+    await assertSucceeds(updateDoc(e1, { checked: true, checkedAt: serverTimestamp() }))
+    await assertSucceeds(updateDoc(e1, { amount: '2' }))
+    await assertFails(updateDoc(e1, { amount: '3', checkedAt: clientTime }))
+    await assertFails(updateDoc(e1, { checkedAt: clientTime }))
   })
 })
 
@@ -158,7 +189,7 @@ describe('/staples', () => {
     await assertFails(setDoc(staple(), countedStaple('')))
     await assertFails(setDoc(staple(), countedStaple('x'.repeat(101))))
     await assertFails(setDoc(staple(), { name: 'eggs', addCount: 2, lastAddedAt: serverTimestamp() }))
-    await assertFails(setDoc(staple(), { name: 'eggs', addCount: 1, lastAddedAt: Timestamp.now() }))
+    await assertFails(setDoc(staple(), { name: 'eggs', addCount: 1, lastAddedAt: clientTime }))
     await assertFails(setDoc(staple(), { ...countedStaple(), ware: 'x' }))
     await assertFails(setDoc(staple(), { name: 'eggs', addCount: 1 }))
   })
@@ -172,7 +203,7 @@ describe('/staples', () => {
     const milk = staple('milk')
     await assertFails(updateDoc(milk, { addCount: increment(2), lastAddedAt: serverTimestamp() }))
     await assertFails(updateDoc(milk, { addCount: 5, lastAddedAt: serverTimestamp() }))
-    await assertFails(updateDoc(milk, { addCount: increment(1), lastAddedAt: Timestamp.now() }))
+    await assertFails(updateDoc(milk, { addCount: increment(1), lastAddedAt: clientTime }))
     await assertFails(updateDoc(milk, { name: 'oat milk' }))
     await assertFails(updateDoc(milk, { addCount: increment(1), lastAddedAt: serverTimestamp(), ware: 'x' }))
   })
