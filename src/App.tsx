@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { type User } from 'firebase/auth'
 import { generate } from './ai'
+import { WeekTab } from './Week'
 import { signInWithGoogle, signOut, useOnline, useUser } from './firebase'
 import {
   addEntry,
@@ -75,10 +76,11 @@ export default function App() {
 
 const smallButtonStyle = { ...buttonStyle, fontSize: '0.875rem', padding: '0.25rem 0.75rem' }
 
-type Tab = 'Home' | 'Shop'
+type Tab = 'Home' | 'Week' | 'Shop'
 
 const TABS = [
   { tab: 'Home', label: '🏠', name: 'Hjem' },
+  { tab: 'Week', label: 'Uke', name: 'Uke' },
   { tab: 'Shop', label: 'Handle', name: 'Handle' },
 ] as const
 
@@ -121,7 +123,9 @@ function List({ user }: { user: User }) {
       </header>
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-        {tab === 'Home' ? <Home entries={entries} /> : <Shop entries={entries} />}
+        {tab === 'Home' && <Home entries={entries} />}
+        {tab === 'Week' && <WeekTab />}
+        {tab === 'Shop' && <Shop entries={entries} />}
       </div>
 
       <nav
