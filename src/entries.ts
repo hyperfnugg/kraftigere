@@ -38,6 +38,41 @@ export function stapleId(name: string) {
   return /^\.\.?$|^__.*__$/.test(id) ? `~${id}` : id
 }
 
+export type Staple = {
+  id: string
+  name: string
+  addCount: number
+}
+
+// All the Family's Staples. The persistent cache makes them available at once and keeps
+// them fresh, so autocomplete needs no lookups.
+export function useStaples() {
+  const [staples, setStaples] = useState<Staple[]>([])
+
+  useEffect(
+    () =>
+      onSnapshot(collection(db, 'staples'), (snap) => {
+        setStaples(
+          snap.docs.map((d) => ({ id: d.id, name: d.get('name'), addCount: d.get('addCount') })),
+        )
+      }),
+    [],
+  )
+
+  return staples
+}
+
+// Up to 5 Staples for what's typed: names starting with it first, then names containing
+// it, each ordered by how often they're added.
+export function suggest(staples: Staple[], text: string) {
+  const t = stapleId(text)
+  if (!t) return []
+  const byCount = (a: Staple, b: Staple) => b.addCount - a.addCount
+  const starting = staples.filter((s) => s.id.startsWith(t)).sort(byCount)
+  const containing = staples.filter((s) => !s.id.startsWith(t) && s.id.includes(t)).sort(byCount)
+  return [...starting, ...containing].slice(0, 5)
+}
+
 // Adds an Entry for the Staple with this name, creating the Staple or counting the add.
 export function addEntry(name: string) {
   const staple = stapleId(name)

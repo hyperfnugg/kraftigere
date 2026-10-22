@@ -1,5 +1,7 @@
 import { expect, type Page } from '@playwright/test'
 
+import { PROJECT } from '../../scripts/seed.mjs'
+
 export { MEMBERS, OUTSIDER, reset, seed, setMembers } from '../../scripts/seed.mjs'
 
 // Completes the Auth emulator's fake Google popup with a seeded account.
@@ -30,4 +32,14 @@ export async function addEntry(page: Page, text: string) {
 
 export function entry(page: Page, text: string) {
   return page.getByRole('listitem').filter({ hasText: text })
+}
+
+// Reads a document straight from the emulator, bypassing rules. Returns its fields as REST values.
+export async function readDoc(path: string) {
+  const res = await fetch(
+    `http://127.0.0.1:8080/v1/projects/${PROJECT}/databases/(default)/documents/${path}`,
+    { headers: { Authorization: 'Bearer owner' } },
+  )
+  if (!res.ok) throw new Error(`read failed: ${path} ${res.status}`)
+  return (await res.json()).fields
 }

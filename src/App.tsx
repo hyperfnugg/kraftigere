@@ -5,10 +5,13 @@ import { signInWithGoogle, signOut, useOnline, useUser } from './firebase'
 import {
   addEntry,
   removeEntry,
+  stapleId,
   stapleName,
+  suggest,
   toggleEntry,
   useAccess,
   useEntries,
+  useStaples,
   type Entry,
 } from './entries'
 
@@ -69,6 +72,7 @@ export default function App() {
 
 function List({ user }: { user: User }) {
   const { entries } = useEntries()
+  const staples = useStaples()
   const online = useOnline()
   const [text, setText] = useState('')
   const [fact, setFact] = useState<Fact | null>(null)
@@ -77,11 +81,14 @@ function List({ user }: { user: User }) {
 
   if (fact && fact.entryId !== lastUnchecked?.id) setFact(null)
 
+  const suggestions = suggest(staples, text)
+
+  // Typed text that matches a Staple adds that Staple under its own name.
   function onAdd(e: FormEvent) {
     e.preventDefault()
     const t = stapleName(text)
     if (!t) return
-    addEntry(t)
+    addEntry(staples.find((s) => s.id === stapleId(t))?.name ?? t)
     setText('')
   }
 
@@ -143,6 +150,23 @@ function List({ user }: { user: User }) {
           Add
         </button>
       </form>
+
+      {suggestions.length > 0 && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '-0.5rem' }}>
+          {suggestions.map((s) => (
+            <button
+              key={s.id}
+              onClick={() => {
+                addEntry(s.name)
+                setText('')
+              }}
+              style={{ ...buttonStyle, padding: '0.25rem 0.75rem' }}
+            >
+              {s.name}
+            </button>
+          ))}
+        </div>
+      )}
 
       <ul
         style={{
