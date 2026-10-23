@@ -1,6 +1,6 @@
 import type { Timestamp } from 'firebase/firestore'
-import { type FormEvent, useState } from 'react'
-import { makeMenu, makeRecipe } from './ai'
+import { type FormEvent, useEffect, useState } from 'react'
+import { makeMenu, makeRecipe, warmUp } from './ai'
 import { addWeeks, isoWeekId, timeLabel, weekLabel } from './dates'
 import {
   DAYS,
@@ -82,6 +82,8 @@ export function WeekTab() {
   const guidelines = useGuidelines()
   const week = useWeek(weekId)
   const recipes = useRecipes(weekId)
+
+  useEffect(warmUp, [])
 
   return (
     <>

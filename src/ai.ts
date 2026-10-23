@@ -7,8 +7,9 @@ const MODEL = 'gemini-3.8-flash'
 type Sdk = typeof import('firebase/ai')
 let sdk: Promise<{ sdk: Sdk; ai: ReturnType<Sdk['getAI']> }> | undefined
 
-// Loaded on the first AI call, so App Check's reCAPTCHA and the AI SDK stay out of launch.
-// App Check only protects Gemini; Firestore and Auth must not enforce it (ADR 0004).
+// Loaded when Uke first opens (see warmUp), so App Check's reCAPTCHA and the AI SDK stay
+// out of launch but are ready by the first AI call. App Check only protects Gemini;
+// Firestore and Auth must not enforce it (ADR 0004).
 function load() {
   sdk ??= (async () => {
     const [{ initializeAppCheck, ReCaptchaV3Provider }, ai] = await Promise.all([
@@ -28,14 +29,46 @@ function load() {
   return sdk
 }
 
-// Sends the prompt and returns Gemini's JSON answer, shaped by the schema.
-async function generateJson(prompt: string, schema: (s: Sdk['Schema']) => SchemaType): Promise<unknown> {
+// Gemini has no emulator, and App Check is off with emulators, so there's nothing to load.
+export function warmUp() {
+  if (!useEmulators) load().catch(() => {})
+}
+
+// Sends the prompt and returns Gemini's JSON answer, shaped by the schema. maxTokens caps
+// thinking and answer together, so a model stuck repeating itself stops early.
+async function generateJson(
+  prompt: string,
+  maxTokens: number,
+  schema: (s: Sdk['Schema']) => SchemaType,
+): Promise<unknown> {
   const { sdk, ai } = await load()
-  const model = sdk.getGenerativeModel(ai, {
-    model: MODEL,
-    generationConfig: { responseMimeType: 'application/json', responseSchema: schema(sdk.Schema) },
-  })
+  const model = sdk.getGenerativeModel(
+    ai,
+    {
+      model: MODEL,
+      generationConfig: {
+        responseMimeType: 'application/json',
+        responseSchema: schema(sdk.Schema),
+        maxOutputTokens: maxTokens,
+        // Thinking can't be turned off on 3.8 Flash, and MINIMAL is refused. The default
+        // thinks long, and planning dinners doesn't need it.
+        thinkingConfig: { thinkingLevel: sdk.ThinkingLevel.LOW },
+      },
+    },
+    { timeout: 60_000 },
+  )
+  const start = performance.now()
   const result = await model.generateContent(prompt)
+  const usage = result.response.usageMetadata
+  const finish = result.response.candidates?.[0]?.finishReason
+  console.info(
+    `Gemini: ${Math.round(performance.now() - start)} ms, finished ${finish}, ` +
+      `${usage?.thoughtsTokenCount ?? 0} thinking and ${usage?.candidatesTokenCount ?? 0} answer tokens`,
+  )
+  if (finish === 'MAX_TOKENS') {
+    console.warn('Gemini answer, cut off:', result.response.text().slice(0, 1000))
+    throw new Error(`Gemini ran past ${maxTokens} tokens`)
+  }
   return JSON.parse(result.response.text())
 }
 
@@ -69,10 +102,14 @@ export async function makeMenu(context: Context, change?: { current: Menu; instr
   ]
     .filter(Boolean)
     .join('\n\n')
-  const json = (await generateJson(prompt, (Schema) =>
+  const json = (await generateJson(prompt, 4000, (Schema) =>
     Schema.object({
       properties: Object.fromEntries(
-        DAYS.map((d) => [d, Schema.array({ description: `Rettene ${DAY_NAMES[d].toLowerCase()}`, items: Schema.string() })]),
+        DAYS.map((d) => [d, Schema.array({
+            description: `Rettene ${DAY_NAMES[d].toLowerCase()}`,
+            maxItems: MAX_COURSES,
+            items: Schema.string(),
+          })]),
       ),
     }),
   )) as Partial<Record<Day, unknown>>
@@ -107,11 +144,12 @@ export async function makeRecipe(
   ]
     .filter(Boolean)
     .join('\n\n')
-  const json = (await generateJson(prompt, (Schema) =>
+  const json = (await generateJson(prompt, 8000, (Schema) =>
     Schema.object({
       properties: {
         servings: Schema.integer({ description: 'Antall porsjoner' }),
         ingredients: Schema.array({
+          maxItems: 60,
           items: Schema.object({
             properties: {
               text: Schema.string({ description: 'Hva som trengs' }),
