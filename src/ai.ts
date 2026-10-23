@@ -17,7 +17,7 @@ const realAi = !useEmulators || !!debugToken
 type Sdk = typeof import('firebase/ai')
 let sdk: Promise<{ sdk: Sdk; ai: ReturnType<Sdk['getAI']> }> | undefined
 
-// Loaded when Uke first opens (see warmUp), so App Check's reCAPTCHA and the AI SDK stay
+// Loaded when Middag first opens (see warmUp), so App Check's reCAPTCHA and the AI SDK stay
 // out of launch but are ready by the first AI call. App Check only protects Gemini;
 // Firestore and Auth must not enforce it (ADR 0004).
 function load() {
@@ -92,12 +92,13 @@ async function generateJson(
   return JSON.parse(response.text())
 }
 
-export type Context = { guidelines: string; notes: string; weekLabel: string }
+export type Context = { guidelines: string; dayNotes: Partial<Record<Day, string>>; weekLabel: string }
 
-function contextPrompt({ guidelines, notes, weekLabel }: Context) {
+function contextPrompt({ guidelines, dayNotes, weekLabel }: Context) {
+  const notes = DAYS.filter((d) => dayNotes[d]).map((d) => `${DAY_NAMES[d]}: ${dayNotes[d]}`)
   return [
     `Føringer (gjelder alle uker):\n${guidelines || '(ingen)'}`,
-    `Ukeplan for ${weekLabel}:\n${notes || '(ingen)'}`,
+    `Notater for dagene i ${weekLabel}:\n${notes.join('\n') || '(ingen)'}`,
   ].join('\n\n')
 }
 
@@ -114,7 +115,7 @@ export async function makeMenu(context: Context, change?: { current: Menu; instr
   const prompt = [
     'Du planlegger middager for en familie, én middag for hver dag i uka, mandag til søndag.',
     'En middag kan ha flere retter (for eksempel forrett, hovedrett og dessert), men som regel én.',
-    'En dag kan stå uten middag hvis føringene eller ukeplanen tilsier det.',
+    'En dag kan stå uten middag hvis føringene eller notatene tilsier det.',
     'Skriv på norsk bokmål. Gi hver rett et kort navn, uten oppskrift.',
     contextPrompt(context),
     change && `Nåværende meny:\n${menuText(change.current)}`,
@@ -152,7 +153,7 @@ export async function makeRecipe(
   const prompt = [
     'Du skriver en oppskrift på én rett til en familiemiddag.',
     'Skriv på norsk bokmål.',
-    'Finn antall porsjoner ut fra føringene og ukeplanen: hvem som spiser den dagen.',
+    'Finn antall porsjoner ut fra føringene og notatene: hvem som spiser den dagen.',
     'Mengder i gram (enhet "g") med mindre noe annet er naturlig, som "stk", "dl", "ss" eller "ts". Bruk tom mengde for "etter smak".',
     'Skriv hver ingrediens slik at det går fram hvor streng den er, for eksempel "helmelk" eller "melk, hvilken som helst".',
     'Fremgangsmåten er nummererte steg, ett per linje.',

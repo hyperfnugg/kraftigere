@@ -107,18 +107,37 @@ service cloud.firestore {
              isMealChange(before, after, 'sun');
     }
 
-    // A week, by ISO week id like 2026-W44: Week Notes and the Menu. notesAt and menuAt
-    // say when Week Notes last changed and when the AI last made the Menu.
+    // A Day Note. A day whose Note changes stamps it in dayNotesAt.
+    function isDayNoteChange(before, after, day) {
+      let note = after.dayNotes.get(day, null);
+      let noteChanged = before.get('dayNotes', {}).get(day, null) != note;
+      let stampChanged = before.get('dayNotesAt', {}).get(day, null) != after.dayNotesAt.get(day, null);
+      return (note == null || isLongText(note)) &&
+             (!(noteChanged || stampChanged) || after.dayNotesAt.get(day, null) == request.time);
+    }
+
+    function isDayNotes(before, after) {
+      let days = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+      return after.dayNotes is map && after.dayNotes.keys().hasOnly(days) &&
+             after.dayNotesAt is map && after.dayNotesAt.keys().hasOnly(days) &&
+             isDayNoteChange(before, after, 'mon') && isDayNoteChange(before, after, 'tue') &&
+             isDayNoteChange(before, after, 'wed') && isDayNoteChange(before, after, 'thu') &&
+             isDayNoteChange(before, after, 'fri') && isDayNoteChange(before, after, 'sat') &&
+             isDayNoteChange(before, after, 'sun');
+    }
+
+    // A week, by ISO week id like 2026-W44: Day Notes and the Menu. menuAt says when the AI
+    // last made the Menu. notes, notesAt and accepted are left over from Week Notes and
+    // accepting the Menu, and can stay on old weeks but not change.
     function isWeek(before, after) {
       let changed = after.diff(before).affectedKeys();
-      return after.keys().hasOnly(['notes', 'notesAt', 'menu', 'menuAt', 'mealsAt', 'accepted']) &&
-             (!('notes' in after) || (isLongText(after.notes) && after.notesAt == request.time) ||
-              !changed.hasAny(['notes', 'notesAt'])) &&
-             ('notes' in after) == ('notesAt' in after) &&
+      return after.keys().hasOnly(['notes', 'notesAt', 'accepted', 'dayNotes', 'dayNotesAt', 'menu', 'menuAt', 'mealsAt']) &&
+             !changed.hasAny(['notes', 'notesAt', 'accepted']) &&
+             (!('dayNotes' in after) || isDayNotes(before, after)) &&
+             ('dayNotes' in after) == ('dayNotesAt' in after) &&
              (!('menu' in after) || isMenu(before, after)) &&
              ('menu' in after) == ('mealsAt' in after) &&
-             (!('menuAt' in after) || ('menu' in after && stampedIfChanged(changed, 'menuAt', after))) &&
-             (!('accepted' in after) || (after.accepted is bool && 'menu' in after));
+             (!('menuAt' in after) || ('menu' in after && stampedIfChanged(changed, 'menuAt', after)));
     }
 
     match /weeks/{weekId} {

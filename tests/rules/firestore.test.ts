@@ -261,27 +261,57 @@ const madeMenu = (menu: object = { ...emptyMenu, tue: ['Taco'] }) => ({
 describe('/weeks', () => {
   const week = (db: Firestore, id = '2026-W44') => doc(db, `weeks/${id}`)
 
-  test('a Family Member can write Week Notes, stamped now', async () => {
-    await assertSucceeds(setDoc(week(member()), { notes: 'Gjester mandag.', notesAt: serverTimestamp() }, { merge: true }))
-    await assertSucceeds(setDoc(week(member()), { notes: '', notesAt: serverTimestamp() }, { merge: true }))
+  // What the app's setDayNote writes.
+  const dayNote = (day: string, note: string, at: unknown = serverTimestamp()) => ({
+    dayNotes: { [day]: note },
+    dayNotesAt: { [day]: at },
+  })
+
+  test('a Family Member can write Day Notes, each stamped now', async () => {
+    await assertSucceeds(setDoc(week(member()), dayNote('mon', 'Gjester.'), { merge: true }))
+    await assertSucceeds(setDoc(week(member()), dayNote('wed', 'Peter er borte.'), { merge: true }))
+    await assertSucceeds(setDoc(week(member()), dayNote('mon', ''), { merge: true }))
     await assertSucceeds(getDoc(week(member())))
+    await assertSucceeds(getDocs(collection(member(), 'weeks')))
   })
 
   test('a non-member cannot read or write', async () => {
     await assertFails(getDoc(week(outsider())))
-    await assertFails(setDoc(week(outsider()), { notes: 'x', notesAt: serverTimestamp() }))
+    await assertFails(getDocs(collection(outsider(), 'weeks')))
+    await assertFails(setDoc(week(outsider()), dayNote('mon', 'x')))
   })
 
   test('a week id that is not an ISO week is refused', async () => {
-    await assertFails(setDoc(week(member(), '2026-44'), { notes: 'x', notesAt: serverTimestamp() }))
-    await assertFails(setDoc(week(member(), 'next'), { notes: 'x', notesAt: serverTimestamp() }))
+    await assertFails(setDoc(week(member(), '2026-44'), dayNote('mon', 'x')))
+    await assertFails(setDoc(week(member(), 'next'), dayNote('mon', 'x')))
   })
 
-  test('Week Notes that are too long, unstamped or stamped by the client are refused', async () => {
-    await assertFails(setDoc(week(member()), { notes: 'x'.repeat(5001), notesAt: serverTimestamp() }))
-    await assertFails(setDoc(week(member()), { notes: 'x' }))
-    await assertFails(setDoc(week(member()), { notes: 'x', notesAt: clientTime }))
-    await assertFails(setDoc(week(member()), { notes: 'x', notesAt: serverTimestamp(), guests: 2 }))
+  test('Day Notes that are too long, unstamped, stamped by the client or not on a day are refused', async () => {
+    await assertFails(setDoc(week(member()), dayNote('mon', 'x'.repeat(5001))))
+    await assertFails(setDoc(week(member()), { dayNotes: { mon: 'x' } }))
+    await assertFails(setDoc(week(member()), { dayNotes: { mon: 'x' }, dayNotesAt: {} }))
+    await assertFails(setDoc(week(member()), dayNote('mon', 'x', clientTime)))
+    await assertFails(setDoc(week(member()), dayNote('xmas', 'x')))
+    await assertFails(setDoc(week(member()), { ...dayNote('mon', 'x'), guests: 2 }))
+  })
+
+  test('changing one Day Note leaves the other days as they were', async () => {
+    await assertSucceeds(setDoc(week(member()), dayNote('mon', 'Gjester.')))
+    await assertFails(updateDoc(week(member()), { 'dayNotes.mon': 'Ingen gjester.' }))
+    await assertFails(updateDoc(week(member()), { 'dayNotes.mon': 'Ingen gjester.', 'dayNotesAt.tue': serverTimestamp() }))
+    await assertFails(updateDoc(week(member()), { 'dayNotesAt.mon': clientTime }))
+  })
+
+  test('Week Notes and accepted, left over on old weeks, can stay but not change', async () => {
+    await env.withSecurityRulesDisabled((ctx) =>
+      setDoc(doc(ctx.firestore(), 'weeks/2026-W44'), { notes: 'Gjester.', notesAt: Timestamp.now(), ...madeMenu(), accepted: true }),
+    )
+    await assertSucceeds(setDoc(week(member()), dayNote('mon', 'Gjester.'), { merge: true }))
+    await assertSucceeds(updateDoc(week(member()), { 'menu.tue': ['Suppe'], 'mealsAt.tue': serverTimestamp() }))
+    await assertFails(updateDoc(week(member()), { notes: 'x', notesAt: serverTimestamp() }))
+    await assertFails(updateDoc(week(member()), { accepted: false }))
+    await assertFails(setDoc(week(member(), '2026-W45'), { notes: 'x', notesAt: serverTimestamp() }))
+    await assertFails(setDoc(week(member(), '2026-W45'), { ...madeMenu(), accepted: true }))
   })
 
   test('a made Menu has all seven days and every changed day stamped', async () => {
@@ -301,8 +331,6 @@ describe('/weeks', () => {
     await assertFails(updateDoc(w, { 'menu.wed': ['Suppe'] }))
     await assertFails(updateDoc(w, { 'menu.wed': ['Suppe'], 'mealsAt.wed': clientTime }))
     await assertFails(updateDoc(w, { 'mealsAt.thu': clientTime }))
-    await assertSucceeds(updateDoc(w, { accepted: true }))
-    await assertFails(updateDoc(w, { accepted: 'yes' }))
   })
 
   test('remaking the Menu stamps only the days that changed', async () => {
@@ -312,8 +340,13 @@ describe('/weeks', () => {
     await assertFails(setDoc(week(member()), { ...remade, menu: { ...remade.menu, fri: ['Pizza'] } }, { merge: true }))
   })
 
-  test('accepting needs a Menu', async () => {
-    await assertFails(setDoc(week(member()), { accepted: true }))
+  test("a changed Meal and its changed courses' Recipes go in one batch", async () => {
+    await assertSucceeds(setDoc(week(member()), madeMenu()))
+    const db = member()
+    const batch = writeBatch(db)
+    batch.delete(doc(db, 'weeks/2026-W44/recipes/tue-0'))
+    batch.update(week(db), { 'menu.tue': ['Suppe'], 'mealsAt.tue': serverTimestamp() })
+    await assertSucceeds(batch.commit())
   })
 })
 

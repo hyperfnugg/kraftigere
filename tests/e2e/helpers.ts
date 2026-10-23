@@ -44,7 +44,16 @@ export async function readDoc(path: string) {
   return (await res.json()).fields
 }
 
-export async function openTab(page: Page, name: 'Hjem' | 'Uke' | 'Handle') {
+// Writes a document straight to the emulator, bypassing rules. Takes its fields as REST values.
+export async function writeDoc(path: string, fields: object) {
+  const res = await fetch(
+    `http://127.0.0.1:8080/v1/projects/${PROJECT}/databases/(default)/documents/${path}`,
+    { method: 'PATCH', headers: { Authorization: 'Bearer owner' }, body: JSON.stringify({ fields }) },
+  )
+  if (!res.ok) throw new Error(`write failed: ${path} ${res.status}`)
+}
+
+export async function openTab(page: Page, name: 'Hjem' | 'Middag' | 'Handle') {
   await page.getByRole('button', { name, exact: true }).click()
   await expect(page.getByRole('button', { name, exact: true })).toHaveAttribute('aria-pressed', 'true')
 }
