@@ -23,6 +23,9 @@ export default defineConfig({
     {
       command: 'npm run dev',
       url: baseURL,
+      // e2e drives the AI stubs, even with a debug token in .env.development.local for real Gemini.
+      // Variables already set win over .env files.
+      env: { VITE_APPCHECK_DEBUG_TOKEN: '' },
       reuseExistingServer: !process.env.CI,
       timeout: 120_000,
       // SIGINT lets the Firebase CLI stop its emulator processes.

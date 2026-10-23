@@ -1,11 +1,18 @@
 import type { Schema as SchemaType } from 'firebase/ai'
-import { app, useEmulators } from './firebase'
+import { initializeApp } from 'firebase/app'
+import { app, firebaseConfig, useEmulators } from './firebase'
 import { DAYS, DAY_NAMES, MAX_COURSES, type Day, type Ingredient, type Menu, type Recipe } from './weeks'
 
 // Flash-Lite for its free tier: about 500 requests a day, where 3.x Flash gets 20 and a
 // week's planning takes 10–20. On 2026-10-23, 3.8 Flash hung past a minute at LOW once,
 // and 3.5 Flash was fast.
 const MODEL = 'gemini-3.5-flash-lite'
+
+// Gemini has no emulator. With an App Check debug token in .env.development.local,
+// `npm run dev` calls the real Gemini through its own app on the real project, while Auth
+// and Firestore stay on the emulators. Without one (and in e2e), stubs answer instead.
+const debugToken: string | undefined = import.meta.env.VITE_APPCHECK_DEBUG_TOKEN
+const realAi = !useEmulators || !!debugToken
 
 type Sdk = typeof import('firebase/ai')
 let sdk: Promise<{ sdk: Sdk; ai: ReturnType<Sdk['getAI']> }> | undefined
@@ -19,11 +26,13 @@ function load() {
       import('firebase/app-check'),
       import('firebase/ai'),
     ])
-    initializeAppCheck(app, {
+    const aiApp = useEmulators ? initializeApp(firebaseConfig, 'ai') : app
+    if (useEmulators) Object.assign(self, { FIREBASE_APPCHECK_DEBUG_TOKEN: debugToken })
+    initializeAppCheck(aiApp, {
       provider: new ReCaptchaV3Provider('6LdWdOosAAAAAD-CgahJPqpZb3pi8A06Bv5-rkh-'),
       isTokenAutoRefreshEnabled: true,
     })
-    return { sdk: ai, ai: ai.getAI(app, { backend: new ai.GoogleAIBackend() }) }
+    return { sdk: ai, ai: ai.getAI(aiApp, { backend: new ai.GoogleAIBackend() }) }
   })().catch((e) => {
     // Try again on the next call, e.g. after being offline.
     sdk = undefined
@@ -32,9 +41,8 @@ function load() {
   return sdk
 }
 
-// Gemini has no emulator, and App Check is off with emulators, so there's nothing to load.
 export function warmUp() {
-  if (!useEmulators) load().catch(() => {})
+  if (realAi) load().catch(() => {})
 }
 
 // Sends the prompt and returns Gemini's JSON answer, shaped by the schema. maxTokens caps
@@ -65,12 +73,13 @@ async function generateJson(
   const ms = () => Math.round(performance.now() - start)
   const result = await model.generateContentStream(prompt)
   let first: number | undefined
+  let usage
   for await (const chunk of result.stream) {
     first ??= ms()
-    void chunk
+    // Token counts come with the last part; the combined response leaves them out.
+    usage = chunk.usageMetadata ?? usage
   }
   const response = await result.response
-  const usage = response.usageMetadata
   const finish = response.candidates?.[0]?.finishReason
   console.info(
     `Gemini ${MODEL}: first part after ${first} ms, done after ${ms()} ms, finished ${finish}, ` +
@@ -101,7 +110,7 @@ const clean = (s: unknown, max: number) => (typeof s === 'string' ? s.trim().sli
 // A Menu: dinner for each day of the week, each a list of courses. With a current Menu and
 // an instruction, the Menu is remade from them.
 export async function makeMenu(context: Context, change?: { current: Menu; instruction: string }): Promise<Menu> {
-  if (useEmulators) return stubMenu(change)
+  if (!realAi) return stubMenu(change)
   const prompt = [
     'Du planlegger middager for en familie, én middag for hver dag i uka, mandag til søndag.',
     'En middag kan ha flere retter (for eksempel forrett, hovedrett og dessert), men som regel én.',
@@ -139,7 +148,7 @@ export async function makeRecipe(
   dish: { day: Day; meal: string[]; course: string },
   change?: { current: Recipe; instruction: string },
 ): Promise<Recipe> {
-  if (useEmulators) return stubRecipe(dish.course, change)
+  if (!realAi) return stubRecipe(dish.course, change)
   const prompt = [
     'Du skriver en oppskrift på én rett til en familiemiddag.',
     'Skriv på norsk bokmål.',
@@ -188,8 +197,8 @@ export async function makeRecipe(
   }
 }
 
-// Gemini has no emulator, and App Check is off with emulators. The stubs answer at once
-// with fixed content, and an instruction shows up in what they return.
+// The stubs answer at once with fixed content, and an instruction shows up in what they
+// return.
 function stubMenu(change?: { current: Menu; instruction: string }): Menu {
   if (change) return { ...change.current, thu: [`Stub: ${change.instruction}`.slice(0, 200)] }
   return {

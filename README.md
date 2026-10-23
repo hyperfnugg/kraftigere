@@ -26,6 +26,12 @@
 - **State:** Firestore, access gated by security rules on the signed-in user.
 - **LLM:** Gemini via Firebase AI Logic (Gemini Developer API backend), called directly from the browser with App Check protecting the key.
 
+## Local development
+
+- `npm run dev` runs the app against the Auth and Firestore emulators with a seeded Family (sign in as alice@example.com). Gemini answers with fixed stubs.
+- **Real Gemini locally:** create an App Check debug token (Firebase console → App Check → Apps → Manage debug tokens) and put it in `.env.development.local` as `VITE_APPCHECK_DEBUG_TOKEN=…`. `npm run dev` then calls the real Gemini, on the real project's quota, while Auth and Firestore stay on the emulators. Only dev mode reads that file, so the token never reaches a build. e2e tests always use the stubs.
+- `npm run test:e2e` and `npm run test:rules` run the tests. With `npm run dev` already running, e2e reuses it, so stop it first if it has the debug token.
+
 ## Sharing
 
 Access is limited to a hand-maintained allowlist of family Google accounts — no invite flow, no admin UI.

@@ -16,7 +16,7 @@ import {
 } from 'firebase/firestore'
 import { useEffect, useState, useSyncExternalStore } from 'react'
 
-const firebaseConfig = {
+export const firebaseConfig = {
   apiKey: 'AIzaSyAEAvJBBvR8i7DGtpcGhlc0YmcIC1_kuys',
   authDomain: 'kraftigere.web.app',
   projectId: 'kraftigere',
