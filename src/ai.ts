@@ -2,8 +2,10 @@ import type { Schema as SchemaType } from 'firebase/ai'
 import { app, useEmulators } from './firebase'
 import { DAYS, DAY_NAMES, MAX_COURSES, type Day, type Ingredient, type Menu, type Recipe } from './weeks'
 
-// gemini-3.8-flash left requests hanging past a minute on 2026-10-23.
-const MODEL = 'gemini-3.5-flash'
+// Flash-Lite for its free tier: about 500 requests a day, where 3.x Flash gets 20 and a
+// week's planning takes 10–20. On 2026-10-23, 3.8 Flash hung past a minute at LOW once,
+// and 3.5 Flash was fast.
+const MODEL = 'gemini-3.5-flash-lite'
 
 type Sdk = typeof import('firebase/ai')
 let sdk: Promise<{ sdk: Sdk; ai: ReturnType<Sdk['getAI']> }> | undefined
@@ -51,8 +53,8 @@ async function generateJson(
         responseMimeType: 'application/json',
         responseSchema: schema(sdk.Schema),
         maxOutputTokens: maxTokens,
-        // Gemini 3 Flash thinks by default, and planning dinners doesn't need much of it.
-        thinkingConfig: { thinkingLevel: sdk.ThinkingLevel.LOW },
+        // Gemini 3 thinks by default. Planning dinners needs a little, not much.
+        thinkingConfig: { thinkingLevel: sdk.ThinkingLevel.MEDIUM },
       },
     },
     // Until the answer starts arriving.

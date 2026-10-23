@@ -54,6 +54,8 @@ Sixteenth milestone, and the first half of the AI-assisted meal planner. A Week 
 - [x] **Commit: faster AI calls.** *(manual)* (changes what Gemini is called with)
 - [x] **Model that answers.** After the Faster AI commit, `gemini-3.8-flash` requests still hung until the 60 s timeout (the request reached Gemini; App Check was fine). Switch to `gemini-3.5-flash`, and stream so the log shows when the answer starts as well as ends.
 - [x] **Commit: switch to gemini-3.5-flash.** *(manual)* (changes what Gemini is called with)
+- [x] **Flash-Lite for the free tier.** 3.5 Flash was fast, but the free tier allows 3.x Flash only 20 requests a day (per AI Studio), and a week's planning takes 10–20. Use `gemini-3.5-flash-lite` (about 500 a day) with `thinkingLevel` MEDIUM, at least while developing.
+- [x] **Commit: gemini-3.5-flash-lite.** *(manual)* (changes what Gemini is called with)
 - [ ] **Check the speed on the phone.** If it's still slow, next options are a lighter model (`gemini-3.5-flash-lite`) for the Menu, or streaming the Menu so days appear as they're written. *(user)*
 - [ ] **Move plan to `plans/done/`.** `git mv plans/active/16-week-planning.md plans/done/16-week-planning.md`, and remove it from **Now** in `ROADMAP.md`.
 - [ ] **Commit: complete week-planning milestone.** *(auto)*
