@@ -49,7 +49,7 @@ The app has tabs for usage scenarios, each built for what you're doing at that m
 | Tab | Scenario | Contains |
 |---|---|---|
 | **Home** | "Quick, before I forget" | Quick-add to every List currently in play. Groceries editing, newest first: Notes and removing, never checking off |
-| **Week** | "I'm planning the week" | Guidelines, Week Notes, Menu, Recipes, Confirm. Also outlining the week's to-dos |
+| **Meals** | "What's for dinner" | Planning and cooking: Guidelines, Day Notes, Menu, Recipes, Confirm |
 | **Shop** | "I'm in the store" | Groceries: unchecked first, big text, check-off |
 | **Lists** | Other Lists | IKEA, kids' clothes and the like, when Several Lists arrives |
 | **Trip** | "We're going away" | Speculative: planning and packing from Templates |
@@ -66,15 +66,16 @@ One week at a time. A Family Member goes through these stages, and the AI does t
   > Peter: dislikes scallops. Mary: intolerant to lactose and mercury. Paul: born 2019, favourite meal pizza.
 
   The people named are whoever eats. They're free text, not Family Members.
-- **Week Notes** (this week only). Example:
-  > Monday Mary's parents visit: 3 courses, 1.5 hours prep. Wednesday Peter is away. We have A LOT of venison in the freezer.
-- **Menu.** The AI proposes a Meal, dinner, for each day. The Family Member edits it directly or instructs the AI ("Mary's father doesn't like fish"), then accepts it.
-- **Recipes.** The AI writes a Recipe for each course of each Meal. Ingredient amounts are in grams unless stated otherwise. The Family Member edits them directly or instructs the AI ("steam the strawberries, don't boil them").
+- **Day Notes** (one day of this week only), next to each day. Examples:
+  > Monday: Mary's parents visit, 3 courses, 1.5 hours prep.
+  > Wednesday: Peter is away.
+- **Menu.** The AI makes a Meal, dinner, for each day as soon as the week is this week or next, so it's just there. The Family Member edits a day directly, asks the AI to suggest a new Meal for it, or instructs the AI about the whole Menu ("Mary's father doesn't like fish").
+- **Recipes.** The AI writes a Recipe for each course of each Meal right after, and again whenever a course changes. Ingredient amounts are in grams unless stated otherwise. The Family Member reads a Recipe full screen while cooking, and edits it directly or instructs the AI ("steam the strawberries, don't boil them").
 - **Confirm.** Ingredients go to Groceries (below).
 
 ### Outdated
 
-When Guidelines or Week Notes change after a Menu or Recipes exist, those become **Outdated**, with a timestamp. A Recipe also becomes Outdated when its own Meal changes. Nothing is remade until a Family Member asks, because automatic remaking costs AI calls and would overwrite their edits. Tapping "Utdatert" asks "Lag på nytt? Endringer du har gjort forsvinner." and then remakes. Later improvement: remaking that keeps hand edits.
+When the Guidelines change after a Menu exists, the Menu becomes **Outdated**. A Recipe becomes Outdated when the Guidelines, its day's Day Note or its own Meal change. Each shows when it became so. A changed Day Note only makes the day's Recipes Outdated, never the Meal: the Family Member decides whether the dinner itself should change. Nothing Outdated is remade until a Family Member asks, because remaking would overwrite their edits. Tapping "Utdatert" on the Menu or 🔄 next to a Recipe's course asks "Lag på nytt? Endringer du har gjort forsvinner." and then remakes. A course whose name changes is different, not Outdated: it loses its Recipe and gets a new one at once. Later improvement: remaking that keeps hand edits.
 
 ### Confirm
 

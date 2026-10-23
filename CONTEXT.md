@@ -71,19 +71,19 @@ The Family's standing guidance for planning meals, applying to every week, such 
 _UI_: "Føringer"
 _Avoid_: Preferences, profile, rules
 
-**Week Notes**:
-Guidance for planning one particular week, such as guests on Monday or a freezer full of venison.
-_UI_: "Ukeplan"
-_Avoid_: Weekly guidelines
+**Day Note**:
+Guidance for planning one day of one particular week, such as guests or someone away, shown next to the day.
+_UI_: "Notat"
+_Avoid_: Note (that is on an Entry), Week Notes (the single note on a whole week it replaced)
 
 **Menu**:
-Which Meal is eaten on which day of one week. The AI proposes it from the Guidelines and Week Notes, and a Family Member edits and accepts it.
+Which Meal is eaten on which day of one week. The AI makes it from the Guidelines and Day Notes as soon as the week is this week or next, with a Recipe for every course, and a Family Member edits it.
 _UI_: "Meny"
 _Avoid_: Meal plan, plan, week plan
 
 **Meal**:
 The dinner eaten on one day of a Menu, possibly several courses, each with its own Recipe. A day can have no Meal.
-_UI_: "Måltid"
+_UI_: "middag"
 _Avoid_: Dinner, dish
 
 **Recipe**:
@@ -102,8 +102,8 @@ _UI_: "Iverksett"
 _Avoid_: Commit, submit, finalize
 
 **Outdated**:
-The state of a Menu whose Guidelines or Week Notes changed after it was made, or of a Recipe whose Guidelines, Week Notes or own Meal changed after it was made. It stays as it is until a Family Member asks the AI to remake it, which loses their hand edits.
-_UI_: "Utdatert"
+The state of a Menu whose Guidelines changed after it was made, or of a Recipe whose Guidelines, Day Note or own Meal changed after it was made. It stays as it is until a Family Member asks the AI to remake it, which loses their hand edits. A changed Day Note never changes the Meal itself.
+_UI_: "Utdatert" on the Menu, and 🔄 ("Lag på nytt") next to a Recipe's course
 _Avoid_: Stale, dirty
 
 ### Tabs
@@ -113,10 +113,10 @@ The tab for "quick, before I forget": adding to Groceries and editing it, never 
 _UI_: 🏠, read out as "Hjem"
 _Avoid_: Add, inbox
 
-**Week**:
-The tab for planning one week of meals. A week runs Monday to Sunday and is the ISO week.
-_UI_: "Uke", with weeks labelled like "Uke 44 · 26. okt–1. nov"
-_Avoid_: Planner, calendar
+**Meals**:
+The tab for what's for dinner: planning the Menus of this week and next, and cooking from their Recipes. Earlier weeks that have a Menu can be looked back at. A week runs Monday to Sunday and is the ISO week.
+_UI_: "Middag", with weeks labelled like "Uke 44 · 26. okt–1. nov"
+_Avoid_: Week (the tab's old name), planner, calendar
 
 **Shop**:
 The tab for "I'm in the store": Groceries with unchecked first and one tap to check off.

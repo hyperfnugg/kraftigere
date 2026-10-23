@@ -69,3 +69,4 @@ Sixteenth milestone, and the first half of the AI-assisted meal planner. A Week 
 ## Notes
 
 - 2026-10-23: Decisions from the planning session: ISO weeks, opening on the current week, because a week stays worth revisiting after Iverksett. Dinner only. Recipes are structured forms. Instructions are one-off. AI output in Norwegian. Last write wins. ADR 0004's risk is accepted for meal data. Tapping "Utdatert" remakes, after a warning since hand edits are lost.
+- 2026-10-24: Reworked in plan 19 after first use: the tab is now Middag, Ukeplan became a Note per day, and "Lag meny", "Godta meny" and "Lag oppskrift" are gone because the Menu and Recipes are made on their own. The Scope above describes the tab as this plan built it.

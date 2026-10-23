@@ -9,6 +9,7 @@ Where Kraft is heading. It changes often. Ideas are one line each, cheap to add 
 - [Week planning](plans/active/16-week-planning.md): first half of the AI-assisted meal planner.
 - [Iverksett](plans/active/17-iverksett.md): second half, Ingredients to Groceries.
 - [Oda exploration](plans/active/18-oda-exploration.md): pick the route for filling an Oda basket.
+- [Middag tab](plans/active/19-middag-tab.md): Menu and Recipes just there, Day Notes, cooking from a Recipe.
 
 ## Next
 
