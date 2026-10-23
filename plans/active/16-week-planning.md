@@ -52,6 +52,8 @@ Sixteenth milestone, and the first half of the AI-assisted meal planner. A Week 
 - [ ] **Deploy and plan a real week.** Push. Write Føringer, plan next week, cook at least one Recipe. Note what felt wrong. *(user)*
 - [x] **Faster AI.** First real use: making the Menu takes about 5 minutes. Likely the model running away: course lists had no `maxItems`, so it can repeat items up to the output cap, and `makeMenu` silently cut each day to 4 courses. Give arrays `maxItems`, cap output tokens (4000 Menu, 8000 Recipe), time out after 60 s, and log how each call finished, with the cut-off answer on MAX_TOKENS. Also: Gemini 3.x Flash thinks by default, so set `thinkingLevel` to LOW (3.8 Flash refuses MINIMAL and can't turn thinking off). Load the AI SDK and App Check when Uke opens, not on the first tap. Log each call's time and thinking tokens to the console.
 - [x] **Commit: faster AI calls.** *(manual)* (changes what Gemini is called with)
+- [x] **Model that answers.** After the Faster AI commit, `gemini-3.8-flash` requests still hung until the 60 s timeout (the request reached Gemini; App Check was fine). Switch to `gemini-3.5-flash`, and stream so the log shows when the answer starts as well as ends.
+- [x] **Commit: switch to gemini-3.5-flash.** *(manual)* (changes what Gemini is called with)
 - [ ] **Check the speed on the phone.** If it's still slow, next options are a lighter model (`gemini-3.5-flash-lite`) for the Menu, or streaming the Menu so days appear as they're written. *(user)*
 - [ ] **Move plan to `plans/done/`.** `git mv plans/active/16-week-planning.md plans/done/16-week-planning.md`, and remove it from **Now** in `ROADMAP.md`.
 - [ ] **Commit: complete week-planning milestone.** *(auto)*

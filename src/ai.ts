@@ -2,7 +2,8 @@ import type { Schema as SchemaType } from 'firebase/ai'
 import { app, useEmulators } from './firebase'
 import { DAYS, DAY_NAMES, MAX_COURSES, type Day, type Ingredient, type Menu, type Recipe } from './weeks'
 
-const MODEL = 'gemini-3.8-flash'
+// gemini-3.8-flash left requests hanging past a minute on 2026-10-23.
+const MODEL = 'gemini-3.5-flash'
 
 type Sdk = typeof import('firebase/ai')
 let sdk: Promise<{ sdk: Sdk; ai: ReturnType<Sdk['getAI']> }> | undefined
@@ -50,26 +51,34 @@ async function generateJson(
         responseMimeType: 'application/json',
         responseSchema: schema(sdk.Schema),
         maxOutputTokens: maxTokens,
-        // Thinking can't be turned off on 3.8 Flash, and MINIMAL is refused. The default
-        // thinks long, and planning dinners doesn't need it.
+        // Gemini 3 Flash thinks by default, and planning dinners doesn't need much of it.
         thinkingConfig: { thinkingLevel: sdk.ThinkingLevel.LOW },
       },
     },
+    // Until the answer starts arriving.
     { timeout: 60_000 },
   )
+  // Streamed only to log when the answer starts and ends, to find where time goes.
   const start = performance.now()
-  const result = await model.generateContent(prompt)
-  const usage = result.response.usageMetadata
-  const finish = result.response.candidates?.[0]?.finishReason
+  const ms = () => Math.round(performance.now() - start)
+  const result = await model.generateContentStream(prompt)
+  let first: number | undefined
+  for await (const chunk of result.stream) {
+    first ??= ms()
+    void chunk
+  }
+  const response = await result.response
+  const usage = response.usageMetadata
+  const finish = response.candidates?.[0]?.finishReason
   console.info(
-    `Gemini: ${Math.round(performance.now() - start)} ms, finished ${finish}, ` +
+    `Gemini ${MODEL}: first part after ${first} ms, done after ${ms()} ms, finished ${finish}, ` +
       `${usage?.thoughtsTokenCount ?? 0} thinking and ${usage?.candidatesTokenCount ?? 0} answer tokens`,
   )
   if (finish === 'MAX_TOKENS') {
-    console.warn('Gemini answer, cut off:', result.response.text().slice(0, 1000))
+    console.warn('Gemini answer, cut off:', response.text().slice(0, 1000))
     throw new Error(`Gemini ran past ${maxTokens} tokens`)
   }
-  return JSON.parse(result.response.text())
+  return JSON.parse(response.text())
 }
 
 export type Context = { guidelines: string; notes: string; weekLabel: string }
