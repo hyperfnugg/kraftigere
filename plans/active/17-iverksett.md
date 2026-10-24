@@ -1,6 +1,6 @@
 # Iverksett
 
-**Status:** ready-for-agent · enhancement
+**Status:** ready-for-human · enhancement
 
 Seventeenth milestone, and the second half of the AI-assisted meal planner. Iverksett (Confirm) sends a week's Ingredients to Groceries as Menu Entries. Each Ingredient is matched to a Ware or a Staple, and the Family's matches are remembered. Iverksett happens once per week. After it, the Menu and Recipes can still be edited by hand, but without the AI, and the edits don't change Groceries. Builds on plan 16. See `docs/vision/groceries-and-meals.md#confirm`.
 
@@ -30,9 +30,10 @@ Seventeenth milestone, and the second half of the AI-assisted meal planner. Iver
 - [x] **Iverksett screen.** "Iverksett" on a week with Recipes opens the screen described in Scope. Each line's match can be changed (choose a Staple or Ware, or type a new Ware name), and its tick toggled. Iverksett writes the Menu Entries, remembered matches, `usuallyAtHome` choices and `confirmedAt` in one batch. Built: the screen is `src/Confirm.tsx`, full screen like a Recipe, and the grouping, amounts and batch are in `src/matching.ts`. "Iverksett" shows once every course has a Recipe. Changing a line's match moves all its wordings, so lines can merge. The screen works on the Recipes as they were when it opened.
   - e2e: iverksett a stubbed week. Two Recipes using "løk" give one Menu Entry with summed amount and both days. Unticking salt keeps it off Groceries, and salt starts unticked next week. A corrected match is used next week without the AI.
 - [x] **Commit: Iverksett sends Ingredients to Groceries.** *(manual)* (user-visible; review first)
-- [ ] **After Iverksett.** Show that the week was iverksatt, hide Utdatert, 🔄 and the instruction boxes, keep hand editing, and show Menu Entries on Hjem and Handle with their days.
+- [x] **After Iverksett.** Show that the week was iverksatt, hide Utdatert, 🔄 and the instruction boxes, keep hand editing, and show Menu Entries on Hjem and Handle with their days.
   - e2e: after Iverksett, editing a Recipe doesn't change Groceries, and no instruction box shows. A Menu Entry can be Removed on Hjem and checked off on Handle.
-- [ ] **Commit: week after Iverksett.** *(manual)* (user-visible; review first)
+  - Built: a Confirmed week makes nothing on its own, shows no Utdatert or 🔄, and hides the instruction boxes and the editor's 🔄. A course renamed by hand keeps its Recipe, since no new one would be made. On Hjem a Menu Entry opens to Fjern only, with no Note.
+- [x] **Commit: week after Iverksett.** *(manual)* (user-visible; review first)
 - [ ] **Deploy and shop a real week.** Push. Iverksett a planned week and shop from it. *(user)*
 - [ ] **Move plan to `plans/done/`.** `git mv plans/active/17-iverksett.md plans/done/17-iverksett.md`, and remove it from **Now** in `ROADMAP.md`.
 - [ ] **Commit: complete iverksett milestone.** *(auto)*
@@ -47,3 +48,4 @@ Seventeenth milestone, and the second half of the AI-assisted meal planner. Iver
 
 - 2026-10-23: Decisions from the planning session: Iverksett is once per week, because confirming again is complicated and needs a clear need first. Wares come only from Iverksett. Matches are keyed on normalized wording. Same-unit amounts are summed in code, with no conversion. Menu Entries don't count toward `addCount`. If plan 18 shows that Ware needs a different shape for Oda, a migration script (ADR 0003) handles it.
 - 2026-10-24: Plan 19 made the Menu and Recipes appear on their own, and a course whose name changes gets a new Recipe at once. Decide whether that should still happen after Iverksett, when the old Recipe's Ingredients are already in Groceries.
+- 2026-10-24: Built while the user was away. The open question above is settled: after Iverksett nothing is made on its own, and a course renamed by hand keeps its Recipe. Staples that Confirm creates have no adds, so they come last in Hjem's suggestions. The matching prompt is untested against real Gemini; check the proposals on the first real week.

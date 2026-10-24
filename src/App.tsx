@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { type User } from 'firebase/auth'
 import { MealsTab } from './Meals'
+import { DAY_SHORT } from './weeks'
 import { signInWithGoogle, signOut, useOnline, useUser } from './firebase'
 import {
   addEntry,
@@ -167,7 +168,16 @@ const listStyle = {
   gap: '0.5rem',
 } as const
 
-function Note({ entry }: { entry: Entry }) {
+// A Menu Entry's amount and days, or an Entry's Note.
+function Details({ entry }: { entry: Entry }) {
+  if (entry.days) {
+    return (
+      <>
+        {entry.amount && ` ${entry.amount}`}
+        <span style={{ color: '#666' }}> · {entry.days.map((d) => DAY_SHORT[d]).join(', ')}</span>
+      </>
+    )
+  }
   return entry.note ? <span style={{ color: '#666' }}> · {entry.note}</span> : null
 }
 
@@ -253,7 +263,7 @@ function Home({ entries }: { entries: Entry[] }) {
                   }}
                 >
                   {entry.text}
-                  <Note entry={entry} />
+                  <Details entry={entry} />
                 </span>
               </div>
               {isOpen && (
@@ -265,16 +275,19 @@ function Home({ entries }: { entries: Entry[] }) {
                   }}
                   style={{ display: 'flex', gap: '0.5rem' }}
                 >
-                  <input
-                    autoFocus
-                    value={open.note}
-                    onChange={(e) => setOpen({ ...open, note: e.target.value })}
-                    onBlur={saveNote}
-                    maxLength={200}
-                    placeholder="Notat"
-                    aria-label="Notat"
-                    style={{ flex: 1, minWidth: 0, fontSize: '1rem', padding: '0.25rem' }}
-                  />
+                  {/* A Menu Entry has no Note. */}
+                  {!entry.days && (
+                    <input
+                      autoFocus
+                      value={open.note}
+                      onChange={(e) => setOpen({ ...open, note: e.target.value })}
+                      onBlur={saveNote}
+                      maxLength={200}
+                      placeholder="Notat"
+                      aria-label="Notat"
+                      style={{ flex: 1, minWidth: 0, fontSize: '1rem', padding: '0.25rem' }}
+                    />
+                  )}
                   <button
                     type="button"
                     onClick={() => {
@@ -319,7 +332,7 @@ function Shop({ entries }: { entries: Entry[] }) {
               />
               <span style={{ textDecoration: entry.checked ? 'line-through' : 'none' }}>
                 {entry.text}
-                <Note entry={entry} />
+                <Details entry={entry} />
               </span>
             </label>
           </li>

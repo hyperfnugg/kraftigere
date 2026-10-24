@@ -304,15 +304,16 @@ async function makeWeekRecipes(
   if (results.some((r) => r.status === 'rejected')) throw new Error('Some Recipes failed')
 }
 
-// Makes the week's Menu if it has none, and Recipes for courses that have none. Each is
-// tried once while the tab is open, so a failure doesn't retry forever.
+// Makes the week's Menu if it has none, and Recipes for courses that have none, until the
+// week is Confirmed. Each is tried once while the tab is open, so a failure doesn't retry
+// forever.
 function useAutoMake(weekId: string) {
   const job = useJob()
   const week = useWeek(weekId)
   const { recipes, synced } = useRecipes(weekId)
   const tried = useRef(new Set<string>())
   useEffect(() => {
-    if (!week?.synced || !synced || job.busy) return
+    if (!week?.synced || !synced || job.busy || week.week.confirmedAt) return
     const menu = week.week.menu
     if (!menu) {
       if (tried.current.has(`${weekId}:menu`)) return
@@ -384,7 +385,9 @@ function MenuSection({
   const [editing, setEditing] = useState<Day | null>(null)
   const [confirming, setConfirming] = useState(false)
   const menu = week.menu
-  const menuOutdated = menuOutdatedSince(week, guidelines)
+  // After Confirm the week is edited by hand only: no AI, and nothing is Outdated.
+  const confirmed = !!week.confirmedAt
+  const menuOutdated = !confirmed && menuOutdatedSince(week, guidelines)
   const open = openRecipe && recipes[recipeId(openRecipe.day, openRecipe.course)]
   // Iverksett needs a Recipe for every course.
   const ready = !!menu && DAYS.every((d) => menu[d].every((_, i) => recipes[recipeId(d, i)]))
@@ -424,14 +427,18 @@ function MenuSection({
               onSave={(note, courses) => {
                 if (note !== (week.dayNotes?.[d] ?? '')) setDayNote(weekId, d, note).catch(console.error)
                 if (menu && courses && courses.join('\n') !== menu[d].join('\n')) {
-                  setMeal(weekId, d, courses, menu[d], recipes).catch(console.error)
+                  // After Confirm, changed courses keep their Recipes, as none would be made.
+                  setMeal(weekId, d, courses, menu[d], confirmed ? {} : recipes).catch(console.error)
                 }
                 setEditing(null)
               }}
               onClose={() => setEditing(null)}
               busy={!!busy}
-              onSuggest={(note, show) =>
-                run('Lager middag…', async () => show(await job.track([d], () => suggestMeal(weekId, d, note))))
+              onSuggest={
+                confirmed
+                  ? undefined
+                  : (note, show) =>
+                      run('Lager middag…', async () => show(await job.track([d], () => suggestMeal(weekId, d, note))))
               }
             />
           )}
@@ -448,7 +455,7 @@ function MenuSection({
                     </div>
                   )
                 }
-                const recipeOutdated = recipeOutdatedSince(recipe, d, week, guidelines)
+                const recipeOutdated = !confirmed && recipeOutdatedSince(recipe, d, week, guidelines)
                 return (
                   <div
                     key={id}
@@ -485,13 +492,14 @@ function MenuSection({
           weekId={weekId}
           day={openRecipe.day}
           recipe={open}
-          outdated={recipeOutdatedSince(open, openRecipe.day, week, guidelines)}
+          outdated={confirmed ? undefined : recipeOutdatedSince(open, openRecipe.day, week, guidelines)}
+          ai={!confirmed}
           job={job}
           onRemake={(p) => makeRecipes([openRecipe], p)}
           onClose={() => setOpenRecipe(null)}
         />
       )}
-      {menu && (
+      {menu && !confirmed && (
         <Instruct
           label="Endring i menyen"
           disabled={!!busy}
@@ -524,6 +532,7 @@ function RecipeView({
   day,
   recipe,
   outdated,
+  ai,
   job,
   onRemake,
   onClose,
@@ -532,6 +541,7 @@ function RecipeView({
   day: Day
   recipe: StoredRecipe
   outdated?: Timestamp
+  ai: boolean
   job: Job
   onRemake: (progress: Progress) => Promise<void>
   onClose: () => void
@@ -565,7 +575,7 @@ function RecipeView({
             <Remake since={outdated} disabled={!!busy} onRemake={() => run('Lager oppskrift…', onRemake)} />
           )}
         </div>
-        <RecipeForm weekId={weekId} day={day} recipe={recipe} disabled={!!busy} run={run} />
+        <RecipeForm weekId={weekId} day={day} recipe={recipe} ai={ai} disabled={!!busy} run={run} />
         {busy && <div style={{ color: '#555' }}>{busy}</div>}
         {error && <div style={errorStyle}>{error}</div>}
       </div>
@@ -590,7 +600,8 @@ function DayEditor({
   onSave: (note: string, courses?: string[]) => void
   onClose: () => void
   busy: boolean
-  onSuggest: (note: string, show: (courses: string[]) => void) => void
+  // Missing after Confirm, when the AI is off.
+  onSuggest?: (note: string, show: (courses: string[]) => void) => void
 }) {
   const [noteDraft, setNoteDraft] = useState(note)
   const [coursesDraft, setCoursesDraft] = useState<string | null>(null)
@@ -617,16 +628,18 @@ function DayEditor({
               placeholder="Ingen middag"
               style={textareaStyle}
             />
-            <button
-              type="button"
-              onClick={() => onSuggest(noteDraft.trim(), (c) => setCoursesDraft(c.join('\n')))}
-              disabled={busy}
-              aria-label="Foreslå ny middag"
-              title="Foreslå ny middag"
-              style={smallButtonStyle}
-            >
-              🔄
-            </button>
+            {onSuggest && (
+              <button
+                type="button"
+                onClick={() => onSuggest(noteDraft.trim(), (c) => setCoursesDraft(c.join('\n')))}
+                disabled={busy}
+                aria-label="Foreslå ny middag"
+                title="Foreslå ny middag"
+                style={smallButtonStyle}
+              >
+                🔄
+              </button>
+            )}
           </div>
         </label>
       )}
@@ -699,12 +712,14 @@ function RecipeForm({
   weekId,
   day,
   recipe,
+  ai,
   disabled,
   run,
 }: {
   weekId: string
   day: Day
   recipe: StoredRecipe
+  ai: boolean
   disabled: boolean
   run: (label: string, job: () => Promise<void>) => Promise<void>
 }) {
@@ -776,11 +791,13 @@ function RecipeForm({
         onSave={(steps) => save({ steps: steps.trim() })}
       />
 
-      <Instruct
-        label={`Endring i oppskriften ${recipe.course}`}
-        disabled={disabled}
-        onInstruct={(instruction) => run('Endrer oppskrift…', () => remake(instruction))}
-      />
+      {ai && (
+        <Instruct
+          label={`Endring i oppskriften ${recipe.course}`}
+          disabled={disabled}
+          onInstruct={(instruction) => run('Endrer oppskrift…', () => remake(instruction))}
+        />
+      )}
     </div>
   )
 }
