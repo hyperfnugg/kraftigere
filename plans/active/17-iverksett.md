@@ -22,8 +22,8 @@ Seventeenth milestone, and the second half of the AI-assisted meal planner. Iver
 
 ## Steps
 
-- [ ] **Glossary and vision.** In `CONTEXT.md`, Confirm happens once per week, and add **Menu Entry**. In `docs/vision/groceries-and-meals.md`, move "Confirming again" under a **Later** heading (and fix its anchor in `ROADMAP.md`), and say a week can be hand-edited after Confirm without the AI.
-- [ ] **Commit: glossary and vision for Iverksett.** *(auto)*
+- [x] **Glossary and vision.** In `CONTEXT.md`, Confirm happens once per week, and add **Menu Entry**. In `docs/vision/groceries-and-meals.md`, move "Confirming again" under a **Later** heading (its anchor in `ROADMAP.md` still works), and say a week can be hand-edited after Confirm without the AI.
+- [x] **Commit: glossary and vision for Iverksett.** *(auto)*
 - [ ] **Data and rules.** `/wares/{id}` with `name`, id from the normalized name like Staples. `/matches/{normalizedWording}` points to a Ware or a Staple. Staples gain an optional `usuallyAtHome`. A Menu Entry is an Entry with `week`, `days`, and an `amounts` list (or a rendered amount text, decided while building) and a `ware` or `staple`. It has no Note and is created without counting its Staple. The week records `confirmedAt`. Rules for each, following ADR 0003, with tests in `tests/rules/firestore.test.ts`.
 - [ ] **Commit: Wares, matches and Menu Entries in data and rules.** *(manual)* (security rules; review before committing)
 - [ ] **Matching with AI.** A typed AI call with a response schema: given unmatched Ingredient wordings and the Family's Staples and Wares, propose a Staple, an existing Ware, or a new Ware name for each. Remembered matches are looked up first. Emulator stub returns fixed matches.

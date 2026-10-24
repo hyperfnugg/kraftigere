@@ -97,9 +97,14 @@ _UI_: "Ingrediens"
 _Avoid_: Grocery, item
 
 **Confirm**:
-The moment a Family Member is done with a week's Recipes, which sends their Ingredients to Groceries.
+The moment a Family Member is done with a week's Recipes, which sends their Ingredients to Groceries as Menu Entries. It happens once per week. Afterwards the week can still be edited by hand, but without the AI, and the edits don't change Groceries.
 _UI_: "Iverksett"
 _Avoid_: Commit, submit, finalize
+
+**Menu Entry**:
+An Entry on Groceries that Confirm made from a week's Ingredients: one per Ware or Staple the week needs, with the summed amount and the days it serves, such as "helmelk 3 dl · fre". It never merges with hand-added Entries, has no Note, and doesn't count toward its Staple's adds. Like any Entry it can be checked off and Removed.
+_UI_: not named; shown with its amount and days
+_Avoid_: Ingredient Entry, recipe item
 
 **Outdated**:
 The state of a Menu whose Guidelines changed after it was made, or of a Recipe whose Guidelines, Day Note or own Meal changed after it was made. It stays as it is until a Family Member asks the AI to remake it, which loses their hand edits. A changed Day Note never changes the Meal itself.

@@ -82,8 +82,11 @@ When the Guidelines change after a Menu exists, the Menu becomes **Outdated**. A
 - Each Ingredient is matched to a **Ware** (the Recipe needs exactly this) or a **Staple** (whatever the Family usually buys will do). The AI proposes matches, the Family Member corrects them, and the Family's matches are remembered for later weeks. Speciality items (a particular pasta) match a Ware of their own, and everyday ones (salt, oil, milk for pancakes) match Staples.
 - All of a week's Ingredients matched to the same Ware or Staple become one **Menu Entry**, showing the summed amount and the days it serves: "helmelk 3 dl · Fri". In the store, the shopper picks packs from what's on the shelf.
 - Menu Entries are marked as such and never merge with hand-added Entries, even for the same Staple.
+- A week is Confirmed once. Afterwards its Menu and Recipes can still be edited by hand, but without the AI, and the edits don't change Groceries.
 
-### Confirming again
+### Later
+
+#### Confirming again
 
 - Hand-added Entries are never touched.
 - Unchecked Menu Entries are brought up to date without asking: removed if no longer needed, amounts updated, new ones added.
