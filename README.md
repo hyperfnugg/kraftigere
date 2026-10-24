@@ -17,6 +17,7 @@
 - Changes appear on other phones within a few seconds.
 - Installs to the home screen and works offline; changes sync when back online.
 - Dinner for this week and next: Gemini makes a Menu from the Family's Guidelines and Day Notes, and writes a Recipe for every course. The Family edits both by hand or by instructing Gemini, and cooks from the Recipes.
+- Iverksett sends a week's Ingredients to the shopping List, one line per Ware or Staple with summed amounts and days, leaving out what's at home. Gemini matches Ingredients, and the Family's corrections are remembered.
 
 ## Stack
 
