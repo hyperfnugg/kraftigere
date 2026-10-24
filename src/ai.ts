@@ -198,6 +198,49 @@ export async function makeRecipe(
   }
 }
 
+// What an Ingredient's wording goes to Groceries as: a Staple (whatever the Family usually
+// buys will do) or a Ware (exactly this), by name.
+export type Match = { kind: 'staple' | 'ware'; name: string }
+
+// The Staple or Ware for each Ingredient wording, in the same order, preferring the
+// Family's own. A name that isn't theirs yet is a new one.
+export async function makeMatches(wordings: string[], family: { staples: string[]; wares: string[] }): Promise<Match[]> {
+  if (!realAi) return wordings.map(stapleFromWording)
+  const prompt = [
+    'Du gjør ingrediensene fra ukas oppskrifter om til en handleliste.',
+    'For hver ingrediens, velg enten en basisvare eller en vare:',
+    '- En basisvare er noe familien pleier å kjøpe, der det de vanligvis kjøper holder, for eksempel "melk", "løk" eller "salt". Ingredienser som "melk, hvilken som helst" er basisvarer.',
+    '- En vare er akkurat det oppskriften trenger, når ingrediensen sier hvilken type, for eksempel "helmelk" eller "spaghetti nr. 5".',
+    'Bruk en av familiens basisvarer eller varer når en passer, med nøyaktig samme navn. Ellers foreslå et kort navn på norsk bokmål, slik en familie ville sagt det, med liten forbokstav.',
+    `Familiens basisvarer: ${family.staples.join(', ') || '(ingen)'}`,
+    `Familiens varer: ${family.wares.join(', ') || '(ingen)'}`,
+    `Ingredienser, svar i samme rekkefølge:\n${wordings.map((w) => `- ${w}`).join('\n')}`,
+  ].join('\n\n')
+  const json = (await generateJson(prompt, 6000, (Schema) =>
+    Schema.object({
+      properties: {
+        matches: Schema.array({
+          maxItems: wordings.length,
+          items: Schema.object({
+            properties: {
+              wording: Schema.string({ description: 'Ingrediensen, som gitt' }),
+              kind: Schema.enumString({ enum: ['staple', 'ware'], description: 'staple for basisvare, ware for vare' }),
+              name: Schema.string({ description: 'Navnet på basisvaren eller varen' }),
+            },
+          }),
+        }),
+      },
+    }),
+  )) as { matches?: unknown }
+  const answers = Array.isArray(json.matches) ? (json.matches as Partial<Record<keyof Match | 'wording', unknown>>[]) : []
+  return wordings.map((w, i) => {
+    // By wording, as the order may slip.
+    const a = answers.find((m) => clean(m.wording, 200).toLowerCase() === w.toLowerCase()) ?? answers[i]
+    const name = clean(a?.name, 100)
+    return name ? { kind: a?.kind === 'ware' ? 'ware' : 'staple', name } : stapleFromWording(w)
+  })
+}
+
 // The stubs answer at once with fixed content, and an instruction shows up in what they
 // return.
 function stubMenu(change?: { current: Menu; instruction: string }): Menu {
@@ -211,6 +254,12 @@ function stubMenu(change?: { current: Menu; instruction: string }): Menu {
     sat: ['Lammestek', 'Sjokolademousse'],
     sun: ['Pannekaker'],
   }
+}
+
+// A Staple named after the wording up to any comma: "melk, hvilken som helst" is melk.
+// The stub's answer, and the fallback when Gemini leaves a wording out.
+function stapleFromWording(wording: string): Match {
+  return { kind: 'staple', name: wording.split(',')[0].trim().slice(0, 100) || wording.slice(0, 100) }
 }
 
 function stubRecipe(course: string, change?: { current: Recipe; instruction: string }): Recipe {

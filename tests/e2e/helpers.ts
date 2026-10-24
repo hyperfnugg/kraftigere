@@ -44,6 +44,17 @@ export async function readDoc(path: string) {
   return (await res.json()).fields
 }
 
+// Lists a collection straight from the emulator, bypassing rules. Returns each document's
+// fields as REST values.
+export async function listDocs(path: string) {
+  const res = await fetch(
+    `http://127.0.0.1:8080/v1/projects/${PROJECT}/databases/(default)/documents/${path}`,
+    { headers: { Authorization: 'Bearer owner' } },
+  )
+  if (!res.ok) throw new Error(`list failed: ${path} ${res.status}`)
+  return ((await res.json()).documents ?? []).map((d: { fields: object }) => d.fields)
+}
+
 // Writes a document straight to the emulator, bypassing rules. Takes its fields as REST values.
 export async function writeDoc(path: string, fields: object) {
   const res = await fetch(

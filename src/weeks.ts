@@ -25,6 +25,15 @@ export const DAY_NAMES: Record<Day, string> = {
   sat: 'Lørdag',
   sun: 'Søndag',
 }
+export const DAY_SHORT: Record<Day, string> = {
+  mon: 'man',
+  tue: 'tir',
+  wed: 'ons',
+  thu: 'tor',
+  fri: 'fre',
+  sat: 'lør',
+  sun: 'søn',
+}
 export const MAX_COURSES = 4
 
 // Each day's Meal as a list of courses. An empty list is no Meal.

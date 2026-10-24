@@ -1,6 +1,7 @@
 import type { Timestamp } from 'firebase/firestore'
 import { type FormEvent, useEffect, useRef, useState } from 'react'
 import { makeMenu, makeRecipe, warmUp } from './ai'
+import { ConfirmView } from './Confirm'
 import { addWeeks, isoWeekId, timeLabel, weekLabel } from './dates'
 import {
   DAYS,
@@ -381,9 +382,12 @@ function MenuSection({
   const { busy, error, run, pending } = job
   const [openRecipe, setOpenRecipe] = useState<{ day: Day; course: number } | null>(null)
   const [editing, setEditing] = useState<Day | null>(null)
+  const [confirming, setConfirming] = useState(false)
   const menu = week.menu
   const menuOutdated = menuOutdatedSince(week, guidelines)
   const open = openRecipe && recipes[recipeId(openRecipe.day, openRecipe.course)]
+  // Iverksett needs a Recipe for every course.
+  const ready = !!menu && DAYS.every((d) => menu[d].every((_, i) => recipes[recipeId(d, i)]))
 
   const make = (instruction?: string) => job.track([...DAYS], () => makeWeekMenu(weekId, recipes, instruction))
   const makeRecipes = (courses: { day: Day; course: number }[], progress: Progress) =>
@@ -496,6 +500,20 @@ function MenuSection({
       )}
       {busy && <div style={{ color: '#555' }}>{busy}</div>}
       {error && <div style={errorStyle}>{error}</div>}
+      {week.confirmedAt ? (
+        <div style={{ color: '#555' }}>Iverksatt · {timeLabel(week.confirmedAt.toDate())}</div>
+      ) : (
+        ready && (
+          <button
+            onClick={() => setConfirming(true)}
+            disabled={!!busy}
+            style={{ ...buttonStyle, alignSelf: 'flex-start' }}
+          >
+            Iverksett
+          </button>
+        )
+      )}
+      {confirming && <ConfirmView weekId={weekId} recipes={recipes} onClose={() => setConfirming(false)} />}
     </section>
   )
 }
