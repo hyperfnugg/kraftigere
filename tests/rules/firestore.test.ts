@@ -213,6 +213,89 @@ describe('/staples', () => {
   test('a Staple cannot be deleted', async () => {
     await assertFails(deleteDoc(staple('milk')))
   })
+
+  test('Confirm can create a Staple without counting an add, and remember it as usually at home', async () => {
+    await assertSucceeds(setDoc(staple('salt'), { name: 'salt', addCount: 0 }))
+    await assertSucceeds(setDoc(staple('oil'), { name: 'oil', addCount: 0, usuallyAtHome: true }))
+    await assertFails(setDoc(staple('pepper'), { name: 'pepper', addCount: 0, lastAddedAt: serverTimestamp() }))
+    await assertFails(setDoc(staple('pepper'), { name: 'pepper', addCount: 0, usuallyAtHome: 'yes' }))
+    // A Staple made by Confirm counts its first add like any other.
+    await assertSucceeds(setDoc(staple('salt'), countedStaple('salt'), { merge: true }))
+  })
+
+  test('usuallyAtHome can change on its own, but not with anything else', async () => {
+    await assertSucceeds(updateDoc(staple('milk'), { usuallyAtHome: true }))
+    await assertSucceeds(updateDoc(staple('milk'), { usuallyAtHome: false }))
+    await assertFails(updateDoc(staple('milk'), { usuallyAtHome: 'no' }))
+    await assertFails(updateDoc(staple('milk'), { usuallyAtHome: true, name: 'Milk' }))
+  })
+})
+
+describe('/wares and /matches', () => {
+  test('a Family Member can write a Ware and a remembered match, a non-member cannot', async () => {
+    await assertSucceeds(setDoc(doc(member(), 'wares/helmelk'), { name: 'Helmelk' }))
+    await assertSucceeds(getDocs(collection(member(), 'wares')))
+    await assertSucceeds(setDoc(doc(member(), 'matches/helmelk'), { wording: 'helmelk', ware: 'helmelk' }))
+    await assertSucceeds(setDoc(doc(member(), 'matches/helmelk'), { wording: 'Helmelk', staple: 'milk' }))
+    await assertSucceeds(getDocs(collection(member(), 'matches')))
+    await assertFails(getDocs(collection(outsider(), 'wares')))
+    await assertFails(getDocs(collection(outsider(), 'matches')))
+    await assertFails(setDoc(doc(outsider(), 'wares/helmelk'), { name: 'Helmelk' }))
+    await assertFails(setDoc(doc(outsider(), 'matches/helmelk'), { wording: 'helmelk', staple: 'milk' }))
+  })
+
+  test('a Ware or match in the wrong shape is refused', async () => {
+    await assertFails(setDoc(doc(member(), 'wares/x'), { name: '' }))
+    await assertFails(setDoc(doc(member(), 'wares/x'), { name: 'x', price: 10 }))
+    await assertFails(setDoc(doc(member(), 'matches/x'), { wording: 'x' }))
+    await assertFails(setDoc(doc(member(), 'matches/x'), { wording: 'x', staple: 'x', ware: 'x' }))
+    await assertFails(setDoc(doc(member(), 'matches/x'), { wording: '', staple: 'x' }))
+    await assertFails(setDoc(doc(member(), 'matches/x'), { wording: 'x', staple: '' }))
+  })
+
+  test('Wares and matches cannot be deleted', async () => {
+    await assertFails(deleteDoc(doc(member(), 'wares/helmelk')))
+    await assertFails(deleteDoc(doc(member(), 'matches/helmelk')))
+  })
+})
+
+describe('/entries made by Confirm', () => {
+  const forWare = { text: 'Helmelk', ware: 'helmelk' }
+  const menuEntry = (fields: object = {}, target: object = { text: 'løk', staple: 'løk' }) => ({
+    ...target,
+    week: '2026-W44',
+    days: ['mon', 'fri'],
+    amount: '400 g',
+    checked: false,
+    createdAt: serverTimestamp(),
+    ...fields,
+  })
+  const create = (entry: object) => setDoc(doc(member(), `entries/menu${n++}`), entry)
+
+  test('a Menu Entry for a Staple or a Ware is made without counting the Staple', async () => {
+    await assertSucceeds(create(menuEntry()))
+    await assertSucceeds(create(menuEntry({}, forWare)))
+    await assertSucceeds(create(menuEntry({ amount: '' })))
+  })
+
+  test('a Menu Entry in the wrong shape is refused', async () => {
+    await assertFails(create(menuEntry({}, { text: 'løk' })))
+    await assertFails(create(menuEntry({ ware: 'helmelk' })))
+    await assertFails(create(menuEntry({ week: 'next' })))
+    await assertFails(create(menuEntry({ days: [] })))
+    await assertFails(create(menuEntry({ amount: 400 })))
+    await assertFails(create(menuEntry({ note: 'lots' })))
+    await assertFails(create(menuEntry({ checked: true })))
+    await assertFails(create(menuEntry({ createdAt: clientTime })))
+  })
+
+  test('a Menu Entry can be checked off and Removed, but gets no Note', async () => {
+    const e = doc(member(), 'entries/menu-x')
+    await assertSucceeds(setDoc(e, menuEntry()))
+    await assertSucceeds(updateDoc(e, { checked: true, checkedAt: serverTimestamp() }))
+    await assertFails(updateDoc(e, { note: 'lots' }))
+    await assertSucceeds(deleteDoc(e))
+  })
 })
 
 describe('config/family', () => {
@@ -312,6 +395,17 @@ describe('/weeks', () => {
     await assertFails(updateDoc(week(member()), { accepted: false }))
     await assertFails(setDoc(week(member(), '2026-W45'), { notes: 'x', notesAt: serverTimestamp() }))
     await assertFails(setDoc(week(member(), '2026-W45'), { ...madeMenu(), accepted: true }))
+  })
+
+  test('Confirm stamps the week once, and only a week with a Menu', async () => {
+    await assertFails(setDoc(week(member()), { confirmedAt: serverTimestamp() }))
+    await assertSucceeds(setDoc(week(member()), madeMenu()))
+    await assertFails(updateDoc(week(member()), { confirmedAt: clientTime }))
+    await assertSucceeds(updateDoc(week(member()), { confirmedAt: serverTimestamp() }))
+    await assertFails(updateDoc(week(member()), { confirmedAt: serverTimestamp() }))
+    await assertFails(updateDoc(week(member()), { confirmedAt: deleteField() }))
+    // The week stays editable by hand.
+    await assertSucceeds(updateDoc(week(member()), { 'menu.tue': ['Suppe'], 'mealsAt.tue': serverTimestamp() }))
   })
 
   test('a made Menu has all seven days and every changed day stamped', async () => {

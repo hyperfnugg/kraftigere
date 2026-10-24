@@ -49,6 +49,8 @@ export type Week = {
   // When the AI last made the Menu, and when each day's Meal last changed.
   menuAt?: Timestamp
   mealsAt?: Partial<Record<Day, Timestamp>>
+  // When the week was Confirmed. It happens once.
+  confirmedAt?: Timestamp
 }
 
 export type Guidelines = { text: string; updatedAt?: Timestamp }

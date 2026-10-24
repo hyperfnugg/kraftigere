@@ -18,13 +18,21 @@ import {
 } from 'firebase/firestore'
 import { useEffect, useState } from 'react'
 import { db } from './firebase'
+import type { Day } from './weeks'
 
 export type Entry = {
   id: string
   text: string
-  staple: string
+  // A hand-added Entry always has a Staple. A Menu Entry has a Staple or a Ware.
+  staple?: string
+  ware?: string
   checked: boolean
   note?: string
+  // Only on Menu Entries: the week they were Confirmed from, its days, and the summed
+  // amount as text.
+  week?: string
+  days?: Day[]
+  amount?: string
   // Missing on Entries checked off before checkedAt existed.
   checkedAt?: Timestamp
   createdAt: Timestamp | null
@@ -46,6 +54,7 @@ export type Staple = {
   id: string
   name: string
   addCount: number
+  usuallyAtHome?: boolean
 }
 
 // All the Family's Staples. The persistent cache makes them available at once and keeps
@@ -57,7 +66,12 @@ export function useStaples() {
     () =>
       onSnapshot(collection(db, 'staples'), (snap) => {
         setStaples(
-          snap.docs.map((d) => ({ id: d.id, name: d.get('name'), addCount: d.get('addCount') })),
+          snap.docs.map((d) => ({
+            id: d.id,
+            name: d.get('name'),
+            addCount: d.get('addCount'),
+            usuallyAtHome: d.get('usuallyAtHome'),
+          })),
         )
       }),
     [],
