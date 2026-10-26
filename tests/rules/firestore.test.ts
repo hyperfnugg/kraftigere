@@ -397,15 +397,16 @@ describe('/weeks', () => {
     await assertFails(setDoc(week(member(), '2026-W45'), { ...madeMenu(), accepted: true }))
   })
 
-  test('Confirm stamps the week once, and only a week with a Menu', async () => {
+  test('Confirm stamps the week once, only a week with a Menu, and fixes its Menu and Day Notes', async () => {
     await assertFails(setDoc(week(member()), { confirmedAt: serverTimestamp() }))
     await assertSucceeds(setDoc(week(member()), madeMenu()))
     await assertFails(updateDoc(week(member()), { confirmedAt: clientTime }))
     await assertSucceeds(updateDoc(week(member()), { confirmedAt: serverTimestamp() }))
     await assertFails(updateDoc(week(member()), { confirmedAt: serverTimestamp() }))
     await assertFails(updateDoc(week(member()), { confirmedAt: deleteField() }))
-    // The week stays editable by hand.
-    await assertSucceeds(updateDoc(week(member()), { 'menu.tue': ['Suppe'], 'mealsAt.tue': serverTimestamp() }))
+    // The Ingredients are bought, so the Menu and Day Notes stay as they are.
+    await assertFails(updateDoc(week(member()), { 'menu.tue': ['Suppe'], 'mealsAt.tue': serverTimestamp() }))
+    await assertFails(setDoc(week(member()), { dayNotes: { mon: 'x' }, dayNotesAt: { mon: serverTimestamp() } }, { merge: true }))
   })
 
   test('a made Menu has all seven days and every changed day stamped', async () => {

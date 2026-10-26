@@ -385,7 +385,8 @@ function MenuSection({
   const [editing, setEditing] = useState<Day | null>(null)
   const [confirming, setConfirming] = useState(false)
   const menu = week.menu
-  // After Confirm the week is edited by hand only: no AI, and nothing is Outdated.
+  // After Confirm the Ingredients are bought: the Menu and Day Notes are fixed, only
+  // Recipes are edited by hand, with no AI, and nothing is Outdated.
   const confirmed = !!week.confirmedAt
   const menuOutdated = !confirmed && menuOutdatedSince(week, guidelines)
   const open = openRecipe && recipes[recipeId(openRecipe.day, openRecipe.course)]
@@ -410,16 +411,18 @@ function MenuSection({
               {week.dayNotes?.[d] && <span style={{ color: '#666' }}> · {week.dayNotes[d]}</span>}
             </span>
             {pending.includes(d) && <Working />}
-            <button
-              onClick={() => setEditing(editing === d ? null : d)}
-              aria-expanded={editing === d}
-              aria-label={`Endre ${DAY_NAMES[d].toLowerCase()}`}
-              style={{ ...smallButtonStyle, padding: '0.125rem 0.5rem' }}
-            >
-              ✏️
-            </button>
+            {!confirmed && (
+              <button
+                onClick={() => setEditing(editing === d ? null : d)}
+                aria-expanded={editing === d}
+                aria-label={`Endre ${DAY_NAMES[d].toLowerCase()}`}
+                style={{ ...smallButtonStyle, padding: '0.125rem 0.5rem' }}
+              >
+                ✏️
+              </button>
+            )}
           </div>
-          {editing === d && (
+          {editing === d && !confirmed && (
             <DayEditor
               day={d}
               note={week.dayNotes?.[d] ?? ''}
@@ -427,18 +430,14 @@ function MenuSection({
               onSave={(note, courses) => {
                 if (note !== (week.dayNotes?.[d] ?? '')) setDayNote(weekId, d, note).catch(console.error)
                 if (menu && courses && courses.join('\n') !== menu[d].join('\n')) {
-                  // After Confirm, changed courses keep their Recipes, as none would be made.
-                  setMeal(weekId, d, courses, menu[d], confirmed ? {} : recipes).catch(console.error)
+                  setMeal(weekId, d, courses, menu[d], recipes).catch(console.error)
                 }
                 setEditing(null)
               }}
               onClose={() => setEditing(null)}
               busy={!!busy}
-              onSuggest={
-                confirmed
-                  ? undefined
-                  : (note, show) =>
-                      run('Lager middag…', async () => show(await job.track([d], () => suggestMeal(weekId, d, note))))
+              onSuggest={(note, show) =>
+                run('Lager middag…', async () => show(await job.track([d], () => suggestMeal(weekId, d, note))))
               }
             />
           )}
@@ -600,8 +599,7 @@ function DayEditor({
   onSave: (note: string, courses?: string[]) => void
   onClose: () => void
   busy: boolean
-  // Missing after Confirm, when the AI is off.
-  onSuggest?: (note: string, show: (courses: string[]) => void) => void
+  onSuggest: (note: string, show: (courses: string[]) => void) => void
 }) {
   const [noteDraft, setNoteDraft] = useState(note)
   const [coursesDraft, setCoursesDraft] = useState<string | null>(null)
@@ -628,18 +626,16 @@ function DayEditor({
               placeholder="Ingen middag"
               style={textareaStyle}
             />
-            {onSuggest && (
-              <button
-                type="button"
-                onClick={() => onSuggest(noteDraft.trim(), (c) => setCoursesDraft(c.join('\n')))}
-                disabled={busy}
-                aria-label="Foreslå ny middag"
-                title="Foreslå ny middag"
-                style={smallButtonStyle}
-              >
-                🔄
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={() => onSuggest(noteDraft.trim(), (c) => setCoursesDraft(c.join('\n')))}
+              disabled={busy}
+              aria-label="Foreslå ny middag"
+              title="Foreslå ny middag"
+              style={smallButtonStyle}
+            >
+              🔄
+            </button>
           </div>
         </label>
       )}

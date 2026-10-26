@@ -87,7 +87,7 @@ async function confirmed(page: Page) {
   await expect.poll(async () => (await menuEntries()).length).toBe(2)
 }
 
-test('after Iverksett the week is edited by hand only, and Groceries stays as it was', async ({ page }) => {
+test('after Iverksett only the Recipes are edited, by hand, and Groceries stays as it was', async ({ page }) => {
   await confirmed(page)
   await expect(page.getByRole('textbox', { name: 'Endring i menyen' })).toHaveCount(0)
 
@@ -100,12 +100,8 @@ test('after Iverksett the week is edited by hand only, and Groceries stays as it
   await expect(amount).toHaveValue('999')
   await view.getByRole('button', { name: '‹ Meny' }).click()
 
-  // A renamed course keeps its Recipe, as the AI won't make a new one.
-  await page.getByRole('button', { name: 'Endre tirsdag' }).click()
-  await expect(page.getByRole('button', { name: 'Foreslå ny middag' })).toHaveCount(0)
-  await page.getByRole('textbox', { name: 'Middag' }).fill('Fisketaco')
-  await page.getByRole('button', { name: 'Lagre' }).click()
-  await expect(page.getByRole('group', { name: 'Oppskrift Fisketaco' })).toBeVisible()
+  // The Ingredients are bought, so the days can't be edited.
+  await expect(page.getByRole('button', { name: /^Endre (mandag|tirsdag)/ })).toHaveCount(0)
 
   // Nothing is Outdated after Iverksett.
   await page.getByRole('button', { name: 'Føringer' }).click()
