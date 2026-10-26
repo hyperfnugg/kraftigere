@@ -171,7 +171,8 @@ service cloud.firestore {
     }
 
     // A week, by ISO week id like 2026-W44: Day Notes and the Menu. menuAt says when the AI
-    // last made the Menu, and confirmedAt when it was Confirmed, which happens once.
+    // last made the Menu, and confirmedAt when it was Confirmed, which happens once. After
+    // that the Ingredients are bought, so the Menu and Day Notes stay as they are.
     // notes, notesAt and accepted are left over from Week Notes and accepting the Menu,
     // and can stay on old weeks but not change.
     function isWeek(before, after) {
@@ -179,6 +180,7 @@ service cloud.firestore {
       return after.keys().hasOnly(['notes', 'notesAt', 'accepted', 'dayNotes', 'dayNotesAt', 'menu', 'menuAt', 'mealsAt', 'confirmedAt']) &&
              (!changed.hasAny(['confirmedAt']) ||
               (!('confirmedAt' in before) && after.confirmedAt == request.time && 'menu' in after)) &&
+             (!('confirmedAt' in before) || !changed.hasAny(['menu', 'menuAt', 'mealsAt', 'dayNotes', 'dayNotesAt'])) &&
              !changed.hasAny(['notes', 'notesAt', 'accepted']) &&
              (!('dayNotes' in after) || isDayNotes(before, after)) &&
              ('dayNotes' in after) == ('dayNotesAt' in after) &&

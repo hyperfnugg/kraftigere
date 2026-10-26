@@ -1,12 +1,11 @@
 import type { Timestamp } from 'firebase/firestore'
-import { type FormEvent, useEffect, useRef, useState } from 'react'
+import { type FormEvent, type KeyboardEvent, type MouseEvent, useEffect, useRef, useState } from 'react'
 import { makeMenu, makeRecipe, warmUp } from './ai'
 import { ConfirmView } from './Confirm'
 import { addWeeks, isoWeekId, timeLabel, weekLabel } from './dates'
 import {
   DAYS,
   DAY_NAMES,
-  MAX_COURSES,
   recipeId,
   menuOutdatedSince,
   readLatest,
@@ -157,13 +156,10 @@ export function MealsTab() {
 const sectionStyle = { display: 'flex', flexDirection: 'column', gap: '0.5rem' } as const
 const errorStyle = { color: '#a00', fontSize: '0.875rem' }
 
-// One course per line, at most MAX_COURSES.
-function parseCourses(text: string) {
-  return text
-    .split('\n')
-    .map((c) => c.trim().slice(0, 200))
-    .filter(Boolean)
-    .slice(0, MAX_COURSES)
+// The day's one dish, or none.
+function parseMeal(text: string) {
+  const dish = text.trim().replace(/\s+/g, ' ').slice(0, 200)
+  return dish ? [dish] : []
 }
 
 type Job = ReturnType<typeof useJob>
@@ -267,23 +263,21 @@ async function readContext(weekId: string) {
   return { week: latest.week, context }
 }
 
-// Makes the Menu from the latest Guidelines and Day Notes, or remakes the current one
-// following an instruction. Courses that changed lose their Recipes, so new ones get made.
-async function makeWeekMenu(weekId: string, recipes: Record<string, StoredRecipe>, instruction?: string) {
+// Makes the Menu, dish names only, from the latest Guidelines and Day Notes. Courses that
+// changed lose their Recipes.
+async function makeWeekMenu(weekId: string, recipes: Record<string, StoredRecipe>) {
   const { week, context } = await readContext(weekId)
   const before = week.menu
-  const made: Menu = await makeMenu(context, instruction && before ? { current: before, instruction } : undefined)
+  const made: Menu = await makeMenu(context)
   setMadeMenu(weekId, made, before, recipes).catch(console.error)
 }
 
 // Writes a Recipe for each of the courses, all at once, counting them as they land.
-// The Menu is passed in when it may not have reached the cache yet.
 async function makeWeekRecipes(
   weekId: string,
   courses: { day: Day; course: number }[],
   progress: Progress,
   mark: Mark,
-  menu?: Menu,
 ) {
   const { week, context } = await readContext(weekId)
   mark(courses.map(({ day, course }) => recipeId(day, course)), true)
@@ -292,7 +286,7 @@ async function makeWeekRecipes(
   const results = await Promise.allSettled(
     courses.map(async ({ day, course }) => {
       try {
-        const meal = (menu ?? week.menu)?.[day] ?? []
+        const meal = week.menu?.[day] ?? []
         const recipe = await makeRecipe(context, { day, meal, course: meal[course] })
         setMadeRecipe(weekId, recipeId(day, course), recipe).catch(console.error)
         progress(`Lager oppskrifter… ${++done} av ${courses.length}`)
@@ -304,55 +298,61 @@ async function makeWeekRecipes(
   if (results.some((r) => r.status === 'rejected')) throw new Error('Some Recipes failed')
 }
 
-// Makes the week's Menu if it has none, and Recipes for courses that have none, until the
-// week is Confirmed. Each is tried once while the tab is open, so a failure doesn't retry
-// forever.
+// Makes the week's Menu, names only, if it has none. Recipes wait for "Lag oppskrifter".
+// Tried once while the tab is open, so a failure doesn't retry forever.
 function useAutoMake(weekId: string) {
   const job = useJob()
   const week = useWeek(weekId)
-  const { recipes, synced } = useRecipes(weekId)
-  const tried = useRef(new Set<string>())
+  const tried = useRef(false)
   useEffect(() => {
-    if (!week?.synced || !synced || job.busy || week.week.confirmedAt) return
-    const menu = week.week.menu
-    if (!menu) {
-      if (tried.current.has(`${weekId}:menu`)) return
-      tried.current.add(`${weekId}:menu`)
-      job.run('Lager meny…', () => job.track([...DAYS], () => makeWeekMenu(weekId, recipes)))
-      return
-    }
-    const missing = DAYS.flatMap((day) =>
-      menu[day]
-        .map((name, course) => ({ day, course, key: `${weekId}:${recipeId(day, course)}:${name}` }))
-        .filter(({ day, course, key }) => !recipes[recipeId(day, course)] && !tried.current.has(key)),
-    )
-    if (missing.length === 0) return
-    for (const { key } of missing) tried.current.add(key)
-    job.run('Lager oppskrifter…', (p) => makeWeekRecipes(weekId, missing, p, job.mark, menu))
+    if (!week?.synced || job.busy || week.week.menu || week.week.confirmedAt || tried.current) return
+    tried.current = true
+    job.run('Lager meny…', () => job.track([...DAYS], () => makeWeekMenu(weekId, {})))
   })
   return job
 }
 
-// 🔄 next to an Outdated Recipe. Tapping it remakes.
-function Remake({ since, disabled, onRemake }: { since: Timestamp; disabled: boolean; onRemake: () => void }) {
-  const label = `Lag på nytt · utdatert ${timeLabel(since.toDate())}`
+// A bare ↻: tapping it remakes, after the warning. Amber when what it remakes is Outdated.
+function Remake({
+  label,
+  since,
+  disabled,
+  onRemake,
+}: {
+  label: string
+  since?: Timestamp
+  disabled: boolean
+  onRemake: () => void
+}) {
+  const title = since ? `${label} · utdatert ${timeLabel(since.toDate())}` : label
   return (
     <button
       onClick={() => confirmRemake(onRemake)}
       disabled={disabled}
-      aria-label={label}
-      title={label}
-      style={{ ...smallButtonStyle, padding: '0.125rem 0.5rem', color: '#8a5a00' }}
+      aria-label={title}
+      title={title}
+      style={iconStyle(disabled, since ? '#8a5a00' : '#000')}
     >
-      🔄
+      ↻
     </button>
   )
 }
 
-// A new Meal for the day from the AI, following the given Note, without saving it.
-async function suggestMeal(weekId: string, day: Day, note: string) {
+// A plain text glyph as a button, not an emoji or a button box.
+const iconStyle = (disabled: boolean, color = '#000') => ({
+  background: 'none',
+  border: 'none',
+  padding: '0.25rem',
+  fontSize: '1.5rem',
+  lineHeight: 1,
+  color,
+  cursor: disabled ? 'default' : 'pointer',
+  opacity: disabled ? 0.3 : 1,
+})
+
+// A new Meal for the day from the AI, following its Note.
+async function suggestMeal(weekId: string, day: Day) {
   const { week, context } = await readContext(weekId)
-  context.dayNotes = { ...context.dayNotes, [day]: note }
   const instruction = `Lag ny middag for ${DAY_NAMES[day].toLowerCase()} ut fra notatet for dagen.`
   const made = await makeMenu(context, week.menu ? { current: week.menu, instruction } : undefined)
   return made[day]
@@ -385,14 +385,54 @@ function MenuSection({
   const [editing, setEditing] = useState<Day | null>(null)
   const [confirming, setConfirming] = useState(false)
   const menu = week.menu
-  // After Confirm the week is edited by hand only: no AI, and nothing is Outdated.
+  // After Confirm the Ingredients are bought: the Menu and Day Notes are fixed, only
+  // Recipes are edited by hand, with no AI, and nothing is Outdated.
   const confirmed = !!week.confirmedAt
   const menuOutdated = !confirmed && menuOutdatedSince(week, guidelines)
   const open = openRecipe && recipes[recipeId(openRecipe.day, openRecipe.course)]
+  // "Lag oppskrifter" runs once: after that, a Recipe is made or remade from its screen.
+  const recipesStarted = Object.keys(recipes).length > 0
   // Iverksett needs a Recipe for every course.
   const ready = !!menu && DAYS.every((d) => menu[d].every((_, i) => recipes[recipeId(d, i)]))
+  const allCourses = menu ? DAYS.flatMap((day) => menu[day].map((_, course) => ({ day, course }))) : []
+  // Days are edited until "Lag oppskrifter", and tapping one edits it. After that, editing
+  // belongs to the Recipes.
+  const daysEditable = !recipesStarted && !confirmed
+  const toggleEditing = (d: Day) => setEditing(editing === d ? null : d)
+  // After that, tapping anywhere on a day opens its Recipe, if it has one.
+  const recipeToOpen = (d: Day) => {
+    const course = daysEditable ? -1 : (menu?.[d].findIndex((_, i) => recipes[recipeId(d, i)]) ?? -1)
+    return course >= 0 ? { day: d, course } : null
+  }
+  function onDayClick(d: Day, e: MouseEvent) {
+    // Taps inside the open editor are for its fields.
+    if (daysEditable && !(e.target as Element).closest('form')) toggleEditing(d)
+    const target = recipeToOpen(d)
+    if (target) setOpenRecipe(target)
+  }
 
-  const make = (instruction?: string) => job.track([...DAYS], () => makeWeekMenu(weekId, recipes, instruction))
+  // ↻ beside a day, until "Lag oppskrifter": a new dish from the AI, following the day's
+  // Note, saved at once.
+  const suggestButton = (day: Day) => (
+    <button
+      onClick={() =>
+        run('Lager middag…', () =>
+          job.track([day], async () => {
+            const meal = await suggestMeal(weekId, day)
+            if (menu) setMeal(weekId, day, meal, menu[day], recipes).catch(console.error)
+          }),
+        )
+      }
+      disabled={!!busy}
+      aria-label={`Ny middag ${DAY_NAMES[day].toLowerCase()}`}
+      title="Ny middag"
+      style={iconStyle(!!busy)}
+    >
+      ↻
+    </button>
+  )
+
+  const make = () => job.track([...DAYS], () => makeWeekMenu(weekId, recipes))
   const makeRecipes = (courses: { day: Day; course: number }[], progress: Progress) =>
     makeWeekRecipes(weekId, courses, progress, job.mark)
 
@@ -403,88 +443,101 @@ function MenuSection({
         <Outdated since={menuOutdated} disabled={!!busy} onRemake={() => run('Lager meny…', () => make())} />
       )}
       {DAYS.map((d) => (
-        <div key={d} style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span style={{ flex: 1, fontSize: '0.875rem', color: '#555' }}>
+        <div key={d} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <div
+            onClick={(e) => onDayClick(d, e)}
+            style={{
+              flex: 1,
+              minWidth: 0,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.25rem',
+              cursor: daysEditable || recipeToOpen(d) ? 'pointer' : undefined,
+            }}
+          >
+            <span
+              {...(daysEditable && {
+                role: 'button',
+                tabIndex: 0,
+                'aria-expanded': editing === d,
+                'aria-label': `Endre ${DAY_NAMES[d].toLowerCase()}`,
+                onKeyDown: (e: KeyboardEvent) => {
+                  if (e.key !== 'Enter') return
+                  // Otherwise the Enter lands in the Note as it gets focus.
+                  e.preventDefault()
+                  toggleEditing(d)
+                },
+              })}
+              style={{ fontSize: '0.875rem', color: '#555' }}
+            >
               {DAY_NAMES[d]}
               {week.dayNotes?.[d] && <span style={{ color: '#666' }}> · {week.dayNotes[d]}</span>}
             </span>
-            {pending.includes(d) && <Working />}
-            <button
-              onClick={() => setEditing(editing === d ? null : d)}
-              aria-expanded={editing === d}
-              aria-label={`Endre ${DAY_NAMES[d].toLowerCase()}`}
-              style={{ ...smallButtonStyle, padding: '0.125rem 0.5rem' }}
-            >
-              ✏️
-            </button>
-          </div>
-          {editing === d && (
-            <DayEditor
-              day={d}
-              note={week.dayNotes?.[d] ?? ''}
-              courses={menu?.[d]}
-              onSave={(note, courses) => {
-                if (note !== (week.dayNotes?.[d] ?? '')) setDayNote(weekId, d, note).catch(console.error)
-                if (menu && courses && courses.join('\n') !== menu[d].join('\n')) {
-                  // After Confirm, changed courses keep their Recipes, as none would be made.
-                  setMeal(weekId, d, courses, menu[d], confirmed ? {} : recipes).catch(console.error)
-                }
-                setEditing(null)
-              }}
-              onClose={() => setEditing(null)}
-              busy={!!busy}
-              onSuggest={
-                confirmed
-                  ? undefined
-                  : (note, show) =>
-                      run('Lager middag…', async () => show(await job.track([d], () => suggestMeal(weekId, d, note))))
-              }
-            />
-          )}
-          {menu && (
-            <>
-              {menu[d].length === 0 && <div style={{ color: '#999' }}>Ingen middag</div>}
-              {menu[d].map((course, i) => {
-                const id = recipeId(d, i)
-                const recipe = recipes[id]
-                if (!recipe) {
+            {editing === d && daysEditable && (
+              <DayEditor
+                day={d}
+                note={week.dayNotes?.[d] ?? ''}
+                courses={menu?.[d]}
+                onSave={(note, courses) => {
+                  if (note !== (week.dayNotes?.[d] ?? '')) setDayNote(weekId, d, note).catch(console.error)
+                  if (menu && courses && courses.join('\n') !== menu[d].join('\n')) {
+                    setMeal(weekId, d, courses, menu[d], recipes).catch(console.error)
+                  }
+                  setEditing(null)
+                }}
+              />
+            )}
+            {menu && (
+              <>
+                {menu[d].length === 0 && <div style={{ color: '#999' }}>Ingen middag</div>}
+                {menu[d].map((course, i) => {
+                  const id = recipeId(d, i)
+                  const recipe = recipes[id]
+                  const outdated = recipe && !confirmed && recipeOutdatedSince(recipe, d, week, guidelines)
                   return (
-                    <div key={id} style={{ fontSize: '1.125rem', color: '#999' }}>
-                      {course} {pending.includes(id) && <Working />}
+                    <div
+                      key={id}
+                      role="group"
+                      aria-label={`Oppskrift ${course}`}
+                      style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                    >
+                      {recipe ? (
+                        <span
+                          role="button"
+                          tabIndex={0}
+                          onKeyDown={(e) => e.key === 'Enter' && setOpenRecipe({ day: d, course: i })}
+                          style={{ fontSize: '1.125rem' }}
+                        >
+                          {course}
+                        </span>
+                      ) : (
+                        <span style={{ fontSize: '1.125rem', color: '#999' }}>{course}</span>
+                      )}
+                      {pending.includes(id) && <Working />}
+                      {/* After "Lag oppskrifter", a changed course gets its Recipe here. */}
+                      {!recipe && recipesStarted && !confirmed && !pending.includes(id) && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            run('Lager oppskrift…', (p) => makeRecipes([{ day: d, course: i }], p))
+                          }}
+                          disabled={!!busy}
+                          style={smallButtonStyle}
+                        >
+                          Lag oppskrift
+                        </button>
+                      )}
+                      {outdated && !pending.includes(id) && (
+                        <span style={{ fontSize: '0.875rem', color: '#8a5a00' }}>utdatert</span>
+                      )}
                     </div>
                   )
-                }
-                const recipeOutdated = !confirmed && recipeOutdatedSince(recipe, d, week, guidelines)
-                return (
-                  <div
-                    key={id}
-                    role="group"
-                    aria-label={`Oppskrift ${course}`}
-                    style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
-                  >
-                    <span
-                      role="button"
-                      tabIndex={0}
-                      onClick={() => setOpenRecipe({ day: d, course: i })}
-                      onKeyDown={(e) => e.key === 'Enter' && setOpenRecipe({ day: d, course: i })}
-                      style={{ fontSize: '1.125rem', cursor: 'pointer' }}
-                    >
-                      {course}
-                    </span>
-                    {pending.includes(id) && <Working />}
-                    {recipeOutdated && !pending.includes(id) && (
-                      <Remake
-                        since={recipeOutdated}
-                        disabled={!!busy}
-                        onRemake={() => run('Lager oppskrift…', (p) => makeRecipes([{ day: d, course: i }], p))}
-                      />
-                    )}
-                  </div>
-                )
-              })}
-            </>
-          )}
+                })}
+              </>
+            )}
+          </div>
+          {/* ⏳ while the day's dish is made, or ↻ for a new one, beside the whole day. */}
+          {pending.includes(d) ? <Working /> : daysEditable && menu && suggestButton(d)}
         </div>
       ))}
       {openRecipe && open && (
@@ -499,26 +552,25 @@ function MenuSection({
           onClose={() => setOpenRecipe(null)}
         />
       )}
-      {menu && !confirmed && (
-        <Instruct
-          label="Endring i menyen"
-          disabled={!!busy}
-          onInstruct={(instruction) => run('Endrer meny…', () => make(instruction))}
-        />
-      )}
       {busy && <div style={{ color: '#555' }}>{busy}</div>}
       {error && <div style={errorStyle}>{error}</div>}
       {week.confirmedAt ? (
         <div style={{ color: '#555' }}>Iverksatt · {timeLabel(week.confirmedAt.toDate())}</div>
       ) : (
-        ready && (
-          <button
-            onClick={() => setConfirming(true)}
-            disabled={!!busy}
-            style={{ ...buttonStyle, alignSelf: 'flex-start' }}
-          >
-            Iverksett
-          </button>
+        menu && (
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            {/* Stays, disabled once run, so the steps show: Lag oppskrifter, then Iverksett. */}
+            <button
+              onClick={() => run('Lager oppskrifter…', (p) => makeRecipes(allCourses, p))}
+              disabled={!!busy || recipesStarted}
+              style={buttonStyle}
+            >
+              Lag oppskrifter
+            </button>
+            <button onClick={() => setConfirming(true)} disabled={!!busy || !ready} style={buttonStyle}>
+              Iverksett
+            </button>
+          </div>
         )
       )}
       {confirming && <ConfirmView weekId={weekId} recipes={recipes} onClose={() => setConfirming(false)} />}
@@ -571,8 +623,13 @@ function RecipeView({
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <h2 style={{ fontSize: '1.375rem', margin: 0 }}>{recipe.course}</h2>
           {pending.includes(recipe.id) && <Working />}
-          {outdated && !pending.includes(recipe.id) && (
-            <Remake since={outdated} disabled={!!busy} onRemake={() => run('Lager oppskrift…', onRemake)} />
+          {ai && !pending.includes(recipe.id) && (
+            <Remake
+              label="Lag oppskriften på nytt"
+              since={outdated}
+              disabled={!!busy}
+              onRemake={() => run('Lager oppskrift…', onRemake)}
+            />
           )}
         </div>
         <RecipeForm weekId={weekId} day={day} recipe={recipe} ai={ai} disabled={!!busy} run={run} />
@@ -583,70 +640,45 @@ function RecipeView({
   )
 }
 
-// The day's Meal and Note, edited under the day. Saved together, or dropped on Avbryt. The
-// Meal is only saved if it was edited, as the Menu may arrive while the editor is open.
+// The day's Meal and Note, edited under the day. Saved, and closed, on Enter or when focus
+// leaves the editor. The Meal is only saved if it was edited, as the Menu may arrive while
+// the editor is open.
 function DayEditor({
   day,
   note,
   courses,
   onSave,
-  onClose,
-  busy,
-  onSuggest,
 }: {
   day: Day
   note: string
   courses?: string[]
   onSave: (note: string, courses?: string[]) => void
-  onClose: () => void
-  busy: boolean
-  // Missing after Confirm, when the AI is off.
-  onSuggest?: (note: string, show: (courses: string[]) => void) => void
 }) {
   const [noteDraft, setNoteDraft] = useState(note)
   const [coursesDraft, setCoursesDraft] = useState<string | null>(null)
+  const save = () => onSave(noteDraft.trim(), coursesDraft === null ? undefined : parseMeal(coursesDraft))
   return (
     <form
       aria-label={`Endre ${DAY_NAMES[day].toLowerCase()}`}
       onSubmit={(e) => {
         e.preventDefault()
-        onSave(noteDraft.trim(), coursesDraft === null ? undefined : parseCourses(coursesDraft))
+        save()
+      }}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault()
+          save()
+        }
+      }}
+      onBlur={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget)) save()
       }}
       style={{ ...sectionStyle, padding: '0.5rem', border: '1px solid #ddd' }}
     >
-      {courses && (
-        <label style={sectionStyle}>
-          <span style={{ fontSize: '0.875rem', color: '#555' }}>Middag, én rett per linje</span>
-          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
-            <textarea
-              autoFocus
-              aria-label="Middag"
-              value={coursesDraft ?? courses.join('\n')}
-              onChange={(e) => setCoursesDraft(e.target.value)}
-              rows={Math.max(2, courses.length)}
-              maxLength={MAX_COURSES * 201}
-              placeholder="Ingen middag"
-              style={textareaStyle}
-            />
-            {onSuggest && (
-              <button
-                type="button"
-                onClick={() => onSuggest(noteDraft.trim(), (c) => setCoursesDraft(c.join('\n')))}
-                disabled={busy}
-                aria-label="Foreslå ny middag"
-                title="Foreslå ny middag"
-                style={smallButtonStyle}
-              >
-                🔄
-              </button>
-            )}
-          </div>
-        </label>
-      )}
       <label style={sectionStyle}>
         <span style={{ fontSize: '0.875rem', color: '#555' }}>Notat</span>
         <textarea
-          autoFocus={!courses}
+          autoFocus
           aria-label="Notat"
           value={noteDraft}
           onChange={(e) => setNoteDraft(e.target.value)}
@@ -656,14 +688,19 @@ function DayEditor({
           style={textareaStyle}
         />
       </label>
-      <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
-        <button type="button" onClick={onClose} style={buttonStyle}>
-          Avbryt
-        </button>
-        <button type="submit" style={buttonStyle}>
-          Lagre
-        </button>
-      </div>
+      {courses && (
+        <label style={sectionStyle}>
+          <span style={{ fontSize: '0.875rem', color: '#555' }}>Middag</span>
+          <input
+            aria-label="Middag"
+            value={coursesDraft ?? courses.join(' + ')}
+            onChange={(e) => setCoursesDraft(e.target.value)}
+            maxLength={200}
+            placeholder="Ingen middag"
+            style={{ fontSize: '1rem', padding: '0.5rem' }}
+          />
+        </label>
+      )}
     </form>
   )
 }

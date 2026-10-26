@@ -1,18 +1,13 @@
 import { expect, test, type Page } from '@playwright/test'
-import { MEMBERS, entry, listDocs, openTab, readDoc, reset, seed, signIn } from './helpers'
+import { entry, listDocs, openMiddag, openTab, readDoc, reset, seed } from './helpers'
 
 test.beforeEach(async () => {
   await reset()
   await seed()
 })
 
-// Opens Middag and waits for this week's Menu and its 7 Recipes (stub). Each stub Recipe
-// has 200 g løk and salt to taste, and the stub matches each wording to a Staple of its name.
-async function openMiddag(page: Page) {
-  await signIn(page, MEMBERS[0])
-  await openTab(page, 'Middag')
-  await expect(page.getByRole('group', { name: /^Oppskrift / })).toHaveCount(7)
-}
+// Each stub Recipe has 200 g løk and salt to taste, and the stub matches each wording to a
+// Staple of its name.
 
 const screen = (page: Page) => page.getByRole('dialog', { name: 'Iverksett' })
 const line = (page: Page, name: string) => screen(page).getByRole('group', { name, exact: true })
@@ -31,10 +26,10 @@ async function menuEntries() {
 test('Iverksett sends one Menu Entry per Staple with summed amounts and days, leaving out what is at home', async ({
   page,
 }) => {
-  await openMiddag(page)
+  await openMiddag(page, { recipes: true })
   await page.getByRole('button', { name: 'Iverksett' }).click()
-  // Seven Recipes with løk on six days, Saturday twice.
-  await expect(line(page, 'løk')).toContainText('løk 1400 g · man, tir, ons, fre, lør, søn')
+  // Six Recipes with løk, one a day.
+  await expect(line(page, 'løk')).toContainText('løk 1200 g · man, tir, ons, fre, lør, søn')
   await expect(line(page, 'salt')).toContainText('salt · man, tir, ons, fre, lør, søn')
 
   await line(page, 'salt').getByRole('checkbox', { name: 'Kjøp salt' }).uncheck()
@@ -45,20 +40,21 @@ test('Iverksett sends one Menu Entry per Staple with summed amounts and days, le
 
   await expect
     .poll(menuEntries)
-    .toEqual([{ text: 'løk', staple: 'løk', ware: undefined, amount: '1400 g', days: ['mon', 'tue', 'wed', 'fri', 'sat', 'sun'] }])
+    .toEqual([{ text: 'løk', staple: 'løk', ware: undefined, amount: '1200 g', days: ['mon', 'tue', 'wed', 'fri', 'sat', 'sun'] }])
   expect((await readDoc('staples/salt')).usuallyAtHome.booleanValue).toBe(true)
   expect((await readDoc('staples/løk')).addCount.integerValue).toBe('0')
 
   // Salt starts unticked next week.
   await page.getByRole('button', { name: 'Neste uke' }).click()
-  await expect(page.getByRole('group', { name: /^Oppskrift / })).toHaveCount(7)
+  await page.getByRole('button', { name: 'Lag oppskrifter' }).click()
+  await expect(page.getByRole('button', { name: 'Iverksett' })).toBeEnabled()
   await page.getByRole('button', { name: 'Iverksett' }).click()
   await expect(line(page, 'salt').getByRole('checkbox')).not.toBeChecked()
   await expect(line(page, 'løk').getByRole('checkbox')).toBeChecked()
 })
 
 test('a corrected match is used next week without the AI', async ({ page }) => {
-  await openMiddag(page)
+  await openMiddag(page, { recipes: true })
   await page.getByRole('button', { name: 'Iverksett' }).click()
   await line(page, 'løk').getByRole('button').click()
   await screen(page).getByRole('combobox', { name: 'Type' }).selectOption('Vare')
@@ -72,7 +68,8 @@ test('a corrected match is used next week without the AI', async ({ page }) => {
 
   // The stub would match løk to the Staple løk, so rødløk shows the remembered match.
   await page.getByRole('button', { name: 'Neste uke' }).click()
-  await expect(page.getByRole('group', { name: /^Oppskrift / })).toHaveCount(7)
+  await page.getByRole('button', { name: 'Lag oppskrifter' }).click()
+  await expect(page.getByRole('button', { name: 'Iverksett' })).toBeEnabled()
   await page.getByRole('button', { name: 'Iverksett' }).click()
   await expect(line(page, 'rødløk')).toBeVisible()
   await expect(line(page, 'løk')).toHaveCount(0)
@@ -80,14 +77,14 @@ test('a corrected match is used next week without the AI', async ({ page }) => {
 
 // Iverksetter this week as the screen proposes it.
 async function confirmed(page: Page) {
-  await openMiddag(page)
+  await openMiddag(page, { recipes: true })
   await page.getByRole('button', { name: 'Iverksett' }).click()
   await screen(page).getByRole('button', { name: 'Iverksett', exact: true }).click()
   await expect(page.getByText(/^Iverksatt · /)).toBeVisible()
   await expect.poll(async () => (await menuEntries()).length).toBe(2)
 }
 
-test('after Iverksett the week is edited by hand only, and Groceries stays as it was', async ({ page }) => {
+test('after Iverksett only the Recipes are edited, by hand, and Groceries stays as it was', async ({ page }) => {
   await confirmed(page)
   await expect(page.getByRole('textbox', { name: 'Endring i menyen' })).toHaveCount(0)
 
@@ -100,12 +97,8 @@ test('after Iverksett the week is edited by hand only, and Groceries stays as it
   await expect(amount).toHaveValue('999')
   await view.getByRole('button', { name: '‹ Meny' }).click()
 
-  // A renamed course keeps its Recipe, as the AI won't make a new one.
-  await page.getByRole('button', { name: 'Endre tirsdag' }).click()
-  await expect(page.getByRole('button', { name: 'Foreslå ny middag' })).toHaveCount(0)
-  await page.getByRole('textbox', { name: 'Middag' }).fill('Fisketaco')
-  await page.getByRole('button', { name: 'Lagre' }).click()
-  await expect(page.getByRole('group', { name: 'Oppskrift Fisketaco' })).toBeVisible()
+  // The Ingredients are bought, so the days can't be edited.
+  await expect(page.getByRole('button', { name: /^Endre (mandag|tirsdag)/ })).toHaveCount(0)
 
   // Nothing is Outdated after Iverksett.
   await page.getByRole('button', { name: 'Føringer' }).click()
@@ -114,13 +107,13 @@ test('after Iverksett the week is edited by hand only, and Groceries stays as it
   await guidelines.blur()
   await expect(page.getByRole('button', { name: /^Utdatert|^Lag på nytt/ })).toHaveCount(0)
 
-  expect((await menuEntries()).find((e) => e.text === 'løk')?.amount).toBe('1400 g')
+  expect((await menuEntries()).find((e) => e.text === 'løk')?.amount).toBe('1200 g')
 })
 
 test('a Menu Entry shows its amount and days, is Removed on Hjem and checked off on Handle', async ({ page }) => {
   await confirmed(page)
   await openTab(page, 'Hjem')
-  await expect(entry(page, 'løk')).toHaveText('løk 1400 g · man, tir, ons, fre, lør, søn')
+  await expect(entry(page, 'løk')).toHaveText('løk 1200 g · man, tir, ons, fre, lør, søn')
   await entry(page, 'løk').getByText('løk').click()
   await expect(page.getByRole('textbox', { name: 'Notat' })).toHaveCount(0)
   await entry(page, 'løk').getByRole('button', { name: 'Fjern' }).click()

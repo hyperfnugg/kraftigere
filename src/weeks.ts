@@ -34,7 +34,9 @@ export const DAY_SHORT: Record<Day, string> = {
   sat: 'lør',
   sun: 'søn',
 }
-export const MAX_COURSES = 4
+// One dish per day for now. A Meal stays a list of courses (the rules allow 4), so more
+// can come back, and older weeks may still have several.
+export const MAX_COURSES = 1
 
 // Each day's Meal as a list of courses. An empty list is no Meal.
 export type Menu = Record<Day, string[]>
@@ -187,7 +189,7 @@ function removeChangedRecipes(
   before: string[] | undefined,
   recipes: Record<string, StoredRecipe>,
 ) {
-  for (let i = 0; i < MAX_COURSES; i++) {
+  for (let i = 0; i < Math.max(courses.length, before?.length ?? 0); i++) {
     const id = recipeId(day, i)
     if (recipes[id] && courses[i] !== before?.[i]) batch.delete(doc(db, 'weeks', weekId, 'recipes', id))
   }

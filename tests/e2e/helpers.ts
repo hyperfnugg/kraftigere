@@ -1,6 +1,6 @@
 import { expect, type Page } from '@playwright/test'
 
-import { PROJECT } from '../../scripts/seed.mjs'
+import { MEMBERS, PROJECT } from '../../scripts/seed.mjs'
 
 export { MEMBERS, OUTSIDER, reset, seed, setMembers } from '../../scripts/seed.mjs'
 
@@ -67,4 +67,18 @@ export async function writeDoc(path: string, fields: object) {
 export async function openTab(page: Page, name: 'Hjem' | 'Middag' | 'Handle') {
   await page.getByRole('button', { name, exact: true }).click()
   await expect(page.getByRole('button', { name, exact: true })).toHaveAttribute('aria-pressed', 'true')
+}
+
+// The week's dish names (the stub gives six days a dish, Thursday none).
+export const dishes = (page: Page) => page.getByRole('group', { name: /^Oppskrift / })
+
+// Signs in, opens Middag and waits for this week's dish names. With recipes, also makes
+// the Recipes and waits until Iverksett is possible.
+export async function openMiddag(page: Page, { recipes = false } = {}) {
+  await signIn(page, MEMBERS[0])
+  await openTab(page, 'Middag')
+  await expect(dishes(page)).toHaveCount(6)
+  if (!recipes) return
+  await page.getByRole('button', { name: 'Lag oppskrifter' }).click()
+  await expect(page.getByRole('button', { name: 'Iverksett' })).toBeEnabled()
 }
