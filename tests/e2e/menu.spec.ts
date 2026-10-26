@@ -1,86 +1,64 @@
 import { expect, test, type Page } from '@playwright/test'
-import { MEMBERS, openTab, reset, seed, signIn } from './helpers'
+import { dishes, openMiddag, openTab, reset, seed } from './helpers'
 
 test.beforeEach(async () => {
   await reset()
   await seed()
 })
 
-const recipes = (page: Page) => page.getByRole('group', { name: /^Oppskrift / })
-const recipe = (page: Page, course: string) => page.getByRole('group', { name: `Oppskrift ${course}`, exact: true })
+const dish = (page: Page, name: string) => page.getByRole('group', { name: `Oppskrift ${name}`, exact: true })
+// A dish's name is a button once it has a Recipe.
+const withRecipe = (page: Page) => dishes(page).getByRole('button')
 
-// Opens Middag and waits for this week's Menu and its 7 Recipes (stub).
-async function openMiddag(page: Page) {
-  await signIn(page, MEMBERS[0])
-  await openTab(page, 'Middag')
-  await expect(recipes(page)).toHaveCount(7)
-}
-
-test("Middag makes this and next week's Menu, and a Recipe for every course", async ({ page }) => {
+test("Middag makes this and next week's dish names, and Lag oppskrifter a Recipe for each, once", async ({
+  page,
+}) => {
   await openMiddag(page)
-  await expect(recipes(page).getByRole('button')).toHaveText([
-    'Fiskesuppe',
-    'Taco',
-    'Pasta med kjøttsaus',
-    'Pizza',
-    'Lammestek',
-    'Sjokolademousse',
-    'Pannekaker',
-  ])
+  await expect(dishes(page)).toHaveText(['Fiskesuppe', 'Taco', 'Pasta med kjøttsaus', 'Pizza', 'Lammestek', 'Pannekaker'])
   await expect(page.getByText('Ingen middag')).toHaveCount(1)
+  await expect(withRecipe(page)).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Iverksett' })).toBeDisabled()
+
+  await page.getByRole('button', { name: 'Lag oppskrifter' }).click()
+  await expect(withRecipe(page)).toHaveCount(6)
+  await expect(page.getByRole('button', { name: 'Lag oppskrifter' })).toBeDisabled()
+  await expect(page.getByRole('button', { name: 'Iverksett' })).toBeEnabled()
+
   await page.getByRole('button', { name: 'Neste uke' }).click()
-  await expect(recipes(page)).toHaveCount(7)
+  await expect(dishes(page)).toHaveCount(6)
+  await expect(page.getByRole('button', { name: 'Lag oppskrifter' })).toBeEnabled()
 })
 
-test('editing a day saves its Meal, and changed courses get new Recipes', async ({ page }) => {
+test('before Lag oppskrifter a day is edited by tapping it, and ↻ makes it a new dish', async ({ page }) => {
   await openMiddag(page)
   await page.getByRole('button', { name: 'Endre tirsdag' }).click()
+  // The Note comes first and has focus.
+  await expect(page.getByRole('textbox', { name: 'Notat' })).toBeFocused()
   const meal = page.getByRole('textbox', { name: 'Middag' })
   await expect(meal).toHaveValue('Taco')
-  await meal.fill('Fiskegrateng\nEplekake')
-  await page.getByRole('button', { name: 'Lagre' }).click()
+  await meal.fill('Fiskegrateng')
+  await meal.press('Enter')
+  await expect(dish(page, 'Fiskegrateng')).toBeVisible()
+  await expect(dish(page, 'Taco')).toHaveCount(0)
 
-  await expect(recipe(page, 'Fiskegrateng')).toBeVisible()
-  await expect(recipe(page, 'Eplekake')).toBeVisible()
-  await expect(recipe(page, 'Taco')).toHaveCount(0)
-  await expect(recipes(page)).toHaveCount(8)
+  // The stub puts the instruction on Thursday.
+  await page.getByRole('button', { name: 'Ny middag torsdag' }).click()
+  await expect(dish(page, 'Stub: Lag ny middag for torsdag ut fra notatet for dagen.')).toBeVisible()
+  await expect(page.getByText('Ingen middag')).toHaveCount(0)
 
   await page.reload()
   await openTab(page, 'Middag')
-  await expect(recipe(page, 'Eplekake')).toBeVisible()
+  await expect(dish(page, 'Fiskegrateng')).toBeVisible()
+
+  // After Lag oppskrifter, days aren't edited from the Menu.
+  await page.getByRole('button', { name: 'Lag oppskrifter' }).click()
+  await expect(withRecipe(page)).toHaveCount(7)
+  await expect(page.getByRole('button', { name: /^Endre |^Ny middag / })).toHaveCount(0)
 })
 
-test('🔄 in the editor suggests a Meal, kept only on Lagre', async ({ page }) => {
-  await openMiddag(page)
-  const meal = page.getByRole('textbox', { name: 'Middag' })
-  // The stub puts the instruction on Thursday.
-  const suggestion = 'Stub: Lag ny middag for torsdag ut fra notatet for dagen.'
-
-  await page.getByRole('button', { name: 'Endre torsdag' }).click()
-  await page.getByRole('button', { name: 'Foreslå ny middag' }).click()
-  await expect(meal).toHaveValue(suggestion)
-  await page.getByRole('button', { name: 'Avbryt' }).click()
-  await expect(page.getByText('Ingen middag')).toHaveCount(1)
-
-  await page.getByRole('button', { name: 'Endre torsdag' }).click()
-  await page.getByRole('button', { name: 'Foreslå ny middag' }).click()
-  await expect(meal).toHaveValue(suggestion)
-  await page.getByRole('button', { name: 'Lagre' }).click()
-  await expect(recipe(page, suggestion)).toBeVisible()
-  await expect(page.getByText('Ingen middag')).toHaveCount(0)
-})
-
-test('instructing the AI remakes the Menu', async ({ page }) => {
-  await openMiddag(page)
-  await page.getByRole('textbox', { name: 'Endring i menyen' }).fill('Suppe på torsdag')
-  await page.getByRole('button', { name: 'Endre', exact: true }).click()
-  await expect(recipe(page, 'Stub: Suppe på torsdag')).toBeVisible()
-  await expect(recipe(page, 'Taco')).toBeVisible()
-})
-
-test('a Recipe opens full screen, and hand edits stay', async ({ page }) => {
-  await openMiddag(page)
-  await page.getByRole('button', { name: 'Taco', exact: true }).click()
+test('a Recipe opens full screen from its day, and hand edits stay', async ({ page }) => {
+  await openMiddag(page, { recipes: true })
+  await page.getByText('Tirsdag').click()
   const view = page.getByRole('dialog', { name: 'Taco' })
   await expect(view.getByRole('heading', { name: 'Taco' })).toBeVisible()
   await expect(view.getByRole('textbox', { name: 'Porsjoner' })).toHaveValue('4')

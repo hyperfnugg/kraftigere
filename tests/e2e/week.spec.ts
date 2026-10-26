@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { MEMBERS, openTab, readDoc, reset, seed, signIn, writeDoc } from './helpers'
+import { MEMBERS, openMiddag, openTab, readDoc, reset, seed, signIn, writeDoc } from './helpers'
 import { addWeeks, isoWeekId, weekLabel } from '../../src/dates'
 
 test.beforeEach(async () => {
@@ -39,18 +39,16 @@ test('Middag opens on this week, › goes to next week only, and ‹ only to ear
   await expect(page.getByRole('heading', { name: weekLabel(twoAgo) })).toBeVisible()
   await expect(page.getByText('Gammel suppe')).toBeVisible()
   await expect(previous).toBeDisabled()
-  // Past weeks don't get Recipes made.
-  await expect(page.getByRole('group', { name: /^Oppskrift / })).toHaveCount(0)
 })
 
 test('Day Notes and Føringer stay after a reload, and each week has its own Day Notes', async ({ page }) => {
-  await signIn(page, MEMBERS[0])
-  await openTab(page, 'Middag')
+  await openMiddag(page)
   const note = page.getByRole('textbox', { name: 'Notat' })
 
+  // Enter saves and closes.
   await page.getByRole('button', { name: 'Endre mandag' }).click()
   await note.fill('Gjester.')
-  await page.getByRole('button', { name: 'Lagre' }).click()
+  await note.press('Enter')
   await expect(page.getByText('· Gjester.')).toBeVisible()
   await expect(note).toHaveCount(0)
 
@@ -59,12 +57,15 @@ test('Day Notes and Føringer stay after a reload, and each week has its own Day
   await guidelines.fill('Fredag er taco.')
   await guidelines.blur()
 
+  // Leaving the editor saves and closes too.
   await page.getByRole('button', { name: 'Neste uke' }).click()
+  await expect(page.getByRole('group', { name: /^Oppskrift / })).toHaveCount(6)
   await page.getByRole('button', { name: 'Endre mandag' }).click()
   await expect(note).toHaveValue('')
   await note.fill('Peter er borte.')
-  await page.getByRole('button', { name: 'Lagre' }).click()
+  await page.getByRole('heading', { name: 'Meny' }).click()
   await expect(page.getByText('· Peter er borte.')).toBeVisible()
+  await expect(note).toHaveCount(0)
   // Reloading at once can lose a write the app hasn't stored yet.
   const nextWeek = addWeeks(isoWeekId(new Date()), 1)
   await expect
@@ -78,14 +79,4 @@ test('Day Notes and Føringer stay after a reload, and each week has its own Day
   await expect(guidelines).toHaveValue('Fredag er taco.')
   await page.getByRole('button', { name: 'Neste uke' }).click()
   await expect(page.getByText('· Peter er borte.')).toBeVisible()
-})
-
-test('Avbryt drops an edited Day Note', async ({ page }) => {
-  await signIn(page, MEMBERS[0])
-  await openTab(page, 'Middag')
-  await page.getByRole('button', { name: 'Endre mandag' }).click()
-  await page.getByRole('textbox', { name: 'Notat' }).fill('Gjester.')
-  await page.getByRole('button', { name: 'Avbryt' }).click()
-  await expect(page.getByRole('textbox', { name: 'Notat' })).toHaveCount(0)
-  await expect(page.getByText('· Gjester.')).toHaveCount(0)
 })

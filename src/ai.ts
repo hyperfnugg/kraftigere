@@ -114,7 +114,7 @@ export async function makeMenu(context: Context, change?: { current: Menu; instr
   if (!realAi) return stubMenu(change)
   const prompt = [
     'Du planlegger middager for en familie, én middag for hver dag i uka, mandag til søndag.',
-    'En middag kan ha flere retter (for eksempel forrett, hovedrett og dessert), men som regel én.',
+    'Hver middag er én rett.',
     'En dag kan stå uten middag hvis føringene eller notatene tilsier det.',
     'Skriv på norsk bokmål. Gi hver rett et kort navn, uten oppskrift.',
     contextPrompt(context),
@@ -251,7 +251,7 @@ function stubMenu(change?: { current: Menu; instruction: string }): Menu {
     wed: ['Pasta med kjøttsaus'],
     thu: [],
     fri: ['Pizza'],
-    sat: ['Lammestek', 'Sjokolademousse'],
+    sat: ['Lammestek'],
     sun: ['Pannekaker'],
   }
 }

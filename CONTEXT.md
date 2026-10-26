@@ -72,17 +72,17 @@ _UI_: "Føringer"
 _Avoid_: Preferences, profile, rules
 
 **Day Note**:
-Guidance for planning one day of one particular week, such as guests or someone away, shown next to the day.
+Guidance for planning one day of one particular week, such as guests or someone away, shown next to the day. It can be edited until the week's Recipes are made.
 _UI_: "Notat"
 _Avoid_: Note (that is on an Entry), Week Notes (the single note on a whole week it replaced)
 
 **Menu**:
-Which Meal is eaten on which day of one week. The AI makes it from the Guidelines and Day Notes as soon as the week is this week or next, with a Recipe for every course, and a Family Member edits it.
+Which Meal is eaten on which day of one week. The AI makes it, dish names only, from the Guidelines and Day Notes as soon as the week is this week or next. A Family Member adjusts the days, then has the AI make every Recipe at once ("Lag oppskrifter"), after which the days are no longer edited from the Menu.
 _UI_: "Meny"
 _Avoid_: Meal plan, plan, week plan
 
 **Meal**:
-The dinner eaten on one day of a Menu, possibly several courses, each with its own Recipe. A day can have no Meal.
+The dinner eaten on one day of a Menu: one dish for now, with its own Recipe, though older weeks may have several courses. A day can have no Meal.
 _UI_: "middag"
 _Avoid_: Dinner, dish
 
@@ -108,14 +108,14 @@ _Avoid_: Ingredient Entry, recipe item
 
 **Outdated**:
 The state of a Menu whose Guidelines changed after it was made, or of a Recipe whose Guidelines, Day Note or own Meal changed after it was made. It stays as it is until a Family Member asks the AI to remake it, which loses their hand edits. A changed Day Note never changes the Meal itself.
-_UI_: "Utdatert" on the Menu, and 🔄 ("Lag på nytt") next to a Recipe's course
+_UI_: "Utdatert" on the Menu, "utdatert" next to a dish, and ↻ ("Lag oppskriften på nytt") on the Recipe
 _Avoid_: Stale, dirty
 
 ### Tabs
 
 **Home**:
 The tab for "quick, before I forget": adding to Groceries and editing it, never checking off.
-_UI_: 🏠, read out as "Hjem"
+_UI_: ⌂, read out as "Hjem"
 _Avoid_: Add, inbox
 
 **Meals**:
