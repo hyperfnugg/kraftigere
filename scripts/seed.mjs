@@ -8,15 +8,39 @@ export const OUTSIDER = 'eve@example.com'
 const documents = `http://127.0.0.1:8080/v1/projects/${PROJECT}/databases/(default)/documents`
 const headers = { Authorization: 'Bearer owner', 'Content-Type': 'application/json' }
 
-// Clears all Firestore data and Auth accounts in the emulators.
+// Since firebase-tools 15.34 the Firestore emulator sometimes answers 409 ("Transaction
+// lock timeout") while the last test's writes settle, so a conflict is retried.
+async function request(url, init) {
+  for (let attempt = 1; ; attempt++) {
+    const res = await fetch(url, init)
+    if (res.status !== 409 || attempt === 5) return res
+    await new Promise((resolve) => setTimeout(resolve, 200 * attempt))
+  }
+}
+
+// Clears all Firestore data and Auth accounts in the emulators. A write from the last test
+// can still land after the clear, so Firestore is cleared until it stays empty.
 export async function reset() {
   for (const url of [
     `http://127.0.0.1:8080/emulator/v1/projects/${PROJECT}/databases/(default)/documents`,
     `http://127.0.0.1:9099/emulator/v1/projects/${PROJECT}/accounts`,
   ]) {
-    const res = await fetch(url, { method: 'DELETE' })
+    const res = await request(url, { method: 'DELETE' })
     if (!res.ok) throw new Error(`reset failed: ${url} ${res.status}`)
   }
+  for (let attempt = 1; !(await firestoreEmpty()); attempt++) {
+    if (attempt === 10) throw new Error('reset failed: Firestore not empty')
+    await new Promise((resolve) => setTimeout(resolve, 200))
+    await request(`http://127.0.0.1:8080/emulator/v1/projects/${PROJECT}/databases/(default)/documents`, {
+      method: 'DELETE',
+    })
+  }
+}
+
+async function firestoreEmpty() {
+  const res = await request(`${documents}:listCollectionIds`, { method: 'POST', headers, body: '{}' })
+  if (!res.ok) throw new Error(`reset check failed: ${res.status}`)
+  return ((await res.json()).collectionIds ?? []).length === 0
 }
 
 // Creates Google accounts in the Auth emulator so its sign-in popup lists them.
@@ -44,7 +68,7 @@ export async function seed() {
 
 // Replaces the Family's members, as the Admin would in the console.
 export async function setMembers(members) {
-  const res = await fetch(`${documents}/config/family`, {
+  const res = await request(`${documents}/config/family`, {
     method: 'PATCH',
     headers,
     body: JSON.stringify({
