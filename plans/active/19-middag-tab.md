@@ -53,3 +53,4 @@ Nineteenth milestone, from using plan 16's Week tab: planning took too many step
 ## Notes
 
 - 2026-10-24: Decisions from the iteration session: Middag is for planning and cooking. Recipes and Menus are made as early as possible, since it's at most two weeks, so few tokens are wasted. A changed Note updates Recipes only; changing the Meal is the Family Member's call, via ✏️ and its 🔄. Editing moved from a modal to an accordion. The ⏳ is static because of the no-animations rule.
+- 2026-10-26: Plan 20 changed the flow: only dish names are made on their own, Recipes wait for "Lag oppskrifter", one dish a day, and the day editor saves without Lagre/Avbryt.

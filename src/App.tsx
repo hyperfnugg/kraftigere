@@ -77,7 +77,8 @@ const smallButtonStyle = { ...buttonStyle, fontSize: '0.875rem', padding: '0.25r
 type Tab = 'Home' | 'Meals' | 'Shop'
 
 const TABS = [
-  { tab: 'Home', label: '🏠', name: 'Hjem' },
+  // A plain black text glyph, like ↻ on Middag, not an emoji.
+  { tab: 'Home', label: '⌂', name: 'Hjem' },
   { tab: 'Meals', label: 'Middag', name: 'Middag' },
   { tab: 'Shop', label: 'Handle', name: 'Handle' },
 ] as const
@@ -151,7 +152,7 @@ function List({ user }: { user: User }) {
               color: tab === t ? 'black' : '#666',
             }}
           >
-            {label}
+            {t === 'Home' ? <span style={{ fontSize: '1.5rem', lineHeight: 1 }}>{label}</span> : label}
           </button>
         ))}
       </nav>

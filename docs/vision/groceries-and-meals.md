@@ -69,13 +69,13 @@ One week at a time. A Family Member goes through these stages, and the AI does t
 - **Day Notes** (one day of this week only), next to each day. Examples:
   > Monday: Mary's parents visit, 3 courses, 1.5 hours prep.
   > Wednesday: Peter is away.
-- **Menu.** The AI makes a Meal, dinner, for each day as soon as the week is this week or next, so it's just there. The Family Member edits a day directly, asks the AI to suggest a new Meal for it, or instructs the AI about the whole Menu ("Mary's father doesn't like fish").
-- **Recipes.** The AI writes a Recipe for each course of each Meal right after, and again whenever a course changes. Ingredient amounts are in grams unless stated otherwise. The Family Member reads a Recipe full screen while cooking, and edits it directly or instructs the AI ("steam the strawberries, don't boil them").
+- **Menu.** The AI names a Meal, dinner, one dish for each day, as soon as the week is this week or next, so it's just there. The Family Member taps a day to change its Note or dish, or asks the AI for a new dish for it (↻).
+- **Recipes.** When the days look right, "Lag oppskrifter" has the AI write every Recipe at once. That happens once: afterwards the days are no longer edited from the Menu, and a Recipe is remade from its own screen. Ingredient amounts are in grams unless stated otherwise. The Family Member reads a Recipe full screen while cooking, and edits it directly or instructs the AI ("steam the strawberries, don't boil them").
 - **Confirm.** Ingredients go to Groceries (below).
 
 ### Outdated
 
-When the Guidelines change after a Menu exists, the Menu becomes **Outdated**. A Recipe becomes Outdated when the Guidelines, its day's Day Note or its own Meal change. Each shows when it became so. A changed Day Note only makes the day's Recipes Outdated, never the Meal: the Family Member decides whether the dinner itself should change. Nothing Outdated is remade until a Family Member asks, because remaking would overwrite their edits. Tapping "Utdatert" on the Menu or 🔄 next to a Recipe's course asks "Lag på nytt? Endringer du har gjort forsvinner." and then remakes. A course whose name changes is different, not Outdated: it loses its Recipe and gets a new one at once. Later improvement: remaking that keeps hand edits.
+When the Guidelines change after a Menu exists, the Menu becomes **Outdated**. A Recipe becomes Outdated when the Guidelines, its day's Day Note or its own Meal change. Each shows when it became so. A changed Day Note only makes the day's Recipes Outdated, never the Meal: the Family Member decides whether the dinner itself should change. Nothing Outdated is remade until a Family Member asks, because remaking would overwrite their edits. Tapping "Utdatert" on the Menu, or ↻ on a Recipe's screen, asks "Lag på nytt? Endringer du har gjort forsvinner." and then remakes. A dish whose name changes is different, not Outdated: it loses its Recipe, and gets a new one from "Lag oppskrift". Later improvement: remaking that keeps hand edits.
 
 ### Confirm
 
