@@ -450,8 +450,7 @@ describe('/weeks/{week}/recipes', () => {
   const made = (fields: object = {}) => ({
     course: 'Taco',
     servings: 4,
-    ingredients: [{ text: 'kjøttdeig', amount: 400, unit: 'g' }],
-    steps: 'Stek kjøttet.',
+    steps: [{ ingredients: [{ text: 'kjøttdeig', grams: 400, pieces: null, measure: '' }], text: 'Stek kjøttet.' }],
     madeAt: serverTimestamp(),
     ...fields,
   })
@@ -459,7 +458,7 @@ describe('/weeks/{week}/recipes', () => {
   test('a Family Member can write a made Recipe and edit it by hand', async () => {
     await assertSucceeds(setDoc(recipe(member()), made()))
     await assertSucceeds(updateDoc(recipe(member()), { servings: 6 }))
-    await assertSucceeds(updateDoc(recipe(member()), { ingredients: [], steps: '' }))
+    await assertSucceeds(updateDoc(recipe(member()), { steps: [] }))
     await assertSucceeds(setDoc(recipe(member()), made()))
     await assertSucceeds(getDoc(recipe(member())))
     await assertSucceeds(deleteDoc(recipe(member())))
@@ -480,9 +479,9 @@ describe('/weeks/{week}/recipes', () => {
     await assertFails(setDoc(recipe(member()), made({ course: '' })))
     await assertFails(setDoc(recipe(member()), made({ servings: 0 })))
     await assertFails(setDoc(recipe(member()), made({ servings: 2.5 })))
-    await assertFails(setDoc(recipe(member()), made({ ingredients: 'kjøttdeig' })))
-    await assertFails(setDoc(recipe(member()), made({ ingredients: Array(61).fill({ text: 'x', amount: 1, unit: 'g' }) })))
-    await assertFails(setDoc(recipe(member()), made({ steps: 'x'.repeat(10001) })))
+    await assertFails(setDoc(recipe(member()), made({ steps: 'Stek kjøttet.' })))
+    await assertFails(setDoc(recipe(member()), made({ steps: Array(31).fill({ ingredients: [], text: 'x' }) })))
+    await assertFails(setDoc(recipe(member()), made({ ingredients: [] })))
     await assertFails(setDoc(recipe(member()), made({ rating: 5 })))
     await assertFails(setDoc(recipe(member()), made({ madeAt: clientTime })))
   })

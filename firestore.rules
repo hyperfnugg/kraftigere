@@ -197,14 +197,13 @@ service cloud.firestore {
 
       // A Recipe for one course of one day's Meal, with id like tue-0. madeAt is when the
       // AI last made it; hand edits leave it alone. The rules can't loop, so they check
-      // that ingredients is a short list but not the shape of each Ingredient.
+      // that steps is a short list but not the shape of each step or its Ingredients.
       function isRecipe(before, after) {
-        return after.keys().hasOnly(['course', 'servings', 'ingredients', 'steps', 'madeAt']) &&
-               after.keys().hasAll(['course', 'servings', 'ingredients', 'steps', 'madeAt']) &&
+        return after.keys().hasOnly(['course', 'servings', 'steps', 'madeAt']) &&
+               after.keys().hasAll(['course', 'servings', 'steps', 'madeAt']) &&
                after.course is string && after.course.size() >= 1 && after.course.size() <= 200 &&
                after.servings is int && after.servings >= 1 && after.servings <= 50 &&
-               after.ingredients is list && after.ingredients.size() <= 60 &&
-               after.steps is string && after.steps.size() <= 10000 &&
+               after.steps is list && after.steps.size() <= 30 &&
                after.madeAt is timestamp &&
                (after.madeAt == request.time || after.madeAt == before.get('madeAt', null));
       }

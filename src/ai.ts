@@ -1,7 +1,17 @@
 import type { Schema as SchemaType } from 'firebase/ai'
 import { initializeApp } from 'firebase/app'
 import { app, firebaseConfig, useEmulators } from './firebase'
-import { DAYS, DAY_NAMES, MAX_COURSES, type Day, type Ingredient, type Menu, type Recipe } from './weeks'
+import {
+  DAYS,
+  DAY_NAMES,
+  MAX_COURSES,
+  MAX_STEPS,
+  MAX_STEP_INGREDIENTS,
+  type Day,
+  type Ingredient,
+  type Menu,
+  type Recipe,
+} from './weeks'
 
 // Flash-Lite for its free tier: about 500 requests a day, where 3.x Flash gets 20 and a
 // week's planning takes 10–20. On 2026-10-23, 3.8 Flash hung past a minute at LOW once,
@@ -154,9 +164,12 @@ export async function makeRecipe(
     'Du skriver en oppskrift på én rett til en familiemiddag.',
     'Skriv på norsk bokmål.',
     'Finn antall porsjoner ut fra føringene og notatene: hvem som spiser den dagen.',
-    'Mengder i gram (enhet "g") med mindre noe annet er naturlig, som "stk", "dl", "ss" eller "ts". Bruk tom mengde for "etter smak".',
+    'Oppskriften er en liste med steg i den rekkefølgen de gjøres. Hvert steg har ingrediensene som brukes i det steget og en kort, konkret fremgangsmåte for steget, med temperatur og tid der det trengs.',
+    'En ingrediens står i steget der den brukes. Brukes den i flere steg, står den i hvert av dem med mengden som brukes der. Et steg kan være uten ingredienser, for eksempel når noe skal hvile.',
+    'Oppgi mengden i gram for alt som har en mengde, også det som telles eller måles med skje, anslått (1 egg er omtrent 60 g, 1 ts salt omtrent 6 g). La gram stå tomt bare for det som er etter smak.',
+    'For det som kjøpes per stykk, som egg, løk, paprika og sitron, oppgi også antall stykk. Hvitløk kjøpes som hele hoder, så fedd er et kjøkkenmål, ikke stykk.',
+    'Et kjøkkenmål er fritekst som "2 dl", "1 ss", "en klype", "2 fedd" eller "etter smak". Ta det med bare når det hjelper på kjøkkenet, og la det stå tomt når gram holder, som for kjøttdeig.',
     'Skriv hver ingrediens slik at det går fram hvor streng den er, for eksempel "helmelk" eller "melk, hvilken som helst".',
-    'Fremgangsmåten er nummererte steg, ett per linje.',
     contextPrompt(context),
     `Middagen ${DAY_NAMES[dish.day].toLowerCase()}: ${dish.meal.join(' + ')}`,
     `Retten: ${dish.course}`,
@@ -165,38 +178,55 @@ export async function makeRecipe(
   ]
     .filter(Boolean)
     .join('\n\n')
-  const json = (await generateJson(prompt, 8000, (Schema) =>
+  const json = (await generateJson(prompt, 12000, (Schema) =>
     Schema.object({
       properties: {
         servings: Schema.integer({ description: 'Antall porsjoner' }),
-        ingredients: Schema.array({
-          maxItems: 60,
+        // No maxItems: nested limits make a schema Gemini refuses (400). The answer is
+        // capped below instead.
+        steps: Schema.array({
           items: Schema.object({
             properties: {
-              text: Schema.string({ description: 'Hva som trengs' }),
-              amount: Schema.number({ nullable: true }),
-              unit: Schema.string(),
+              ingredients: Schema.array({
+                items: Schema.object({
+                  properties: {
+                    text: Schema.string({ description: 'Hva som trengs' }),
+                    grams: Schema.number({ nullable: true, description: 'Mengden i gram' }),
+                    pieces: Schema.number({ nullable: true, description: 'Antall stykk, for det som kjøpes per stykk' }),
+                    measure: Schema.string({ description: 'Kjøkkenmål, eller tomt' }),
+                  },
+                }),
+              }),
+              text: Schema.string({ description: 'Fremgangsmåten for steget' }),
             },
           }),
         }),
-        steps: Schema.string({ description: 'Fremgangsmåten, ett steg per linje' }),
       },
     }),
-  )) as { servings?: unknown; ingredients?: unknown; steps?: unknown }
+  )) as { servings?: unknown; steps?: unknown }
   return {
     course: dish.course,
     servings: Math.min(50, Math.max(1, Math.round(Number(json.servings) || 4))),
-    ingredients: (Array.isArray(json.ingredients) ? json.ingredients : [])
-      .map((i: Partial<Record<keyof Ingredient, unknown>>) => ({
-        text: clean(i.text, 200),
-        amount: typeof i.amount === 'number' && Number.isFinite(i.amount) ? i.amount : null,
-        unit: clean(i.unit, 20),
+    steps: (Array.isArray(json.steps) ? json.steps : [])
+      .map((s: { ingredients?: unknown; text?: unknown }) => ({
+        ingredients: (Array.isArray(s.ingredients) ? s.ingredients : [])
+          .map((i: Partial<Record<keyof Ingredient, unknown>>) => ({
+            text: clean(i.text, 200),
+            grams: quantity(i.grams),
+            pieces: quantity(i.pieces),
+            measure: clean(i.measure, 50),
+          }))
+          .filter((i) => i.text)
+          .slice(0, MAX_STEP_INGREDIENTS),
+        text: clean(s.text, 2000),
       }))
-      .filter((i) => i.text)
-      .slice(0, 60),
-    steps: clean(json.steps, 10000),
+      .filter((s) => s.text || s.ingredients.length > 0)
+      .slice(0, MAX_STEPS),
   }
 }
+
+// A positive number, or none.
+const quantity = (n: unknown) => (typeof n === 'number' && Number.isFinite(n) && n > 0 ? n : null)
 
 // What an Ingredient's wording goes to Groceries as: a Staple (whatever the Family usually
 // buys will do) or a Ware (exactly this), by name.
@@ -263,14 +293,23 @@ function stapleFromWording(wording: string): Match {
 }
 
 function stubRecipe(course: string, change?: { current: Recipe; instruction: string }): Recipe {
-  if (change) return { ...change.current, steps: `Stub: ${change.instruction}` }
+  if (change) {
+    const [first, ...rest] = change.current.steps
+    const changed = { ingredients: first?.ingredients ?? [], text: `Stub: ${change.instruction}` }
+    return { ...change.current, steps: [changed, ...rest] }
+  }
   return {
     course,
     servings: 4,
-    ingredients: [
-      { text: 'løk', amount: 200, unit: 'g' },
-      { text: 'salt', amount: null, unit: '' },
+    steps: [
+      {
+        ingredients: [
+          { text: 'løk', grams: 200, pieces: 2, measure: '' },
+          { text: 'salt', grams: null, pieces: null, measure: 'etter smak' },
+        ],
+        text: `Lag ${course.toLowerCase()}.`,
+      },
+      { ingredients: [], text: 'La det hvile.' },
     ],
-    steps: `1. Lag ${course.toLowerCase()}.`,
   }
 }

@@ -62,8 +62,8 @@ test('a Recipe opens full screen from its day, and hand edits stay', async ({ pa
   const view = page.getByRole('dialog', { name: 'Taco' })
   await expect(view.getByRole('heading', { name: 'Taco' })).toBeVisible()
   await expect(view.getByRole('textbox', { name: 'Porsjoner' })).toHaveValue('4')
-  await expect(view.getByRole('textbox', { name: 'Fremgangsmåte' })).toHaveValue('1. Lag taco.')
-  const amount = view.getByRole('group', { name: 'Ingrediens løk' }).getByRole('textbox', { name: 'Mengde' })
+  await expect(view.getByRole('textbox', { name: 'Fremgangsmåte steg 1' })).toHaveValue('Lag taco.')
+  const amount = view.getByRole('group', { name: 'Ingrediens løk' }).getByRole('textbox', { name: 'Gram' })
   await amount.fill('350')
   await amount.blur()
   await expect(amount).toHaveValue('350')
@@ -71,7 +71,7 @@ test('a Recipe opens full screen from its day, and hand edits stay', async ({ pa
   // The stub puts the instruction in the steps.
   await view.getByRole('textbox', { name: 'Endring i oppskriften Taco' }).fill('Mindre salt')
   await view.getByRole('button', { name: 'Endre', exact: true }).click()
-  await expect(view.getByRole('textbox', { name: 'Fremgangsmåte' })).toHaveValue('Stub: Mindre salt')
+  await expect(view.getByRole('textbox', { name: 'Fremgangsmåte steg 1' })).toHaveValue('Stub: Mindre salt')
 
   await view.getByRole('button', { name: '‹ Meny' }).click()
   await expect(view).toHaveCount(0)
@@ -80,4 +80,38 @@ test('a Recipe opens full screen from its day, and hand edits stay', async ({ pa
   await openTab(page, 'Middag')
   await page.getByRole('button', { name: 'Taco', exact: true }).click()
   await expect(amount).toHaveValue('350')
+})
+
+test('a Recipe step is inserted in the middle with its own Ingredients, and a step is removed', async ({ page }) => {
+  await openMiddag(page, { recipes: true })
+  await page.getByText('Tirsdag').click()
+  const view = page.getByRole('dialog', { name: 'Taco' })
+  const step = (n: number) => view.getByRole('group', { name: `Steg ${n}`, exact: true })
+  const text = (n: number) => view.getByRole('textbox', { name: `Fremgangsmåte steg ${n}` })
+  await expect(view.getByRole('group', { name: /^Steg \d+$/ })).toHaveCount(2)
+
+  await view.getByRole('button', { name: 'Nytt steg etter steg 1' }).click()
+  await expect(view.getByRole('group', { name: /^Steg \d+$/ })).toHaveCount(3)
+  await expect(text(2)).toHaveValue('')
+  await expect(text(3)).toHaveValue('La det hvile.')
+  await text(2).fill('Hakk hvitløken.')
+  await text(2).blur()
+
+  await step(2).getByRole('button', { name: 'Legg til ingrediens' }).click()
+  const ingredient = step(2).getByRole('group', { name: 'Ingrediens ny ingrediens' })
+  await ingredient.getByRole('textbox', { name: 'Gram' }).fill('10')
+  await ingredient.getByRole('textbox', { name: 'Mål' }).fill('2 fedd')
+  await ingredient.getByRole('textbox', { name: 'Ingrediens' }).fill('hvitløk')
+  await ingredient.getByRole('textbox', { name: 'Ingrediens' }).blur()
+  const garlic = step(2).getByRole('group', { name: 'Ingrediens hvitløk' })
+  await expect(garlic.getByRole('textbox', { name: 'Mål' })).toHaveValue('2 fedd')
+
+  await view.getByRole('button', { name: 'Fjern steg 3' }).click()
+  await expect(view.getByRole('group', { name: /^Steg \d+$/ })).toHaveCount(2)
+
+  await page.reload()
+  await openTab(page, 'Middag')
+  await page.getByRole('button', { name: 'Taco', exact: true }).click()
+  await expect(text(2)).toHaveValue('Hakk hvitløken.')
+  await expect(garlic.getByRole('textbox', { name: 'Gram' })).toHaveValue('10')
 })

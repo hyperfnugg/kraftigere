@@ -41,14 +41,22 @@ export const MAX_COURSES = 1
 // Each day's Meal as a list of courses. An empty list is no Meal.
 export type Menu = Record<Day, string[]>
 
-export type Ingredient = { text: string; amount: number | null; unit: string }
+// What a step needs, in grams, plus a count for what's bought by the piece and a free-text
+// kitchen measure ("2 dl", "en klype", "etter smak"). Grams and pieces add up at Confirm.
+export type Ingredient = { text: string; grams: number | null; pieces: number | null; measure: string }
+
+// One step of a Recipe: the Ingredients it uses and what to do with them.
+export type Step = { ingredients: Ingredient[]; text: string }
 
 export type Recipe = {
   course: string
   servings: number
-  ingredients: Ingredient[]
-  steps: string
+  steps: Step[]
 }
+
+// The rules allow 30 steps. A step's Ingredients are capped here and in the AI.
+export const MAX_STEPS = 30
+export const MAX_STEP_INGREDIENTS = 20
 
 export type StoredRecipe = Recipe & { id: string; madeAt: Timestamp | null }
 

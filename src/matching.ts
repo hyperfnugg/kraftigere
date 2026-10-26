@@ -19,7 +19,7 @@ export type Line = {
   match: Match
   name: string
   wordings: Wording[]
-  amounts: Pick<Ingredient, 'amount' | 'unit'>[]
+  amounts: Pick<Ingredient, 'grams' | 'pieces'>[]
   days: Day[]
 }
 
@@ -37,11 +37,13 @@ export async function readFamilyMatches() {
   }
 }
 
-// The week's Ingredients with the day each serves. Wordings are keyed like Staples, so
-// "Løk" and "løk " are one wording.
+// The week's Ingredients, from every step of every Recipe, with the day each serves.
+// Wordings are keyed like Staples, so "Løk" and "løk " are one wording.
 export function weekIngredients(recipes: Record<string, StoredRecipe>) {
   return Object.values(recipes).flatMap((r) =>
-    r.ingredients.map((ing) => ({ ...ing, day: r.id.split('-')[0] as Day, key: stapleId(ing.text) })),
+    r.steps.flatMap((s) =>
+      s.ingredients.map((ing) => ({ ...ing, day: r.id.split('-')[0] as Day, key: stapleId(ing.text) })),
+    ),
   )
 }
 
@@ -67,7 +69,7 @@ export function makeLines(
     const existing = match.kind === 'ware' ? wares.find((w) => w.id === id) : staples.find((s) => s.id === id)
     const line = lines.get(key) ?? { key, match, name: existing?.name ?? match.name, wordings: [], amounts: [], days: [] }
     if (!line.wordings.some((w) => w.key === ing.key)) line.wordings.push({ key: ing.key, text: ing.text })
-    line.amounts.push({ amount: ing.amount, unit: ing.unit })
+    line.amounts.push({ grams: ing.grams, pieces: ing.pieces })
     if (!line.days.includes(ing.day)) line.days.push(ing.day)
     lines.set(key, line)
   }
@@ -81,16 +83,21 @@ export function startsTicked(line: Line, staples: Staple[]) {
   return !(line.match.kind === 'staple' && staples.find((s) => s.id === stapleId(line.match.name))?.usuallyAtHome)
 }
 
-const number = (n: number) => String(Math.round(n * 100) / 100).replace('.', ',')
+// "1,5" for 1.5, to two decimals.
+export const formatNumber = (n: number) => String(Math.round(n * 100) / 100).replace('.', ',')
 
-// Amounts with the same unit added up, different units side by side: "200 g + 2 ss".
+// Grams added up, with pieces in parentheses when there are any: "360 g (6 stk)".
 // Amounts "etter smak" are left out.
 export function formatAmount(amounts: Line['amounts']) {
-  const byUnit = new Map<string, number>()
-  for (const { amount, unit } of amounts) {
-    if (amount !== null) byUnit.set(unit, (byUnit.get(unit) ?? 0) + amount)
+  const sum = (ns: (number | null)[]) => {
+    const known = ns.filter((n) => n !== null)
+    return known.length > 0 ? known.reduce((a, n) => a + n, 0) : null
   }
-  return [...byUnit].map(([unit, n]) => `${number(n)} ${unit}`.trim()).join(' + ')
+  const grams = sum(amounts.map((a) => a.grams))
+  const pieces = sum(amounts.map((a) => a.pieces))
+  const g = grams === null ? '' : `${formatNumber(grams)} g`
+  const p = pieces === null ? '' : `${formatNumber(pieces)} stk`
+  return g && p ? `${g} (${p})` : g || p
 }
 
 // Confirms the week in one batch: a Menu Entry for each ticked line, new Wares and

@@ -6,6 +6,8 @@ import { addWeeks, isoWeekId, timeLabel, weekLabel } from './dates'
 import {
   DAYS,
   DAY_NAMES,
+  MAX_STEP_INGREDIENTS,
+  MAX_STEPS,
   recipeId,
   menuOutdatedSince,
   readLatest,
@@ -25,6 +27,7 @@ import {
   type Ingredient,
   type Menu,
   type Recipe,
+  type Step,
   type StoredRecipe,
   type Week,
 } from './weeks'
@@ -599,6 +602,16 @@ function RecipeView({
   onClose: () => void
 }) {
   const { busy, error, run, pending } = job
+
+  async function remake(instruction: string) {
+    const { week, context } = await readContext(weekId)
+    const meal = week.menu?.[day] ?? []
+    const course = meal[Number(recipe.id.split('-')[1])] ?? recipe.course
+    const current = { course: recipe.course, servings: recipe.servings, steps: recipe.steps }
+    const made = await makeRecipe(context, { day, meal, course }, { current, instruction })
+    setMadeRecipe(weekId, recipe.id, made).catch(console.error)
+  }
+
   return (
     <div
       role="dialog"
@@ -632,7 +645,14 @@ function RecipeView({
             />
           )}
         </div>
-        <RecipeForm weekId={weekId} day={day} recipe={recipe} ai={ai} disabled={!!busy} run={run} />
+        <RecipeEditor weekId={weekId} recipe={recipe} />
+        {ai && (
+          <Instruct
+            label={`Endring i oppskriften ${recipe.course}`}
+            disabled={!!busy}
+            onInstruct={(instruction) => run('Endrer oppskrift…', () => remake(instruction))}
+          />
+        )}
         {busy && <div style={{ color: '#555' }}>{busy}</div>}
         {error && <div style={errorStyle}>{error}</div>}
       </div>
@@ -737,41 +757,51 @@ function SavedInput({
   )
 }
 
-// "1,5" or "1.5"; anything else is no amount.
+// "1,5" or "1.5"; anything else, or nothing above 0, is no amount.
 function parseAmount(text: string) {
   const n = Number(text.replace(',', '.'))
-  return text && Number.isFinite(n) ? n : null
+  return text && Number.isFinite(n) && n > 0 ? n : null
 }
 
-// A Recipe edited as a form: servings, Ingredient rows and steps, each saved as you leave
-// it. The instruction box remakes it.
-function RecipeForm({
-  weekId,
-  day,
-  recipe,
-  ai,
-  disabled,
-  run,
-}: {
-  weekId: string
-  day: Day
-  recipe: StoredRecipe
-  ai: boolean
-  disabled: boolean
-  run: (label: string, job: () => Promise<void>) => Promise<void>
-}) {
-  const save = (fields: Partial<Recipe>) => updateRecipe(weekId, recipe.id, fields).catch(console.error)
-  const setIngredient = (i: number, fields: Partial<Ingredient>) =>
-    save({ ingredients: recipe.ingredients.map((ing, j) => (j === i ? { ...ing, ...fields } : ing)) })
+const amountText = (n: number | null) => (n === null ? '' : String(n).replace('.', ','))
 
-  async function remake(instruction: string) {
-    const { week, context } = await readContext(weekId)
-    const meal = week.menu?.[day] ?? []
-    const course = meal[Number(recipe.id.split('-')[1])] ?? recipe.course
-    const current = { course: recipe.course, servings: recipe.servings, ingredients: recipe.ingredients, steps: recipe.steps }
-    const made = await makeRecipe(context, { day, meal, course }, { current, instruction })
-    setMadeRecipe(weekId, recipe.id, made).catch(console.error)
+const newIngredient: Ingredient = { text: 'ny ingrediens', grams: null, pieces: null, measure: '' }
+
+// A Recipe edited as a form: servings, then each step's Ingredient rows and text, each
+// saved as you leave it. Steps can be added anywhere and removed, but not moved.
+function RecipeEditor({ weekId, recipe }: { weekId: string; recipe: StoredRecipe }) {
+  const save = (fields: Partial<Recipe>) => updateRecipe(weekId, recipe.id, fields).catch(console.error)
+  // The steps are saved whole, so each edit builds on the last one saved until a snapshot
+  // shows it: leaving one field for the next saves both before either is shown, and a
+  // snapshot can arrive without the latest save. Not after the AI remade the Recipe.
+  const saved = useRef<{ steps: Step[]; madeAt?: number } | null>(null)
+  useEffect(() => {
+    if (saved.current && JSON.stringify(recipe.steps) === JSON.stringify(saved.current.steps)) saved.current = null
+  }, [recipe.steps])
+  function saveSteps(edit: (steps: Step[]) => Step[]) {
+    const madeAt = recipe.madeAt?.toMillis()
+    const last = saved.current?.madeAt === madeAt ? saved.current : null
+    const steps = edit(last?.steps ?? recipe.steps)
+    saved.current = { steps, madeAt }
+    save({ steps })
   }
+  const setStep = (i: number, edit: (step: Step) => Step) =>
+    saveSteps((steps) => steps.map((s, j) => (j === i ? edit(s) : s)))
+  const setIngredients = (i: number, edit: (ingredients: Ingredient[]) => Ingredient[]) =>
+    setStep(i, (s) => ({ ...s, ingredients: edit(s.ingredients) }))
+  const setIngredient = (i: number, k: number, fields: Partial<Ingredient>) =>
+    setIngredients(i, (ings) => ings.map((ing, j) => (j === k ? { ...ing, ...fields } : ing)))
+  const canAddStep = recipe.steps.length < MAX_STEPS
+  const addStep = (at: number, label: string) =>
+    canAddStep && (
+      <button
+        onClick={() => saveSteps((steps) => steps.toSpliced(at, 0, { ingredients: [], text: '' }))}
+        aria-label={label}
+        style={{ ...smallButtonStyle, alignSelf: 'flex-start' }}
+      >
+        + steg
+      </button>
+    )
 
   return (
     <div style={sectionStyle}>
@@ -789,52 +819,78 @@ function RecipeForm({
         porsjoner
       </label>
 
-      <div style={{ fontSize: '0.875rem', color: '#555' }}>Ingredienser</div>
-      {recipe.ingredients.map((ing, i) => (
-        <div key={i} role="group" aria-label={`Ingrediens ${ing.text}`} style={{ display: 'flex', gap: '0.25rem' }}>
-          <SavedInput
-            label="Mengde"
-            value={ing.amount === null ? '' : String(ing.amount).replace('.', ',')}
-            inputMode="decimal"
-            width="4rem"
-            onSave={(text) => setIngredient(i, { amount: parseAmount(text) })}
+      {addStep(0, 'Nytt steg før steg 1')}
+      {recipe.steps.map((step, i) => (
+        <div
+          key={i}
+          role="group"
+          aria-label={`Steg ${i + 1}`}
+          style={{ ...sectionStyle, borderTop: '1px solid #ddd', paddingTop: '0.5rem' }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span style={{ flex: 1, fontSize: '0.875rem', color: '#555' }}>Steg {i + 1}</span>
+            <button
+              onClick={() => saveSteps((steps) => steps.filter((_, j) => j !== i))}
+              aria-label={`Fjern steg ${i + 1}`}
+              style={smallButtonStyle}
+            >
+              Fjern steg
+            </button>
+          </div>
+          {step.ingredients.map((ing, k) => (
+            <div key={k} role="group" aria-label={`Ingrediens ${ing.text}`} style={{ display: 'flex', gap: '0.25rem' }}>
+              <SavedInput
+                label="Gram"
+                value={amountText(ing.grams)}
+                inputMode="decimal"
+                width="4rem"
+                onSave={(text) => setIngredient(i, k, { grams: parseAmount(text) })}
+              />
+              <SavedInput
+                label="Stk"
+                value={amountText(ing.pieces)}
+                inputMode="decimal"
+                width="3rem"
+                onSave={(text) => setIngredient(i, k, { pieces: parseAmount(text) })}
+              />
+              <SavedInput
+                label="Mål"
+                value={ing.measure}
+                width="5rem"
+                onSave={(measure) => setIngredient(i, k, { measure })}
+              />
+              <SavedInput
+                label="Ingrediens"
+                value={ing.text}
+                onSave={(text) => text && setIngredient(i, k, { text })}
+              />
+              <button
+                onClick={() => setIngredients(i, (ings) => ings.filter((_, j) => j !== k))}
+                aria-label={`Fjern ${ing.text}`}
+                style={smallButtonStyle}
+              >
+                Fjern
+              </button>
+            </div>
+          ))}
+          {step.ingredients.length < MAX_STEP_INGREDIENTS && (
+            <button
+              onClick={() => setIngredients(i, (ings) => [...ings, newIngredient])}
+              style={{ ...smallButtonStyle, alignSelf: 'flex-start' }}
+            >
+              Legg til ingrediens
+            </button>
+          )}
+          <SavedText
+            label={`Fremgangsmåte steg ${i + 1}`}
+            value={step.text}
+            rows={Math.max(2, step.text.split('\n').length)}
+            maxLength={2000}
+            onSave={(text) => setStep(i, (s) => ({ ...s, text: text.trim() }))}
           />
-          <SavedInput label="Enhet" value={ing.unit} width="3rem" onSave={(unit) => setIngredient(i, { unit })} />
-          <SavedInput label="Ingrediens" value={ing.text} onSave={(text) => text && setIngredient(i, { text })} />
-          <button
-            onClick={() => save({ ingredients: recipe.ingredients.filter((_, j) => j !== i) })}
-            aria-label={`Fjern ${ing.text}`}
-            style={smallButtonStyle}
-          >
-            Fjern
-          </button>
+          {addStep(i + 1, `Nytt steg etter steg ${i + 1}`)}
         </div>
       ))}
-      {recipe.ingredients.length < 60 && (
-        <button
-          onClick={() => save({ ingredients: [...recipe.ingredients, { text: 'ny ingrediens', amount: null, unit: '' }] })}
-          style={{ ...smallButtonStyle, alignSelf: 'flex-start' }}
-        >
-          Legg til ingrediens
-        </button>
-      )}
-
-      <div style={{ fontSize: '0.875rem', color: '#555' }}>Fremgangsmåte</div>
-      <SavedText
-        label="Fremgangsmåte"
-        value={recipe.steps}
-        rows={Math.max(3, recipe.steps.split('\n').length)}
-        maxLength={10000}
-        onSave={(steps) => save({ steps: steps.trim() })}
-      />
-
-      {ai && (
-        <Instruct
-          label={`Endring i oppskriften ${recipe.course}`}
-          disabled={disabled}
-          onInstruct={(instruction) => run('Endrer oppskrift…', () => remake(instruction))}
-        />
-      )}
     </div>
   )
 }

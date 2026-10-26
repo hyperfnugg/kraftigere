@@ -6,7 +6,7 @@ test.beforeEach(async () => {
   await seed()
 })
 
-// Each stub Recipe has 200 g løk and salt to taste, and the stub matches each wording to a
+// Each stub Recipe has 200 g (2 stk) løk and salt to taste, and the stub matches each wording to a
 // Staple of its name.
 
 const screen = (page: Page) => page.getByRole('dialog', { name: 'Iverksett' })
@@ -29,7 +29,7 @@ test('Iverksett sends one Menu Entry per Staple with summed amounts and days, le
   await openMiddag(page, { recipes: true })
   await page.getByRole('button', { name: 'Iverksett' }).click()
   // Six Recipes with løk, one a day.
-  await expect(line(page, 'løk')).toContainText('løk 1200 g · man, tir, ons, fre, lør, søn')
+  await expect(line(page, 'løk')).toContainText('løk 1200 g (12 stk) · man, tir, ons, fre, lør, søn')
   await expect(line(page, 'salt')).toContainText('salt · man, tir, ons, fre, lør, søn')
 
   await line(page, 'salt').getByRole('checkbox', { name: 'Kjøp salt' }).uncheck()
@@ -40,7 +40,7 @@ test('Iverksett sends one Menu Entry per Staple with summed amounts and days, le
 
   await expect
     .poll(menuEntries)
-    .toEqual([{ text: 'løk', staple: 'løk', ware: undefined, amount: '1200 g', days: ['mon', 'tue', 'wed', 'fri', 'sat', 'sun'] }])
+    .toEqual([{ text: 'løk', staple: 'løk', ware: undefined, amount: '1200 g (12 stk)', days: ['mon', 'tue', 'wed', 'fri', 'sat', 'sun'] }])
   expect((await readDoc('staples/salt')).usuallyAtHome.booleanValue).toBe(true)
   expect((await readDoc('staples/løk')).addCount.integerValue).toBe('0')
 
@@ -91,7 +91,7 @@ test('after Iverksett only the Recipes are edited, by hand, and Groceries stays 
   await page.getByRole('button', { name: 'Taco', exact: true }).click()
   const view = page.getByRole('dialog', { name: 'Taco' })
   await expect(view.getByRole('textbox', { name: 'Endring i oppskriften Taco' })).toHaveCount(0)
-  const amount = view.getByRole('group', { name: 'Ingrediens løk' }).getByRole('textbox', { name: 'Mengde' })
+  const amount = view.getByRole('group', { name: 'Ingrediens løk' }).getByRole('textbox', { name: 'Gram' })
   await amount.fill('999')
   await amount.blur()
   await expect(amount).toHaveValue('999')
@@ -107,13 +107,13 @@ test('after Iverksett only the Recipes are edited, by hand, and Groceries stays 
   await guidelines.blur()
   await expect(page.getByRole('button', { name: /^Utdatert|^Lag på nytt/ })).toHaveCount(0)
 
-  expect((await menuEntries()).find((e) => e.text === 'løk')?.amount).toBe('1200 g')
+  expect((await menuEntries()).find((e) => e.text === 'løk')?.amount).toBe('1200 g (12 stk)')
 })
 
 test('a Menu Entry shows its amount and days, is Removed on Hjem and checked off on Handle', async ({ page }) => {
   await confirmed(page)
   await openTab(page, 'Hjem')
-  await expect(entry(page, 'løk')).toHaveText('løk 1200 g · man, tir, ons, fre, lør, søn')
+  await expect(entry(page, 'løk')).toHaveText('løk 1200 g (12 stk) · man, tir, ons, fre, lør, søn')
   await entry(page, 'løk').getByText('løk').click()
   await expect(page.getByRole('textbox', { name: 'Notat' })).toHaveCount(0)
   await entry(page, 'løk').getByRole('button', { name: 'Fjern' }).click()
