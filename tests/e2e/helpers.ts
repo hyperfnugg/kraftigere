@@ -1,8 +1,8 @@
 import { expect, type Page } from '@playwright/test'
 
-import { MEMBERS, PROJECT } from '../../scripts/seed.mjs'
+import { FIRESTORE_HOST, MEMBERS, PROJECT } from '../../scripts/seed.mjs'
 
-export { MEMBERS, OUTSIDER, reset, seed, setMembers } from '../../scripts/seed.mjs'
+export { FIRESTORE_HOST, MEMBERS, OUTSIDER, reset, seed, setMembers } from '../../scripts/seed.mjs'
 
 // Completes the Auth emulator's fake Google popup with a seeded account.
 export async function completeGooglePopup(page: Page, email: string) {
@@ -37,7 +37,7 @@ export function entry(page: Page, text: string) {
 // Reads a document straight from the emulator, bypassing rules. Returns its fields as REST values.
 export async function readDoc(path: string) {
   const res = await fetch(
-    `http://127.0.0.1:8080/v1/projects/${PROJECT}/databases/(default)/documents/${path}`,
+    `http://${FIRESTORE_HOST}/v1/projects/${PROJECT}/databases/(default)/documents/${path}`,
     { headers: { Authorization: 'Bearer owner' } },
   )
   if (!res.ok) throw new Error(`read failed: ${path} ${res.status}`)
@@ -48,7 +48,7 @@ export async function readDoc(path: string) {
 // fields as REST values.
 export async function listDocs(path: string) {
   const res = await fetch(
-    `http://127.0.0.1:8080/v1/projects/${PROJECT}/databases/(default)/documents/${path}`,
+    `http://${FIRESTORE_HOST}/v1/projects/${PROJECT}/databases/(default)/documents/${path}`,
     { headers: { Authorization: 'Bearer owner' } },
   )
   if (!res.ok) throw new Error(`list failed: ${path} ${res.status}`)
@@ -58,7 +58,7 @@ export async function listDocs(path: string) {
 // Writes a document straight to the emulator, bypassing rules. Takes its fields as REST values.
 export async function writeDoc(path: string, fields: object) {
   const res = await fetch(
-    `http://127.0.0.1:8080/v1/projects/${PROJECT}/databases/(default)/documents/${path}`,
+    `http://${FIRESTORE_HOST}/v1/projects/${PROJECT}/databases/(default)/documents/${path}`,
     { method: 'PATCH', headers: { Authorization: 'Bearer owner' }, body: JSON.stringify({ fields }) },
   )
   if (!res.ok) throw new Error(`write failed: ${path} ${res.status}`)

@@ -9,7 +9,7 @@
     "lint": "eslint .",
     "test:unit": "vitest run tests/unit",
     "preview": "vite preview",
-    "test:rules": "firebase emulators:exec --project demo-kraftigere --only firestore \"vitest run tests/rules\"",
+    "test:rules": "firebase emulators:exec --config firebase.test.json --project demo-kraftigere --only firestore \"vitest run tests/rules\"",
     "test:e2e": "playwright test",
     "perf": "playwright test --config playwright.perf.config.ts"
   },

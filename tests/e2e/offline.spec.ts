@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { MEMBERS, addEntry, completeGooglePopup, entry, reset, seed, signIn } from './helpers'
+import { FIRESTORE_HOST, MEMBERS, addEntry, completeGooglePopup, entry, reset, seed, signIn } from './helpers'
 
 test.beforeEach(async () => {
   await reset()
@@ -39,7 +39,7 @@ test("Firestore unreachable shows Can't connect, not Not authorized", async ({ p
   // interception breaks the Auth emulator's sign-in popup.
   const cdp = await context.newCDPSession(page)
   await cdp.send('Network.enable')
-  await cdp.send('Network.setBlockedURLs', { urls: ['*127.0.0.1:8080*'] })
+  await cdp.send('Network.setBlockedURLs', { urls: [`*${FIRESTORE_HOST}*`] })
 
   await completeGooglePopup(page, MEMBERS[0])
   await expect(page.getByText('Får ikke kontakt')).toBeVisible()

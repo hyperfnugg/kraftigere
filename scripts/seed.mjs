@@ -5,7 +5,12 @@ export const PROJECT = 'demo-kraftigere'
 export const MEMBERS = ['alice@example.com', 'bob@example.com']
 export const OUTSIDER = 'eve@example.com'
 
-const documents = `http://127.0.0.1:8080/v1/projects/${PROJECT}/databases/(default)/documents`
+// The emulators of `npm run dev`, or the tests' own (firebase.test.json): emulators:exec and
+// playwright.config.ts set these.
+export const FIRESTORE_HOST = process.env.FIRESTORE_EMULATOR_HOST ?? '127.0.0.1:8080'
+const AUTH_HOST = process.env.FIREBASE_AUTH_EMULATOR_HOST ?? '127.0.0.1:9099'
+
+const documents = `http://${FIRESTORE_HOST}/v1/projects/${PROJECT}/databases/(default)/documents`
 const headers = { Authorization: 'Bearer owner', 'Content-Type': 'application/json' }
 
 // Since firebase-tools 15.34 the Firestore emulator sometimes answers 409 ("Transaction
@@ -22,8 +27,8 @@ async function request(url, init) {
 // can still land after the clear, so Firestore is cleared until it stays empty.
 export async function reset() {
   for (const url of [
-    `http://127.0.0.1:8080/emulator/v1/projects/${PROJECT}/databases/(default)/documents`,
-    `http://127.0.0.1:9099/emulator/v1/projects/${PROJECT}/accounts`,
+    `http://${FIRESTORE_HOST}/emulator/v1/projects/${PROJECT}/databases/(default)/documents`,
+    `http://${AUTH_HOST}/emulator/v1/projects/${PROJECT}/accounts`,
   ]) {
     const res = await request(url, { method: 'DELETE' })
     if (!res.ok) throw new Error(`reset failed: ${url} ${res.status}`)
@@ -31,7 +36,7 @@ export async function reset() {
   for (let attempt = 1; !(await firestoreEmpty()); attempt++) {
     if (attempt === 10) throw new Error('reset failed: Firestore not empty')
     await new Promise((resolve) => setTimeout(resolve, 200))
-    await request(`http://127.0.0.1:8080/emulator/v1/projects/${PROJECT}/databases/(default)/documents`, {
+    await request(`http://${FIRESTORE_HOST}/emulator/v1/projects/${PROJECT}/databases/(default)/documents`, {
       method: 'DELETE',
     })
   }
@@ -48,7 +53,7 @@ async function firestoreEmpty() {
 async function seedAccounts() {
   for (const email of [...MEMBERS, OUTSIDER]) {
     const idToken = JSON.stringify({ sub: email, email, email_verified: true, name: email.split('@')[0] })
-    const res = await fetch('http://127.0.0.1:9099/identitytoolkit.googleapis.com/v1/accounts:signInWithIdp?key=demo', {
+    const res = await fetch(`http://${AUTH_HOST}/identitytoolkit.googleapis.com/v1/accounts:signInWithIdp?key=demo`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

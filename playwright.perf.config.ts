@@ -1,5 +1,5 @@
 import { defineConfig, devices } from '@playwright/test'
-import base from './playwright.config'
+import base, { previewURL } from './playwright.config'
 
 // Launch timings, run by hand with `npm run perf`. Not part of `npm run test:e2e` or CI.
 export default defineConfig({
@@ -8,5 +8,5 @@ export default defineConfig({
   retries: 0,
   timeout: 180_000,
   reporter: 'list',
-  projects: [{ name: 'perf', use: { ...devices['Desktop Chrome'], baseURL: 'http://localhost:4173/' } }],
+  projects: [{ name: 'perf', use: { ...devices['Desktop Chrome'], baseURL: previewURL } }],
 })

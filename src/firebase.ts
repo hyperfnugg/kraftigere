@@ -40,8 +40,11 @@ export const db = initializeFirestore(app, {
 })
 
 if (useEmulators) {
-  connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true })
-  connectFirestoreEmulator(db, '127.0.0.1', 8080)
+  // The e2e tests run their own emulators, on the hosts in .env.e2e.
+  const env = import.meta.env
+  const [firestoreHost, firestorePort] = (env.VITE_FIRESTORE_EMULATOR_HOST ?? '127.0.0.1:8080').split(':')
+  connectAuthEmulator(auth, `http://${env.VITE_AUTH_EMULATOR_HOST ?? '127.0.0.1:9099'}`, { disableWarnings: true })
+  connectFirestoreEmulator(db, firestoreHost, Number(firestorePort))
 }
 
 const provider = new GoogleAuthProvider()

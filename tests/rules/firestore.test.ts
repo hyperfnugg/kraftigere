@@ -30,7 +30,8 @@ let env: RulesTestEnvironment
 beforeAll(async () => {
   env = await initializeTestEnvironment({
     projectId: 'demo-kraftigere-rules',
-    firestore: { rules: readFileSync('firestore.rules', 'utf8'), host: '127.0.0.1', port: 8080 },
+    // On the emulator emulators:exec started, found by FIRESTORE_EMULATOR_HOST.
+    firestore: { rules: readFileSync('firestore.rules', 'utf8') },
   })
 })
 
