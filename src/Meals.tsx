@@ -1,12 +1,23 @@
 import type { Timestamp } from 'firebase/firestore'
-import { type FormEvent, type KeyboardEvent, type MouseEvent, useEffect, useRef, useState } from 'react'
+import {
+  Fragment,
+  type FormEvent,
+  type KeyboardEvent,
+  type MouseEvent,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react'
 import { makeMenu, makeRecipe, warmUp } from './ai'
 import { ConfirmView } from './Confirm'
 import { addWeeks, isoWeekId, timeLabel, weekLabel } from './dates'
+import { formatNumber, measureText } from './amounts'
 import {
   DAYS,
   DAY_NAMES,
   MAX_STEP_INGREDIENTS,
+  MAX_STEP_INSTRUCTIONS,
   MAX_STEPS,
   recipeId,
   menuOutdatedSince,
@@ -581,7 +592,168 @@ function MenuSection({
   )
 }
 
-// A Recipe filling the screen above the tabs, with a way back to the Menu.
+// Wide enough for the Recipe as a table, as on a tablet held horizontally.
+const wideQuery = window.matchMedia('(min-width: 40rem)')
+
+function useWide() {
+  return useSyncExternalStore(
+    (onChange) => {
+      wideQuery.addEventListener('change', onChange)
+      return () => wideQuery.removeEventListener('change', onChange)
+    },
+    () => wideQuery.matches,
+  )
+}
+
+// Keeps the screen on while cooking. The lock goes when the app is hidden, so it's taken
+// again on return.
+function useWakeLock() {
+  useEffect(() => {
+    let lock: WakeLockSentinel | undefined
+    let gone = false
+    const take = () => {
+      if (document.visibilityState !== 'visible' || !('wakeLock' in navigator)) return
+      navigator.wakeLock
+        .request('screen')
+        .then((l) => {
+          if (gone) return l.release()
+          lock = l
+        })
+        .catch(() => {})
+    }
+    take()
+    document.addEventListener('visibilitychange', take)
+    return () => {
+      gone = true
+      document.removeEventListener('visibilitychange', take)
+      lock?.release().catch(() => {})
+    }
+  }, [])
+}
+
+// "200 g" with the kitchen measure after it in grey, "(2 dl)", or just the measure when
+// there are no grams ("etter smak").
+function Quantity({ ingredient }: { ingredient: Ingredient }) {
+  const { grams, measure } = ingredient
+  const extra = measureText(measure)
+  const grey = { color: '#666', fontSize: '0.85em' }
+  if (grams === null) return <span style={grey}>{extra}</span>
+  return (
+    <>
+      {formatNumber(grams)} g{extra && <span style={grey}> ({extra})</span>}
+    </>
+  )
+}
+
+// An instruction's number in a circle, as in Modernist Cuisine.
+function InstructionNumber({ n }: { n: number }) {
+  return (
+    <span
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexShrink: 0,
+        minWidth: '1.5em',
+        height: '1.5em',
+        marginTop: '0.1em',
+        border: '1px solid currentColor',
+        borderRadius: '0.75em',
+        fontSize: '0.75em',
+        boxSizing: 'border-box',
+      }}
+    >
+      {n}
+    </span>
+  )
+}
+
+// One instruction with its number, wrapped lines indented past the number.
+function Instruction({ n, text }: { n: number; text: string }) {
+  return (
+    <div style={{ display: 'flex', gap: '0.5rem' }}>
+      <InstructionNumber n={n} />
+      <span>{text}</span>
+    </div>
+  )
+}
+
+// The steps to cook from, in the style of Modernist Cuisine: each step's Ingredients beside
+// its instructions, which are numbered across the Recipe. A table when wide, blocks when
+// not.
+function RecipeSteps({ steps, wide }: { steps: Step[]; wide: boolean }) {
+  // The number of each step's first instruction.
+  const firsts = steps.map((_, i) => 1 + steps.slice(0, i).reduce((n, s) => n + s.instructions.length, 0))
+  const rule = '1px solid #ccc'
+
+  if (!wide) {
+    return (
+      <div style={{ fontSize: '1.125rem', lineHeight: 1.4, borderBottom: rule }}>
+        {steps.map((step, i) => (
+          <div
+            key={i}
+            role="group"
+            aria-label={`Steg ${i + 1}`}
+            style={{ ...sectionStyle, borderTop: rule, padding: '0.75rem 0' }}
+          >
+            {step.ingredients.length > 0 && (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', columnGap: '1rem' }}>
+                {step.ingredients.map((ing, k) => (
+                  <Fragment key={k}>
+                    <span>{ing.text}</span>
+                    <span style={{ whiteSpace: 'nowrap' }}>
+                      <Quantity ingredient={ing} />
+                    </span>
+                  </Fragment>
+                ))}
+              </div>
+            )}
+            {step.instructions.map((text, k) => (
+              <Instruction key={k} n={firsts[i] + k} text={text} />
+            ))}
+          </div>
+        ))}
+      </div>
+    )
+  }
+
+  const cell = { padding: '0.375rem 1rem 0.375rem 0', verticalAlign: 'top', textAlign: 'left' } as const
+  const head = { ...cell, fontSize: '0.875rem', fontWeight: 'normal', color: '#555', letterSpacing: '0.05em' }
+  return (
+    <table
+      style={{ width: '100%', borderCollapse: 'collapse', fontSize: '1.25rem', lineHeight: 1.4, borderBottom: rule }}
+    >
+      <thead>
+        <tr>
+          <th style={{ ...head, width: '30%' }}>INGREDIENS</th>
+          <th style={{ ...head, width: '15%' }}>MENGDE</th>
+          <th style={head}>FREMGANGSMÅTE</th>
+        </tr>
+      </thead>
+      {steps.map((step, i) => {
+        const rows = Math.max(1, step.ingredients.length, step.instructions.length)
+        return (
+          <tbody key={i} aria-label={`Steg ${i + 1}`} style={{ borderTop: rule }}>
+            {Array.from({ length: rows }, (_, r) => {
+              const ing = step.ingredients[r]
+              const text = step.instructions[r]
+              return (
+                <tr key={r}>
+                  <td style={cell}>{ing?.text}</td>
+                  <td style={{ ...cell, whiteSpace: 'nowrap' }}>{ing && <Quantity ingredient={ing} />}</td>
+                  <td style={cell}>{text !== undefined && <Instruction n={firsts[i] + r} text={text} />}</td>
+                </tr>
+              )
+            })}
+          </tbody>
+        )
+      })}
+    </table>
+  )
+}
+
+// A Recipe filling the screen above the tabs, to cook from, with a way back to the Menu.
+// Its steps are read-only, with the form behind "Rediger".
 function RecipeView({
   weekId,
   day,
@@ -602,6 +774,9 @@ function RecipeView({
   onClose: () => void
 }) {
   const { busy, error, run, pending } = job
+  const wide = useWide()
+  const [editing, setEditing] = useState(false)
+  useWakeLock()
 
   async function remake(instruction: string) {
     const { week, context } = await readContext(weekId)
@@ -622,16 +797,21 @@ function RecipeView({
         style={{
           ...sectionStyle,
           gap: '1rem',
-          width: 'min(100%, 32rem)',
+          width: wide ? 'min(100%, 72rem)' : 'min(100%, 32rem)',
           margin: '0 auto',
           padding: '1rem 1rem 6rem',
           boxSizing: 'border-box',
           fontFamily: 'system-ui, sans-serif',
         }}
       >
-        <button onClick={onClose} style={{ ...smallButtonStyle, alignSelf: 'flex-start' }}>
-          ‹ Meny
-        </button>
+        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+          <button onClick={onClose} style={smallButtonStyle}>
+            ‹ Meny
+          </button>
+          <button onClick={() => setEditing(!editing)} style={smallButtonStyle}>
+            {editing ? 'Ferdig' : 'Rediger'}
+          </button>
+        </div>
         <div style={{ fontSize: '0.875rem', color: '#555' }}>{DAY_NAMES[day]}</div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <h2 style={{ fontSize: '1.375rem', margin: 0 }}>{recipe.course}</h2>
@@ -645,7 +825,14 @@ function RecipeView({
             />
           )}
         </div>
-        <RecipeEditor weekId={weekId} recipe={recipe} />
+        {editing ? (
+          <RecipeEditor weekId={weekId} recipe={recipe} />
+        ) : (
+          <>
+            <div style={{ color: '#555' }}>{recipe.servings} porsjoner</div>
+            <RecipeSteps steps={recipe.steps} wide={wide} />
+          </>
+        )}
         {ai && (
           <Instruct
             label={`Endring i oppskriften ${recipe.course}`}
@@ -732,12 +919,14 @@ function SavedInput({
   onSave,
   width,
   inputMode,
+  placeholder,
 }: {
   label: string
   value: string
   onSave: (text: string) => void
   width?: string
   inputMode?: 'decimal' | 'numeric'
+  placeholder?: string
 }) {
   const [draft, setDraft] = useState<string | null>(null)
   return (
@@ -745,6 +934,7 @@ function SavedInput({
       aria-label={label}
       value={draft ?? value}
       inputMode={inputMode}
+      placeholder={placeholder}
       maxLength={200}
       onFocus={() => setDraft(value)}
       onChange={(e) => setDraft(e.target.value)}
@@ -763,9 +953,18 @@ function parseAmount(text: string) {
   return text && Number.isFinite(n) && n > 0 ? n : null
 }
 
+// One instruction per line, empty lines left out.
+function parseInstructions(text: string) {
+  return text
+    .split('\n')
+    .map((t) => t.trim().slice(0, 500))
+    .filter(Boolean)
+    .slice(0, MAX_STEP_INSTRUCTIONS)
+}
+
 const amountText = (n: number | null) => (n === null ? '' : String(n).replace('.', ','))
 
-const newIngredient: Ingredient = { text: 'ny ingrediens', grams: null, pieces: null, measure: '' }
+const newIngredient: Ingredient = { text: 'ny ingrediens', grams: null, measure: '' }
 
 // A Recipe edited as a form: servings, then each step's Ingredient rows and text, each
 // saved as you leave it. Steps can be added anywhere and removed, but not moved.
@@ -795,7 +994,7 @@ function RecipeEditor({ weekId, recipe }: { weekId: string; recipe: StoredRecipe
   const addStep = (at: number, label: string) =>
     canAddStep && (
       <button
-        onClick={() => saveSteps((steps) => steps.toSpliced(at, 0, { ingredients: [], text: '' }))}
+        onClick={() => saveSteps((steps) => steps.toSpliced(at, 0, { ingredients: [], instructions: [] }))}
         aria-label={label}
         style={{ ...smallButtonStyle, alignSelf: 'flex-start' }}
       >
@@ -843,20 +1042,15 @@ function RecipeEditor({ weekId, recipe }: { weekId: string; recipe: StoredRecipe
                 label="Gram"
                 value={amountText(ing.grams)}
                 inputMode="decimal"
-                width="4rem"
+                placeholder="g"
+                width="3.5rem"
                 onSave={(text) => setIngredient(i, k, { grams: parseAmount(text) })}
-              />
-              <SavedInput
-                label="Stk"
-                value={amountText(ing.pieces)}
-                inputMode="decimal"
-                width="3rem"
-                onSave={(text) => setIngredient(i, k, { pieces: parseAmount(text) })}
               />
               <SavedInput
                 label="Mål"
                 value={ing.measure}
-                width="5rem"
+                placeholder="mål"
+                width="5.5rem"
                 onSave={(measure) => setIngredient(i, k, { measure })}
               />
               <SavedInput
@@ -883,10 +1077,11 @@ function RecipeEditor({ weekId, recipe }: { weekId: string; recipe: StoredRecipe
           )}
           <SavedText
             label={`Fremgangsmåte steg ${i + 1}`}
-            value={step.text}
-            rows={Math.max(2, step.text.split('\n').length)}
-            maxLength={2000}
-            onSave={(text) => setStep(i, (s) => ({ ...s, text: text.trim() }))}
+            value={step.instructions.join('\n')}
+            rows={Math.max(2, step.instructions.length)}
+            maxLength={5000}
+            placeholder="Én instruksjon per linje"
+            onSave={(text) => setStep(i, (s) => ({ ...s, instructions: parseInstructions(text) }))}
           />
           {addStep(i + 1, `Nytt steg etter steg ${i + 1}`)}
         </div>

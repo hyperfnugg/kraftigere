@@ -7,6 +7,7 @@ import {
   MAX_COURSES,
   MAX_STEPS,
   MAX_STEP_INGREDIENTS,
+  MAX_STEP_INSTRUCTIONS,
   type Day,
   type Ingredient,
   type Menu,
@@ -164,11 +165,12 @@ export async function makeRecipe(
     'Du skriver en oppskrift på én rett til en familiemiddag.',
     'Skriv på norsk bokmål.',
     'Finn antall porsjoner ut fra føringene og notatene: hvem som spiser den dagen.',
-    'Oppskriften er en liste med steg i den rekkefølgen de gjøres. Hvert steg har ingrediensene som brukes i det steget og en kort, konkret fremgangsmåte for steget, med temperatur og tid der det trengs.',
-    'En ingrediens står i steget der den brukes. Brukes den i flere steg, står den i hvert av dem med mengden som brukes der. Et steg kan være uten ingredienser, for eksempel når noe skal hvile.',
+    'Oppskriften er satt opp som i Modernist Cuisine: en liste med steg i den rekkefølgen de gjøres. Hvert steg er en gruppe ingredienser som tas i bruk sammen, med én eller flere korte instruksjoner for dem.',
+    'Hver instruksjon er én handling i en setning eller to, konkret, med temperatur og tid der det trengs, for eksempel "Hakk løken fint." og "Stek på middels varme til den er myk, ca. 5 min."',
+    'En ingrediens står i steget der den brukes. Brukes den i flere steg, står den i hvert av dem med mengden som brukes der. Et steg kan være uten ingredienser, for eksempel når noe skal hvile eller serveres.',
     'Oppgi mengden i gram for alt som har en mengde, også det som telles eller måles med skje, anslått (1 egg er omtrent 60 g, 1 ts salt omtrent 6 g). La gram stå tomt bare for det som er etter smak.',
-    'For det som kjøpes per stykk, som egg, løk, paprika og sitron, oppgi også antall stykk. Hvitløk kjøpes som hele hoder, så fedd er et kjøkkenmål, ikke stykk.',
     'Et kjøkkenmål er fritekst som "2 dl", "1 ss", "en klype", "2 fedd" eller "etter smak". Ta det med bare når det hjelper på kjøkkenet, og la det stå tomt når gram holder, som for kjøttdeig.',
+    'For det som kjøpes per stykk, som egg, løk, paprika og sitron, er kjøkkenmålet antallet, som "2 stk". Hvitløk kjøpes som hele hoder, så hvitløk måles i fedd, ikke stk.',
     'Skriv hver ingrediens slik at det går fram hvor streng den er, for eksempel "helmelk" eller "melk, hvilken som helst".',
     contextPrompt(context),
     `Middagen ${DAY_NAMES[dish.day].toLowerCase()}: ${dish.meal.join(' + ')}`,
@@ -192,12 +194,11 @@ export async function makeRecipe(
                   properties: {
                     text: Schema.string({ description: 'Hva som trengs' }),
                     grams: Schema.number({ nullable: true, description: 'Mengden i gram' }),
-                    pieces: Schema.number({ nullable: true, description: 'Antall stykk, for det som kjøpes per stykk' }),
                     measure: Schema.string({ description: 'Kjøkkenmål, eller tomt' }),
                   },
                 }),
               }),
-              text: Schema.string({ description: 'Fremgangsmåten for steget' }),
+              instructions: Schema.array({ items: Schema.string(), description: 'Korte instruksjoner, i rekkefølge' }),
             },
           }),
         }),
@@ -208,19 +209,21 @@ export async function makeRecipe(
     course: dish.course,
     servings: Math.min(50, Math.max(1, Math.round(Number(json.servings) || 4))),
     steps: (Array.isArray(json.steps) ? json.steps : [])
-      .map((s: { ingredients?: unknown; text?: unknown }) => ({
+      .map((s: { ingredients?: unknown; instructions?: unknown }) => ({
         ingredients: (Array.isArray(s.ingredients) ? s.ingredients : [])
           .map((i: Partial<Record<keyof Ingredient, unknown>>) => ({
             text: clean(i.text, 200),
             grams: quantity(i.grams),
-            pieces: quantity(i.pieces),
             measure: clean(i.measure, 50),
           }))
           .filter((i) => i.text)
           .slice(0, MAX_STEP_INGREDIENTS),
-        text: clean(s.text, 2000),
+        instructions: (Array.isArray(s.instructions) ? s.instructions : [])
+          .map((t) => clean(t, 500))
+          .filter(Boolean)
+          .slice(0, MAX_STEP_INSTRUCTIONS),
       }))
-      .filter((s) => s.text || s.ingredients.length > 0)
+      .filter((s) => s.instructions.length > 0 || s.ingredients.length > 0)
       .slice(0, MAX_STEPS),
   }
 }
@@ -295,7 +298,7 @@ function stapleFromWording(wording: string): Match {
 function stubRecipe(course: string, change?: { current: Recipe; instruction: string }): Recipe {
   if (change) {
     const [first, ...rest] = change.current.steps
-    const changed = { ingredients: first?.ingredients ?? [], text: `Stub: ${change.instruction}` }
+    const changed = { ingredients: first?.ingredients ?? [], instructions: [`Stub: ${change.instruction}`] }
     return { ...change.current, steps: [changed, ...rest] }
   }
   return {
@@ -304,12 +307,13 @@ function stubRecipe(course: string, change?: { current: Recipe; instruction: str
     steps: [
       {
         ingredients: [
-          { text: 'løk', grams: 200, pieces: 2, measure: '' },
-          { text: 'salt', grams: null, pieces: null, measure: 'etter smak' },
+          // A bare number is pieces.
+          { text: 'løk', grams: 200, measure: '2' },
+          { text: 'salt', grams: null, measure: 'etter smak' },
         ],
-        text: `Lag ${course.toLowerCase()}.`,
+        instructions: [`Lag ${course.toLowerCase()}.`],
       },
-      { ingredients: [], text: 'La det hvile.' },
+      { ingredients: [], instructions: ['La det hvile.', 'Server.'] },
     ],
   }
 }

@@ -1,8 +1,9 @@
 import { collection, doc, getDocs, serverTimestamp, writeBatch } from 'firebase/firestore'
 import type { Match } from './ai'
 import { type Staple, stapleId } from './entries'
+import { formatNumber, piecesOf } from './amounts'
 import { db } from './firebase'
-import { DAYS, type Day, type Ingredient, type StoredRecipe } from './weeks'
+import { DAYS, type Day, type StoredRecipe } from './weeks'
 
 export type Ware = { id: string; name: string }
 
@@ -19,7 +20,7 @@ export type Line = {
   match: Match
   name: string
   wordings: Wording[]
-  amounts: Pick<Ingredient, 'grams' | 'pieces'>[]
+  amounts: { grams: number | null; pieces: number | null }[]
   days: Day[]
 }
 
@@ -69,7 +70,7 @@ export function makeLines(
     const existing = match.kind === 'ware' ? wares.find((w) => w.id === id) : staples.find((s) => s.id === id)
     const line = lines.get(key) ?? { key, match, name: existing?.name ?? match.name, wordings: [], amounts: [], days: [] }
     if (!line.wordings.some((w) => w.key === ing.key)) line.wordings.push({ key: ing.key, text: ing.text })
-    line.amounts.push({ grams: ing.grams, pieces: ing.pieces })
+    line.amounts.push({ grams: ing.grams, pieces: piecesOf(ing.measure) })
     if (!line.days.includes(ing.day)) line.days.push(ing.day)
     lines.set(key, line)
   }
@@ -82,9 +83,6 @@ export function makeLines(
 export function startsTicked(line: Line, staples: Staple[]) {
   return !(line.match.kind === 'staple' && staples.find((s) => s.id === stapleId(line.match.name))?.usuallyAtHome)
 }
-
-// "1,5" for 1.5, to two decimals.
-export const formatNumber = (n: number) => String(Math.round(n * 100) / 100).replace('.', ',')
 
 // Grams added up, with pieces in parentheses when there are any: "360 g (6 stk)".
 // Amounts "etter smak" are left out.

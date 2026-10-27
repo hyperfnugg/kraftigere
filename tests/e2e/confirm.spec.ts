@@ -91,6 +91,7 @@ test('after Iverksett only the Recipes are edited, by hand, and Groceries stays 
   await page.getByRole('button', { name: 'Taco', exact: true }).click()
   const view = page.getByRole('dialog', { name: 'Taco' })
   await expect(view.getByRole('textbox', { name: 'Endring i oppskriften Taco' })).toHaveCount(0)
+  await view.getByRole('button', { name: 'Rediger' }).click()
   const amount = view.getByRole('group', { name: 'Ingrediens løk' }).getByRole('textbox', { name: 'Gram' })
   await amount.fill('999')
   await amount.blur()

@@ -450,7 +450,7 @@ describe('/weeks/{week}/recipes', () => {
   const made = (fields: object = {}) => ({
     course: 'Taco',
     servings: 4,
-    steps: [{ ingredients: [{ text: 'kjøttdeig', grams: 400, pieces: null, measure: '' }], text: 'Stek kjøttet.' }],
+    steps: [{ ingredients: [{ text: 'kjøttdeig', grams: 400, measure: '' }], instructions: ['Stek kjøttet.'] }],
     madeAt: serverTimestamp(),
     ...fields,
   })
@@ -480,7 +480,7 @@ describe('/weeks/{week}/recipes', () => {
     await assertFails(setDoc(recipe(member()), made({ servings: 0 })))
     await assertFails(setDoc(recipe(member()), made({ servings: 2.5 })))
     await assertFails(setDoc(recipe(member()), made({ steps: 'Stek kjøttet.' })))
-    await assertFails(setDoc(recipe(member()), made({ steps: Array(31).fill({ ingredients: [], text: 'x' }) })))
+    await assertFails(setDoc(recipe(member()), made({ steps: Array(31).fill({ ingredients: [], instructions: ['x'] }) })))
     await assertFails(setDoc(recipe(member()), made({ ingredients: [] })))
     await assertFails(setDoc(recipe(member()), made({ rating: 5 })))
     await assertFails(setDoc(recipe(member()), made({ madeAt: clientTime })))

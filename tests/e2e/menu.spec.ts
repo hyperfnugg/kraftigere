@@ -61,6 +61,7 @@ test('a Recipe opens full screen from its day, and hand edits stay', async ({ pa
   await page.getByText('Tirsdag').click()
   const view = page.getByRole('dialog', { name: 'Taco' })
   await expect(view.getByRole('heading', { name: 'Taco' })).toBeVisible()
+  await view.getByRole('button', { name: 'Rediger' }).click()
   await expect(view.getByRole('textbox', { name: 'Porsjoner' })).toHaveValue('4')
   await expect(view.getByRole('textbox', { name: 'Fremgangsmåte steg 1' })).toHaveValue('Lag taco.')
   const amount = view.getByRole('group', { name: 'Ingrediens løk' }).getByRole('textbox', { name: 'Gram' })
@@ -79,6 +80,7 @@ test('a Recipe opens full screen from its day, and hand edits stay', async ({ pa
   await page.reload()
   await openTab(page, 'Middag')
   await page.getByRole('button', { name: 'Taco', exact: true }).click()
+  await view.getByRole('button', { name: 'Rediger' }).click()
   await expect(amount).toHaveValue('350')
 })
 
@@ -88,12 +90,13 @@ test('a Recipe step is inserted in the middle with its own Ingredients, and a st
   const view = page.getByRole('dialog', { name: 'Taco' })
   const step = (n: number) => view.getByRole('group', { name: `Steg ${n}`, exact: true })
   const text = (n: number) => view.getByRole('textbox', { name: `Fremgangsmåte steg ${n}` })
+  await view.getByRole('button', { name: 'Rediger' }).click()
   await expect(view.getByRole('group', { name: /^Steg \d+$/ })).toHaveCount(2)
 
   await view.getByRole('button', { name: 'Nytt steg etter steg 1' }).click()
   await expect(view.getByRole('group', { name: /^Steg \d+$/ })).toHaveCount(3)
   await expect(text(2)).toHaveValue('')
-  await expect(text(3)).toHaveValue('La det hvile.')
+  await expect(text(3)).toHaveValue('La det hvile.\nServer.')
   await text(2).fill('Hakk hvitløken.')
   await text(2).blur()
 
@@ -112,6 +115,7 @@ test('a Recipe step is inserted in the middle with its own Ingredients, and a st
   await page.reload()
   await openTab(page, 'Middag')
   await page.getByRole('button', { name: 'Taco', exact: true }).click()
+  await view.getByRole('button', { name: 'Rediger' }).click()
   await expect(text(2)).toHaveValue('Hakk hvitløken.')
   await expect(garlic.getByRole('textbox', { name: 'Gram' })).toHaveValue('10')
 })
