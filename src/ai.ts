@@ -172,6 +172,7 @@ export async function makeRecipe(
     'Et kjøkkenmål er fritekst som "2 dl", "1 ss", "en klype", "2 fedd" eller "etter smak". Ta det med bare når det hjelper på kjøkkenet, og la det stå tomt når gram holder, som for kjøttdeig.',
     'For det som kjøpes per stykk, som egg, løk, paprika og sitron, er kjøkkenmålet antallet, som "2 stk". Hvitløk kjøpes som hele hoder, så hvitløk måles i fedd, ikke stk.',
     'Skriv hver ingrediens slik at det går fram hvor streng den er, for eksempel "helmelk" eller "melk, hvilken som helst".',
+    INGREDIENT_ORDER,
     contextPrompt(context),
     `Middagen ${DAY_NAMES[dish.day].toLowerCase()}: ${dish.meal.join(' + ')}`,
     `Retten: ${dish.course}`,
@@ -228,6 +229,10 @@ export async function makeRecipe(
   }
 }
 
+// The thing comes first, so names read quickly and sort together on the shopping list.
+const INGREDIENT_ORDER =
+  'Skriv det viktigste ordet først og det som beskriver det etter komma: "løk, gul", "paprika, rød", "tomater, hakkede, hermetiske". Navn som hører sammen beholder rekkefølgen sin, som "panna cotta", "crème fraîche" og "spaghetti nr. 5", og det gjør sammensatte ord som "helmelk" også.'
+
 // A positive number, or none.
 const quantity = (n: unknown) => (typeof n === 'number' && Number.isFinite(n) && n > 0 ? n : null)
 
@@ -245,6 +250,7 @@ export async function makeMatches(wordings: string[], family: { staples: string[
     '- En basisvare er noe familien pleier å kjøpe, der det de vanligvis kjøper holder, for eksempel "melk", "løk" eller "salt". Ingredienser som "melk, hvilken som helst" er basisvarer.',
     '- En vare er akkurat det oppskriften trenger, når ingrediensen sier hvilken type, for eksempel "helmelk" eller "spaghetti nr. 5".',
     'Bruk en av familiens basisvarer eller varer når en passer, med nøyaktig samme navn. Ellers foreslå et kort navn på norsk bokmål, slik en familie ville sagt det, med liten forbokstav.',
+    INGREDIENT_ORDER,
     `Familiens basisvarer: ${family.staples.join(', ') || '(ingen)'}`,
     `Familiens varer: ${family.wares.join(', ') || '(ingen)'}`,
     `Ingredienser, svar i samme rekkefølge:\n${wordings.map((w) => `- ${w}`).join('\n')}`,
