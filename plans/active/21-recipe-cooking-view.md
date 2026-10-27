@@ -40,8 +40,8 @@ Twenty-first milestone: the Recipe screen becomes something to cook from, in the
 - [x] **Wake Lock.**
 - [x] **Tests** for the cooking view at both widths. The Wake Lock isn't tested: headless Chromium has no screen to keep on.
 - [x] **Commit: Recipe cooking view.** *(manual)* (user-visible)
-- [ ] **Glossary (Recipe, Ingredient, a new Step), vision and README.**
-- [ ] **Commit: Recipe cooking view docs.** *(auto)*
+- [x] **Glossary (Recipe, Ingredient, a new Step), vision and README.**
+- [x] **Commit: Recipe cooking view docs.** *(auto)*
 - [ ] **Try 3–4 dishes with the real AI on the dev server**, and add the `draft` field if Ingredients land on the wrong steps or go missing. In the feedback session. *(user)*
 - [ ] **Try cooking a real dinner from the tablet.** *(user)*
 - [ ] **Move plan to `plans/done/`.** `git mv plans/active/21-recipe-cooking-view.md plans/done/21-recipe-cooking-view.md`, and remove it from **Now** in `ROADMAP.md`.

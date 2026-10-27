@@ -10,12 +10,12 @@ Home ──types "melk"──▶ Staple "melk" ──prefers──▶ Ware "Tine
                          ▼
                   Entry "melk" (hand-added)
 
-Week ─▶ Menu ─▶ Meal ─▶ Recipe ─▶ Ingredient "300 ml whole milk" ──matched──▶ Ware "Tine helmelk 1 l"
-                                  Ingredient "5 dl milk, any"    ──matched──▶ Staple "melk"
-                                         │
-                                    Confirm
-                                         ▼
-                                  Entry "helmelk 3 dl · Fri" (Menu Entry)
+Week ─▶ Menu ─▶ Meal ─▶ Recipe ─▶ Step ─▶ Ingredient "300 ml whole milk" ──matched──▶ Ware "Tine helmelk 1 l"
+                                           Ingredient "5 dl milk, any"    ──matched──▶ Staple "melk"
+                                                  │
+                                             Confirm
+                                                  ▼
+                                           Entry "helmelk 3 dl · Fri" (Menu Entry)
 ```
 
 Three different things are easy to confuse here:
@@ -70,7 +70,7 @@ One week at a time. A Family Member goes through these stages, and the AI does t
   > Monday: Mary's parents visit, 3 courses, 1.5 hours prep.
   > Wednesday: Peter is away.
 - **Menu.** The AI names a Meal, dinner, one dish for each day, as soon as the week is this week or next, so it's just there. The Family Member taps a day to change its Note or dish, or asks the AI for a new dish for it (↻).
-- **Recipes.** When the days look right, "Lag oppskrifter" has the AI write every Recipe at once. That happens once: afterwards the days are no longer edited from the Menu, and a Recipe is remade from its own screen. Ingredient amounts are in grams unless stated otherwise. The Family Member reads a Recipe full screen while cooking, and edits it directly or instructs the AI ("steam the strawberries, don't boil them").
+- **Recipes.** When the days look right, "Lag oppskrifter" has the AI write every Recipe at once. That happens once: afterwards the days are no longer edited from the Menu, and a Recipe is remade from its own screen. A Recipe is Steps, as in Modernist Cuisine: each Step's Ingredients beside its short instructions. Amounts are in grams, with a kitchen measure ("2 dl", "2 stk") where it helps. The Family Member cooks from a horizontal tablet, where the Recipe is a table that keeps the screen awake, or from a phone, where the Steps stack. They edit it by hand behind "Rediger", or instruct the AI ("steam the strawberries, don't boil them").
 - **Confirm.** Ingredients go to Groceries (below).
 
 ### Outdated
@@ -80,7 +80,7 @@ When the Guidelines change after a Menu exists, the Menu becomes **Outdated**. A
 ### Confirm
 
 - Each Ingredient is matched to a **Ware** (the Recipe needs exactly this) or a **Staple** (whatever the Family usually buys will do). The AI proposes matches, the Family Member corrects them, and the Family's matches are remembered for later weeks. Speciality items (a particular pasta) match a Ware of their own, and everyday ones (salt, oil, milk for pancakes) match Staples.
-- All of a week's Ingredients matched to the same Ware or Staple become one **Menu Entry**, showing the summed amount and the days it serves: "helmelk 3 dl · Fri". In the store, the shopper picks packs from what's on the shelf.
+- All of a week's Ingredients matched to the same Ware or Staple become one **Menu Entry**, showing the summed grams, stk where there are pieces, and the days it serves: "egg 360 g (6 stk) · Fri". In the store, the shopper picks packs from what's on the shelf.
 - Menu Entries are marked as such and never merge with hand-added Entries, even for the same Staple.
 - A week is Confirmed once. Afterwards its Menu and Recipes can still be edited by hand, but without the AI, and the edits don't change Groceries.
 

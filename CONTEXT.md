@@ -87,12 +87,17 @@ _UI_: "middag"
 _Avoid_: Dinner, dish
 
 **Recipe**:
-How to cook one course of a Meal, including its Ingredients.
+How to cook one course of a Meal, as Steps, for a number of servings.
 _UI_: "Oppskrift"
 _Avoid_: Dish
 
+**Step**:
+One part of a Recipe, as in Modernist Cuisine: the Ingredients used together, and short instructions for them. Instructions are numbered across the Recipe; Steps aren't numbered. A Step may have no Ingredients, and an Ingredient used in two Steps is in both.
+_UI_: none (Steps are separated by rules; "+ steg" when editing)
+_Avoid_: Stage, section
+
 **Ingredient**:
-One line of a Recipe saying what is needed and how much, worded to say how strict the need is ("whole milk" versus "milk, any"). At Confirm each Ingredient is matched either to a Ware, when the Recipe needs exactly that, or to a Staple, when whatever the Family usually buys will do. The Family's matches are remembered.
+One line of a Step saying what is needed and how much: grams first, and a kitchen measure ("2 dl", "en klype") where it helps. A measure that's a count ("2 stk", or just "2") is pieces. It is worded to say how strict the need is ("whole milk" versus "milk, any"). At Confirm each Ingredient is matched either to a Ware, when the Recipe needs exactly that, or to a Staple, when whatever the Family usually buys will do. The Family's matches are remembered.
 _UI_: "Ingrediens"
 _Avoid_: Grocery, item
 
@@ -102,7 +107,7 @@ _UI_: "Iverksett"
 _Avoid_: Commit, submit, finalize
 
 **Menu Entry**:
-An Entry on Groceries that Confirm made from a week's Ingredients: one per Ware or Staple the week needs, with the summed amount and the days it serves, such as "helmelk 3 dl · fre". It never merges with hand-added Entries, has no Note, and doesn't count toward its Staple's adds. Like any Entry it can be checked off and Removed.
+An Entry on Groceries that Confirm made from a week's Ingredients: one per Ware or Staple the week needs, with the summed grams, stk where there are pieces, and the days it serves, such as "egg 360 g (6 stk) · fre". It never merges with hand-added Entries, has no Note, and doesn't count toward its Staple's adds. Like any Entry it can be checked off and Removed.
 _UI_: not named; shown with its amount and days
 _Avoid_: Ingredient Entry, recipe item
 

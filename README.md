@@ -16,7 +16,7 @@
 - Add an Entry, check it off, uncheck it, remove it.
 - Changes appear on other phones within a few seconds.
 - Installs to the home screen and works offline; changes sync when back online.
-- Dinner for this week and next: Gemini names a dish for each day from the Family's Guidelines and Day Notes, and writes the Recipes when the Family asks. The Family adjusts the days, edits Recipes by hand or by instructing Gemini, and cooks from them.
+- Dinner for this week and next: Gemini names a dish for each day from the Family's Guidelines and Day Notes, and writes the Recipes when the Family asks. The Family adjusts the days, edits Recipes by hand or by instructing Gemini, and cooks from them: a Modernist Cuisine-style table of Steps on a tablet, stacked on a phone.
 - Iverksett sends a week's Ingredients to the shopping List, one line per Ware or Staple with summed amounts and days, leaving out what's at home. Gemini matches Ingredients, and the Family's corrections are remembered.
 
 ## Stack
