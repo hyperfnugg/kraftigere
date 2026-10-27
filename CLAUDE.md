@@ -7,6 +7,7 @@ Multi-step work lives in `plans/active/<NN>-<kebab-name>.md`, where `<NN>` is th
 - **Read the plan at the start of a session** and do not preload plans you aren't working on.
 - **Steps are checkboxes** (`- [ ]` / `- [x]`). Tick each step off as it lands. Steps must use `- [ ]` bullet form, not numbered lists (GitHub only renders checkboxes on bullets).
 - **Plans are living documents.** Add, remove, rewrite, or resplit steps as understanding changes — the plan reflects current reality, not original intent. Don't preserve obsolete steps just because they were written down.
+- **Rapid feedback before tests.** For user-visible work, the plan has a `*(user)*` step "Try it on the dev server" before the step that writes and runs the tests. Claude starts `npm run dev` (or uses the one already running), says what to look at, and iterates on feedback there. Tests come once it feels right, since a full run takes minutes. In AFK mode (the user says they're away), skip that step, note it in the plan, and go straight to the tests.
 - **Commits are per-step or per-coherent-chunk**, not one commit per plan. A plan will typically span several commits.
 - **When the plan is complete**, `git mv plans/active/<name>.md plans/done/<name>.md` in its own commit (or bundled with the final step if small).
 - One plan per milestone. Don't accumulate tiny TODOs here — those belong in conversation or a commit.

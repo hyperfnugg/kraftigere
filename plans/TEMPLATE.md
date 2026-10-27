@@ -32,7 +32,8 @@
 Commit cadence: roughly one commit per coherent chunk (1–2 prompts). Default commit policy is *(auto)*; use *(manual)* for CI, auth, security rules, or anything that wants review.>
 
 - [ ] **<Work step>** <details>
-- [ ] **<Work step>** <details>
+- [ ] **Try it on the dev server**, iterating on feedback. Skipped in AFK mode. *(user)*
+- [ ] **Tests** for <work step>.
 - [ ] **Commit: <summary of what landed>** *(auto)*
 - [ ] **<User-owned step>** <details> *(user)*
 - [ ] **<Work step with CI/security implications>** <details>
