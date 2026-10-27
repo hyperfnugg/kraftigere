@@ -23,9 +23,9 @@ Twenty-second milestone. Groceries gets one Entry per Ware, whether it was added
 
 ## Steps
 
-- [ ] **Glossary and vision.** In `CONTEXT.md`: Ware as anything the Family buys, Staple as a hand-added Ware, Entry with Note and dishes, Menu Entry removed. In `docs/vision/groceries-and-meals.md`: the model picture, "Three different things" and Confirm say one Entry per Ware, strictness stays in the Recipe, and an Oda article belongs to one Ware.
-- [ ] **Commit: glossary and vision for one Entry per Ware.** *(auto)*
-- [ ] **Wares replace Staples in data, rules and code.** `/wares/{id}` with `name`, `addCount`, `lastAddedAt`, `usuallyAtHome`. `/matches` point to a Ware. An Entry is `text`, `ware`, `checked`, optional `note`, optional `dishes` (`week`, `recipe`, `course`, `grams`, `pieces`). `staples`, and Entries' `staple`, `week`, `days` and `amount`, go. Rules and rules tests, the seed, hand-adding and autocomplete on Wares, and Iverksett matching to Wares only (prompt, stub, the screen's rematch) and writing dishes. The List shows the summed amount inline until the 🍽 step.
+- [x] **Glossary and vision.** In `CONTEXT.md`: Ware as anything the Family buys, Staple as a hand-added Ware, Entry with Note and dishes, Menu Entry removed. In `docs/vision/groceries-and-meals.md`: the model picture, "Three different things" and Confirm say one Entry per Ware, strictness stays in the Recipe, and an Oda article belongs to one Ware.
+- [x] **Commit: glossary and vision for one Entry per Ware.** *(auto)*
+- [ ] **Wares replace Staples in data, rules and code.** `/wares/{id}` with `name`, `addCount`, `lastAddedAt`, `usuallyAtHome`. `/matches` point to a Ware. An Entry is `text`, `ware`, `checked`, optional `note`, optional `dishes` (`week`, `recipe`, `course`, `grams`, `pieces`). `staples`, and Entries' `staple`, `week`, `days` and `amount`, go. Rules and rules tests, the seed, hand-adding and autocomplete on Wares, and Iverksett matching to Wares only (prompt, stub, the screen's rematch) and writing dishes. The List shows the summed amount inline until the 🍽 step. README's Iverksett line.
 - [ ] **One Entry per Ware.** Hand-adding and Iverksett add to a waiting Entry, replace a checked one, and a hand-added waiting Ware opens its Note. Iverksett hides lines whose Ware is waiting and adds their dishes. The Note opens on every Entry.
 - [ ] **🍽 and the dishes popup** on Hjem and Handle, each dish opening its Recipe in Middag.
 - [ ] **Try it on the dev server**, iterating on feedback. Skipped in AFK mode. *(user)*

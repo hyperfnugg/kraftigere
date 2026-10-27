@@ -5,40 +5,37 @@ Where Groceries, meal planning and Oda are heading, and how they connect. This i
 ## The model in one picture
 
 ```
-Home ──types "melk"──▶ Staple "melk" ──prefers──▶ Ware "Tine helmelk 1 l"
-                         │                └─accepts──▶ Ware "Tine lettmelk 1 l"  (Substitute)
+Home ──types "melk"──▶ Ware "melk" (a Staple) ──accepts──▶ Ware "lettmelk" (Substitute)
+                         │
                          ▼
-                  Entry "melk" (hand-added)
-
-Week ─▶ Menu ─▶ Meal ─▶ Recipe ─▶ Step ─▶ Ingredient "300 ml whole milk" ──matched──▶ Ware "Tine helmelk 1 l"
-                                           Ingredient "5 dl milk, any"    ──matched──▶ Staple "melk"
-                                                  │
-                                             Confirm
-                                                  ▼
-                                           Entry "helmelk 3 dl · Fri" (Menu Entry)
+                  Entry "melk · mye · 🍽 500 g" ──🍽──▶ Sufflé
+                         ▲
+                      Confirm
+                         │
+Week ─▶ Menu ─▶ Meal ─▶ Recipe "Sufflé" ─▶ Step ─▶ Ingredient "helmelk 500 g" ──matched──▶ Ware "melk"
 ```
 
 Three different things are easy to confuse here:
 
-- **Staple**: what the Family keeps buying, named how they say it ("melk"). It says what will do.
-- **Ingredient**: what a Recipe needs ("300 ml whole milk"). Its wording says how strict the need is.
-- **Ware**: the specific thing in the basket ("Tine helmelk 1 l").
+- **Ware**: anything the Family buys, named how they say it ("melk"). Later an Oda article belongs to exactly one Ware.
+- **Staple**: a Ware the Family has added by hand. It carries what comes from knowing it well: how often it's added, whether it's usually at home, its Substitutes.
+- **Ingredient**: what a Recipe needs ("helmelk 500 g"). Its wording says how strict the need is.
 
-Staples and Ingredients point to Wares. The soufflé's whole milk and the fridge's "melk" can point to the same Ware and still be different needs: one accepts lettmelk, the other doesn't. That's why they stay separate Entries.
+The soufflé's helmelk and the fridge's "melk" are one Entry, for the Ware "melk". The strictness stays in the Recipe: 🍽 lists the dishes behind an Entry, so the shopper, or later the AI filling an Oda basket, reads from the soufflé that this milk must be whole.
 
 ## Groceries
 
 Today's List becomes the Groceries List. Examples: "melk", "bleier", "epler", "sukker".
 
-- **Adding.** Typing shows autocomplete over the Family's Staples, ranked by both text match and how often each Staple is added, with recent adds weighted more. Picking a Staple adds an Entry for it. Text that matches no Staple creates a new Staple with only a name. A Ware can be attached later.
+- **Adding.** Typing shows autocomplete over the Family's Staples, ranked by both text match and how often each Staple is added, with recent adds weighted more. Picking a Staple adds an Entry for it. Text that matches no Staple creates a new Ware, which is then a Staple. A Ware is on the List at most once: adding one that's waiting opens its Entry's Note instead, and adding one that's Checked replaces that Entry with a new one.
 - **Fast autocomplete.** The lookup must feel instant, so the app keeps the Staples and their frequencies locally and refreshes them lazily.
-- **Note.** A hand-added Entry has an optional free-text Note, usually empty ("I'm out of eggs, buy lots", "the lactose-free one").
+- **Note.** Every Entry has an optional free-text Note, usually empty ("I'm out of eggs, buy lots", "the lactose-free one").
 - **Checking off.** A Checked Entry stays on the List, greyed out, so the shopper can see what's done. "Remove checked" removes all of them at once. Fifteen minutes after the most recent check-off on Groceries, all Checked Entries are removed automatically. Unchecking doesn't restart the timer. Something found at home is just checked off.
-- **History.** History lives on Staples, so removing Entries loses nothing.
+- **History.** History lives on Wares, so removing Entries loses nothing.
 
 ### Later
 
-- **Aliases and merging.** "melk" and "mjølk" become one Staple, with frequencies and Wares combined.
+- **Aliases and merging.** "melk" and "mjølk" become one Ware, with frequencies combined. An Oda article belongs to exactly one Ware, which helps find duplicates.
 - **More on Wares.** Oda reference, price, nutrition.
 - **Store-walk order in Shop.** This needs each Ware's place in a particular store, which is a design of its own.
 
@@ -79,24 +76,24 @@ When the Guidelines change after a Menu exists, the Menu becomes **Outdated**. A
 
 ### Confirm
 
-- Each Ingredient is matched to a **Ware** (the Recipe needs exactly this) or a **Staple** (whatever the Family usually buys will do). The AI proposes matches, the Family Member corrects them, and the Family's matches are remembered for later weeks. Speciality items (a particular pasta) match a Ware of their own, and everyday ones (salt, oil, milk for pancakes) match Staples.
-- All of a week's Ingredients matched to the same Ware or Staple become one **Menu Entry**, showing the summed grams, stk where there are pieces, and the days it serves: "egg 360 g (6 stk) · Fri". In the store, the shopper picks packs from what's on the shelf.
-- Menu Entries are marked as such and never merge with hand-added Entries, even for the same Staple.
+- Each Ingredient is matched to the most general **Ware** the Family has that fits: "helmelk" to "melk". The AI proposes matches, the Family Member corrects them, and the Family's matches are remembered for later weeks. Duplicate Wares are cleaned up as they show up.
+- The Confirm screen shows one line per Ware with its summed grams, stk where there are pieces, and days: "egg 360 g (6 stk) · fre". An unticked line is at home, and its Ware is remembered as usually at home. A Ware already waiting on the List isn't shown.
+- Each Ware's Entry gets the dishes that need it, with their grams and stk, and shows the sum: "egg · store · 🍽 360 g (6 stk)". 🍽 lists the dishes, each opening its Recipe. In the store, the shopper picks packs from what's on the shelf.
 - A week is Confirmed once. Afterwards its Menu and Recipes can still be edited by hand, but without the AI, and the edits don't change Groceries.
 
 ### Later
 
 #### Confirming again
 
-- Hand-added Entries are never touched.
-- Unchecked Menu Entries are brought up to date without asking: removed if no longer needed, amounts updated, new ones added.
-- Checked Menu Entries (bought, or ordered from Oda) stay as they are. If re-Confirm would change or remove any of them, a confirmation lists them first: "Already bought: venison, no longer needed."
+- Only the week's dishes on Entries change. Notes, and Entries the Family added by hand, are kept.
+- Unchecked Entries are brought up to date without asking: dishes removed if no longer needed, amounts updated, new ones added.
+- Checked Entries (bought, or ordered from Oda) stay as they are. If re-Confirm would change or remove any of them, a confirmation lists them first: "Already bought: venison, no longer needed."
 
 ## Ordering from Oda (parked)
 
 - **Kraft only fills the basket.** The Family Member places the order. Ordered Entries become Checked.
-- **Pack counts appear only here.** "3 × Tine helmelk 1 l". For Menu Entries the AI turns the summed amount into packs of the matched Ware. For hand-added Staples Kraft always asks the count, with a suggested amount.
-- **Choosing Oda products.** Picking means back and forth ("did you mean this one?" "No, this one: <url>"). What's settled is remembered on the Ware as its Oda reference. When a Ware is out of stock, Staple Entries fall back to the Staple's Substitutes. Ingredient Entries fall back only as far as the Ingredient's wording allows.
+- **Pack counts appear only here.** "3 × Tine helmelk 1 l". The AI turns an Entry's amount, Note and dishes into packs of the Ware's article. For an Entry with no dishes Kraft asks the count, with a suggested amount.
+- **Choosing Oda products.** Picking means back and forth ("did you mean this one?" "No, this one: <url>"). What's settled is remembered on the Ware as its Oda reference. When a Ware is out of stock, it falls back to its Substitutes, but only as far as its dishes' Ingredients allow.
 - **Prerequisites.** Staples, Wares and Confirm must exist first.
 - **Technical route: open.** Candidates: Oda's MCP server (https://oda.com/mcp), https://kassal.app/api with keys stored on the device, a browser extension, or a native app on Firestore. Picking one is research for when the work starts.
 

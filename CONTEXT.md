@@ -22,18 +22,18 @@ A List Kind that is a kind of shopping, for food and household goods bought agai
 _UI_: "Dagligvarer"
 _Avoid_: Food list
 
-**Staple**:
-Something the Family keeps buying, named the way they say it, such as "melk" or "bleier". A Staple has a name unique within the Family, remembers how often it is added, and names a preferred Ware and the Wares acceptable in its place. A Staple can exist before any Ware is attached to it. Every Entry added by hand to Groceries refers to a Staple.
-_UI_: "Basisvare"
-_Avoid_: Favourite, regular, item
-
 **Ware**:
-A specific thing that goes in the basket, such as 1.5 l whole milk, lasting beyond any one Entry. A Ware has a name unique within the Family. Whole and low fat milk are different Wares. A Ware is the Family's own idea of the thing, not a shop's product.
+Anything the Family buys, named the way they say it, such as "melk", "løk, gul" or "vinterjakke". It need not be groceries and may be bought only once. A Ware has a name unique within the Family and lasts beyond any one Entry. It is the Family's own idea of the thing, not a shop's product, though later an Oda article may belong to exactly one Ware.
 _UI_: "Vare"
 _Avoid_: Product, grocery, item, article
 
+**Staple**:
+A Ware the Family has added by hand, and so knows well. A Staple remembers how often it is added and whether it is usually at home, and later names its Substitutes. Autocomplete suggests Staples.
+_UI_: "Basisvare"
+_Avoid_: Favourite, regular, item
+
 **Substitute**:
-A Ware a Staple accepts when its preferred Ware isn't available.
+A Ware a Staple accepts when the Staple itself isn't available.
 _Avoid_: Alternative, replacement
 
 **Personal List**:
@@ -45,7 +45,7 @@ A saved List to start new Lists from, such as packing for a cabin trip. Creating
 _Avoid_: Preset, blueprint
 
 **Entry**:
-One line on a List.
+One line on a List. On Groceries an Entry is for one Ware, and a Ware has at most one Entry waiting: adding it again, by hand or at Confirm, adds to that Entry, and a Checked Entry for it is replaced by a new one. An Entry may have a Note and the dishes Confirm added it for.
 _UI_: not named; the add field asks "Hva trenger vi?" and its button says "Legg til"
 _Avoid_: Item, product, task
 
@@ -97,19 +97,14 @@ _UI_: none (Steps are separated by rules; "+ steg" when editing)
 _Avoid_: Stage, section
 
 **Ingredient**:
-One line of a Step saying what is needed and how much: grams first, and a kitchen measure ("2 dl", "en klype") where it helps. A measure that's a count ("2 stk", or just "2") is pieces. It is worded to say how strict the need is ("whole milk" versus "milk, any"). At Confirm each Ingredient is matched either to a Ware, when the Recipe needs exactly that, or to a Staple, when whatever the Family usually buys will do. The Family's matches are remembered.
+One line of a Step saying what is needed and how much: grams first, and a kitchen measure ("2 dl", "en klype") where it helps. A measure that's a count ("2 stk", or just "2") is pieces. It is worded to say how strict the need is ("helmelk" versus "melk, hvilken som helst"). At Confirm each Ingredient is matched to the most general Ware the Family has that fits ("helmelk" to "melk"), and the strictness stays in the Recipe. The Family's matches are remembered.
 _UI_: "Ingrediens"
 _Avoid_: Grocery, item
 
 **Confirm**:
-The moment a Family Member is done with a week's Recipes, which sends their Ingredients to Groceries as Menu Entries. It happens once per week. Afterwards the week can still be edited by hand, but without the AI, and the edits don't change Groceries.
+The moment a Family Member is done with a week's Recipes, which sends their Ingredients to Groceries: each Ware's Entry gets the dishes that need it, with their grams and stk. A Ware already waiting on the List isn't shown at Confirm; its dishes are just added. It happens once per week. Afterwards the week can still be edited by hand, but without the AI, and the edits don't change Groceries.
 _UI_: "Iverksett"
 _Avoid_: Commit, submit, finalize
-
-**Menu Entry**:
-An Entry on Groceries that Confirm made from a week's Ingredients: one per Ware or Staple the week needs, with the summed grams, stk where there are pieces, and the days it serves, such as "egg 360 g (6 stk) · fre". It never merges with hand-added Entries, has no Note, and doesn't count toward its Staple's adds. Like any Entry it can be checked off and Removed.
-_UI_: not named; shown with its amount and days
-_Avoid_: Ingredient Entry, recipe item
 
 **Outdated**:
 The state of a Menu whose Guidelines changed after it was made, or of a Recipe whose Guidelines, Day Note or own Meal changed after it was made. It stays as it is until a Family Member asks the AI to remake it, which loses their hand edits. A changed Day Note never changes the Meal itself.
