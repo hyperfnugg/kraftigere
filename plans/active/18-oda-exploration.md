@@ -26,8 +26,8 @@ Eighteenth milestone. Decide how Kraft fills an Oda basket from Groceries, by tr
 
 ## Steps
 
-- [ ] **Survey.** Use the `research` skill to collect what each route offers: auth, product search, basket API, terms of use, cost, and whether it can be called from a browser. Write the findings to `docs/research/oda-routes.md`. Mark routes that are clearly dead.
-- [ ] **Commit: Oda route survey.** *(auto)*
+- [x] **Survey.** Use the `research` skill to collect what each route offers: auth, product search, basket API, terms of use, cost, and whether it can be called from a browser. Write the findings to `docs/research/oda-routes.md`. Mark routes that are clearly dead.
+- [x] **Commit: Oda route survey.** *(auto)*
 - [ ] **Prototype the remaining routes,** one step each, rewritten after the survey. Each prototype lives outside `src/`, under `scratch/` (gitignored), and is deleted afterwards. Record what worked and what didn't in the research file. Never place an order: stop at a filled basket and empty it again. *(user signs in)*
 - [ ] **Commit: prototype findings.** *(auto)*
 - [ ] **ADR.** `docs/adr/0005-oda-route.md`: the chosen route and why, the options rejected, what a Ware needs to hold for Oda (an Oda reference? pack size?), and the security revisit from ADR 0004, since ordering spends money: App Check, a server, where keys live, who can fill the basket.
@@ -44,3 +44,4 @@ Eighteenth milestone. Decide how Kraft fills an Oda basket from Groceries, by tr
 ## Notes
 
 - 2026-10-23: Comes after Iverksett (plan 17), so Wares exist. If Ware's shape needs changing for Oda, a migration script handles it (ADR 0003). The Family has an Oda login.
+- 2026-10-28: Survey done (`docs/research/oda-routes.md`). Oda's MCP server is official (OAuth 2.1, PKCE, dynamic client registration) but sends no CORS headers, so the PWA can't call it or oda.com directly: the MCP client must be a server (Cloud Function, Blaze plan) or a native app. A browser extension works on desktop only. Kassalapp has Oda products and ids but no basket. The tool list, redirect URIs for registration and token lifetimes need the signed-in prototype.
