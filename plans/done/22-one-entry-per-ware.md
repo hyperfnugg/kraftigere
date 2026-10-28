@@ -31,14 +31,14 @@ Twenty-second milestone. Groceries gets one Entry per Ware, whether it was added
 - [x] **Try it on the dev server**, iterating on feedback. Skipped in AFK mode. *(user)*
 - [x] **Tests.** Unit tests for adding up dishes. e2e: a hand-added "egg" and Iverksett's egg are one Entry with its dishes popup linking the dish; a checked Entry is replaced; a waiting Ware is hidden at Iverksett; hand-adding a waiting Ware opens its Note.
 - [x] **Commit: one Entry per Ware.** *(manual)* (security rules and user-visible; review first)
-- [ ] **Deploy and live a real week.** Push, and deploy the rules and hosting. Then, with the checks folded in from plans 15–21: *(user)*
+- [x] **Deploy and live a real week.** Dropped: tested thoroughly locally instead; anything real cooking turns up is handled outside this plan. The checks folded in from plans 15–21 were: *(user)*
   - Read every screen on the phone, and check the installed app's name (15).
   - Write Føringer and plan next week. Check the Menu's speed on the phone; if it's slow, stream the Menu so days appear as they're written (16).
   - Old weeks with Week Notes still open, and this week and next fill in on their own (19).
   - Cook a real dinner from the tablet (21).
   - Iverksett the week and shop from it, with hand-added Entries alongside (17, 20, 22).
-- [ ] **Move plan to `plans/done/`.** `git mv plans/active/22-one-entry-per-ware.md plans/done/22-one-entry-per-ware.md`, and remove it from **Now** in `ROADMAP.md`.
-- [ ] **Commit: complete one Entry per Ware milestone.** *(auto)*
+- [x] **Move plan to `plans/done/`.** `git mv plans/active/22-one-entry-per-ware.md plans/done/22-one-entry-per-ware.md`, and remove it from **Now** in `ROADMAP.md`.
+- [x] **Commit: complete one Entry per Ware milestone.** *(auto)*
 
 ## Done when
 
@@ -51,3 +51,4 @@ Twenty-second milestone. Groceries gets one Entry per Ware, whether it was added
 
 - 2026-10-27: Decided in a grilling session. Wares rather than Staples are the shared entity, because Staples carry familiarity (preferred Substitutes, search hints) and can be from any shop, while Ingredients come from the grocery store and have other needs. Days and wordings stay off the List: the dish names lead to the Recipes, which keep the details. Several weeks on one Entry made an inline days display unreadable, hence the popup. Hidden lines at Iverksett get no correction for now.
 - 2026-10-27: Tried on the dev server with the real AI. Ware and Ingredient names became singular and thing-first, with qualifiers that don't change the purchase dropped. The grilled "most general Ware" rule was reversed: a Recipe's "melk, hel" keeps its own Ware, to preserve the Recipe's intent. "melk" and "melk, hel" merge only once the Staple "melk" points to an Oda article that is whole milk. The plate icon became a chef's hat.
+- 2026-10-28: Closed after thorough local testing, without the real-week step. Issues from real cooking are fixed outside the plan.

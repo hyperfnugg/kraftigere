@@ -5,7 +5,6 @@ Where Kraft is heading. It changes often. Ideas are one line each, cheap to add 
 ## Now
 
 - [Dependency maintenance](plans/active/05-dependency-maintenance.md)
-- [One Entry per Ware](plans/active/22-one-entry-per-ware.md): hand-added and Iverksett needs on one line, with the dishes behind a chef's hat.
 
 ## Next
 
