@@ -42,10 +42,10 @@ Twenty-first milestone: the Recipe screen becomes something to cook from, in the
 - [x] **Commit: Recipe cooking view.** *(manual)* (user-visible)
 - [x] **Glossary (Recipe, Ingredient, a new Step), vision and README.**
 - [x] **Commit: Recipe cooking view docs.** *(auto)*
-- [ ] **Try 3–4 dishes with the real AI on the dev server**, and add the `draft` field if Ingredients land on the wrong steps or go missing. In the feedback session. *(user)*
-- [ ] **Try cooking a real dinner from the tablet.** *(user)*
-- [ ] **Move plan to `plans/done/`.** `git mv plans/active/21-recipe-cooking-view.md plans/done/21-recipe-cooking-view.md`, and remove it from **Now** in `ROADMAP.md`.
-- [ ] **Commit: complete Recipe cooking view milestone.** *(auto)*
+- [x] **Try 3–4 dishes with the real AI on the dev server**, and add the `draft` field if Ingredients land on the wrong steps or go missing. In the feedback session. *(user)* Done 2026-10-27: the Steps looked right, so no `draft` field. Naming changes went into plan 22.
+- [x] **Try cooking a real dinner from the tablet.** *(user)* Moved to plan 22.
+- [x] **Move plan to `plans/done/`.** `git mv plans/active/21-recipe-cooking-view.md plans/done/21-recipe-cooking-view.md`, and remove it from **Now** in `ROADMAP.md`.
+- [x] **Commit: complete Recipe cooking view milestone.** *(auto)*
 
 ## Done when
 
@@ -61,3 +61,4 @@ Twenty-first milestone: the Recipe screen becomes something to cook from, in the
 - 2026-10-27: From the Colonel's Fried Chicken page in Modernist Cuisine: instructions are short numbered sub-steps beside the Ingredient rows, and the groups aren't numbered. A step's single text became a list of instructions.
 - 2026-10-27: The separate stk field didn't work in the edit form, so stk and the kitchen measure became one free-text field, and a regex reads pieces from it, a bare number included.
 - 2026-10-27: Tapping a step to grey it out was removed as cruft.
+- 2026-10-28: Closed. Its open real-world check moved to plan 22's "Deploy and live a real week", which covers plans 15–22 in one go.

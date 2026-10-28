@@ -49,16 +49,16 @@ Sixteenth milestone, and the first half of the AI-assisted meal planner. A Week 
 - [x] **Commit: Outdated Menus and Recipes.** *(manual)* (user-visible; review first)
 - [x] **ADR 0004 revisit.** Add a dated note to `docs/adr/0004-app-check-only-for-gemini.md`: revisited before the Menu. Føringer and Weeks get the same accepted risk as the List, and Oda is revisited in plan 18.
 - [x] **Commit: ADR 0004 revisited for meal data.** *(auto)*
-- [ ] **Deploy and plan a real week.** Push. Write Føringer, plan next week, cook at least one Recipe. Note what felt wrong. *(user)*
+- [x] **Deploy and plan a real week.** Push. Write Føringer, plan next week, cook at least one Recipe. Note what felt wrong. *(user)* Moved to plan 22.
 - [x] **Faster AI.** First real use: making the Menu takes about 5 minutes. Likely the model running away: course lists had no `maxItems`, so it can repeat items up to the output cap, and `makeMenu` silently cut each day to 4 courses. Give arrays `maxItems`, cap output tokens (4000 Menu, 8000 Recipe), time out after 60 s, and log how each call finished, with the cut-off answer on MAX_TOKENS. Also: Gemini 3.x Flash thinks by default, so set `thinkingLevel` to LOW (3.8 Flash refuses MINIMAL and can't turn thinking off). Load the AI SDK and App Check when Uke opens, not on the first tap. Log each call's time and thinking tokens to the console.
 - [x] **Commit: faster AI calls.** *(manual)* (changes what Gemini is called with)
 - [x] **Model that answers.** After the Faster AI commit, `gemini-3.8-flash` requests still hung until the 60 s timeout (the request reached Gemini; App Check was fine). Switch to `gemini-3.5-flash`, and stream so the log shows when the answer starts as well as ends.
 - [x] **Commit: switch to gemini-3.5-flash.** *(manual)* (changes what Gemini is called with)
 - [x] **Flash-Lite for the free tier.** 3.5 Flash was fast, but the free tier allows 3.x Flash only 20 requests a day (per AI Studio), and a week's planning takes 10–20. Use `gemini-3.5-flash-lite` (about 500 a day) with `thinkingLevel` MEDIUM, at least while developing.
 - [x] **Commit: gemini-3.5-flash-lite.** *(manual)* (changes what Gemini is called with)
-- [ ] **Check the speed on the phone.** If it's still slow, next options are a lighter model (`gemini-3.5-flash-lite`) for the Menu, or streaming the Menu so days appear as they're written. *(user)*
-- [ ] **Move plan to `plans/done/`.** `git mv plans/active/16-week-planning.md plans/done/16-week-planning.md`, and remove it from **Now** in `ROADMAP.md`.
-- [ ] **Commit: complete week-planning milestone.** *(auto)*
+- [x] **Check the speed on the phone.** If it's still slow, next options are a lighter model (`gemini-3.5-flash-lite`) for the Menu, or streaming the Menu so days appear as they're written. *(user)* Moved to plan 22.
+- [x] **Move plan to `plans/done/`.** `git mv plans/active/16-week-planning.md plans/done/16-week-planning.md`, and remove it from **Now** in `ROADMAP.md`.
+- [x] **Commit: complete week-planning milestone.** *(auto)*
 
 ## Done when
 
@@ -70,3 +70,4 @@ Sixteenth milestone, and the first half of the AI-assisted meal planner. A Week 
 
 - 2026-10-23: Decisions from the planning session: ISO weeks, opening on the current week, because a week stays worth revisiting after Iverksett. Dinner only. Recipes are structured forms. Instructions are one-off. AI output in Norwegian. Last write wins. ADR 0004's risk is accepted for meal data. Tapping "Utdatert" remakes, after a warning since hand edits are lost.
 - 2026-10-24: Reworked in plan 19 after first use: the tab is now Middag, Ukeplan became a Note per day, and "Lag meny", "Godta meny" and "Lag oppskrift" are gone because the Menu and Recipes are made on their own. The Scope above describes the tab as this plan built it.
+- 2026-10-28: Closed. Its open real-world check moved to plan 22's "Deploy and live a real week", which covers plans 15–22 in one go.

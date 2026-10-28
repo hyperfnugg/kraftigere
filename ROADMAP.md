@@ -5,13 +5,7 @@ Where Kraft is heading. It changes often. Ideas are one line each, cheap to add 
 ## Now
 
 - [Dependency maintenance](plans/active/05-dependency-maintenance.md)
-- [Norwegian UI](plans/active/15-norwegian-ui.md)
-- [Week planning](plans/active/16-week-planning.md): first half of the AI-assisted meal planner.
-- [Iverksett](plans/active/17-iverksett.md): second half, Ingredients to Groceries.
 - [Oda exploration](plans/active/18-oda-exploration.md): pick the route for filling an Oda basket.
-- [Middag tab](plans/active/19-middag-tab.md): Menu and Recipes just there, Day Notes, cooking from a Recipe.
-- [Middag steps](plans/active/20-middag-steps.md): dish names first, then Recipes once, then Iverksett.
-- [Recipe cooking view](plans/active/21-recipe-cooking-view.md): steps with their Ingredients side by side, grams first.
 - [One Entry per Ware](plans/active/22-one-entry-per-ware.md): hand-added and Iverksett needs on one line, with the dishes behind a chef's hat.
 
 ## Next

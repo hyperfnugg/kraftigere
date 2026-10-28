@@ -40,9 +40,9 @@ Nineteenth milestone, from using plan 16's Week tab: planning took too many step
 - [x] **Glossary, vision and README.** Day Note, Meals tab, Outdated, and the Menu being made on its own.
 - [x] **Commit: Middag tab.** *(manual)* (security rules and user-visible). Committed while the user was away, on their go-ahead.
 - [x] **Commit: plan and docs for the Middag tab.** *(auto)*
-- [ ] **Try it on the phone.** Deploy the rules and hosting. Check that old weeks with Week Notes still open, and that this week and next fill in on their own. *(user)*
-- [ ] **Move plan to `plans/done/`.** `git mv plans/active/19-middag-tab.md plans/done/19-middag-tab.md`, and remove it from **Now** in `ROADMAP.md`.
-- [ ] **Commit: complete Middag tab milestone.** *(auto)*
+- [x] **Try it on the phone.** Deploy the rules and hosting. Check that old weeks with Week Notes still open, and that this week and next fill in on their own. *(user)* Moved to plan 22.
+- [x] **Move plan to `plans/done/`.** `git mv plans/active/19-middag-tab.md plans/done/19-middag-tab.md`, and remove it from **Now** in `ROADMAP.md`.
+- [x] **Commit: complete Middag tab milestone.** *(auto)*
 
 ## Done when
 
@@ -54,3 +54,4 @@ Nineteenth milestone, from using plan 16's Week tab: planning took too many step
 
 - 2026-10-24: Decisions from the iteration session: Middag is for planning and cooking. Recipes and Menus are made as early as possible, since it's at most two weeks, so few tokens are wasted. A changed Note updates Recipes only; changing the Meal is the Family Member's call, via ✏️ and its 🔄. Editing moved from a modal to an accordion. The ⏳ is static because of the no-animations rule.
 - 2026-10-26: Plan 20 changed the flow: only dish names are made on their own, Recipes wait for "Lag oppskrifter", one dish a day, and the day editor saves without Lagre/Avbryt.
+- 2026-10-28: Closed. Its open real-world check moved to plan 22's "Deploy and live a real week", which covers plans 15–22 in one go.

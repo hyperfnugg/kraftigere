@@ -33,9 +33,9 @@ Twentieth milestone, from trying plans 19 and 17 together: making every Recipe a
 - [x] **Tests.** e2e for names first, "Lag oppskrifter", day editing and ↻, the Recipe screen, Outdated and Iverksett with one dish a day.
 - [x] **Glossary, vision and README.**
 - [x] **Commit: Middag in steps.** *(manual)* (user-visible)
-- [ ] **Deploy and try a real week.** *(user)*
-- [ ] **Move plan to `plans/done/`.** `git mv plans/active/20-middag-steps.md plans/done/20-middag-steps.md`, and remove it from **Now** in `ROADMAP.md`.
-- [ ] **Commit: complete Middag steps milestone.** *(auto)*
+- [x] **Deploy and try a real week.** *(user)* Moved to plan 22.
+- [x] **Move plan to `plans/done/`.** `git mv plans/active/20-middag-steps.md plans/done/20-middag-steps.md`, and remove it from **Now** in `ROADMAP.md`.
+- [x] **Commit: complete Middag steps milestone.** *(auto)*
 
 ## Done when
 
@@ -45,3 +45,4 @@ Twentieth milestone, from trying plans 19 and 17 together: making every Recipe a
 ## Notes
 
 - 2026-10-26: Decisions from the iteration session: Recipes cost the most, so they wait until the days are settled. "Lag oppskrifter" runs once, and is inferred from any Recipe existing rather than stored. Editing after that belongs on the Recipe screen. Icons are plain glyphs, not emoji.
+- 2026-10-28: Closed. Its open real-world check moved to plan 22's "Deploy and live a real week", which covers plans 15–22 in one go.

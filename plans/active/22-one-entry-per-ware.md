@@ -31,7 +31,12 @@ Twenty-second milestone. Groceries gets one Entry per Ware, whether it was added
 - [x] **Try it on the dev server**, iterating on feedback. Skipped in AFK mode. *(user)*
 - [x] **Tests.** Unit tests for adding up dishes. e2e: a hand-added "egg" and Iverksett's egg are one Entry with its dishes popup linking the dish; a checked Entry is replaced; a waiting Ware is hidden at Iverksett; hand-adding a waiting Ware opens its Note.
 - [x] **Commit: one Entry per Ware.** *(manual)* (security rules and user-visible; review first)
-- [ ] **Shop a real week from it.** *(user)*
+- [ ] **Deploy and live a real week.** Push, and deploy the rules and hosting. Then, with the checks folded in from plans 15–21: *(user)*
+  - Read every screen on the phone, and check the installed app's name (15).
+  - Write Føringer and plan next week. Check the Menu's speed on the phone; if it's slow, stream the Menu so days appear as they're written (16).
+  - Old weeks with Week Notes still open, and this week and next fill in on their own (19).
+  - Cook a real dinner from the tablet (21).
+  - Iverksett the week and shop from it, with hand-added Entries alongside (17, 20, 22).
 - [ ] **Move plan to `plans/done/`.** `git mv plans/active/22-one-entry-per-ware.md plans/done/22-one-entry-per-ware.md`, and remove it from **Now** in `ROADMAP.md`.
 - [ ] **Commit: complete one Entry per Ware milestone.** *(auto)*
 

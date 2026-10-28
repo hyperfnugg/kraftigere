@@ -23,9 +23,9 @@ Fifteenth milestone. The Family works in Norwegian, so all text in the app becom
 - [x] **Translate the UI.** Every string in `src/`, plus `index.html` and the manifest. Tab bar: 🏠 · Handle. "Remove checked" becomes "Fjern avkryssede".
   - e2e: update selectors and expected text in `tests/e2e/`.
 - [x] **Commit: Norwegian UI.** *(manual)* (user-visible text everywhere; review the wording)
-- [ ] **Deploy and check.** Push. Read through every screen on the phone, and check the installed app's name. *(user)*
-- [ ] **Move plan to `plans/done/`.** `git mv plans/active/15-norwegian-ui.md plans/done/15-norwegian-ui.md`, and remove it from **Now** in `ROADMAP.md`.
-- [ ] **Commit: complete norwegian-ui milestone.** *(auto)*
+- [x] **Deploy and check.** Push. Read through every screen on the phone, and check the installed app's name. *(user)* Moved to plan 22.
+- [x] **Move plan to `plans/done/`.** `git mv plans/active/15-norwegian-ui.md plans/done/15-norwegian-ui.md`, and remove it from **Now** in `ROADMAP.md`.
+- [x] **Commit: complete norwegian-ui milestone.** *(auto)*
 
 ## Done when
 
@@ -35,3 +35,4 @@ Fifteenth milestone. The Family works in Norwegian, so all text in the app becom
 ## Notes
 
 - 2026-10-23: Decided while planning the meal planner: the whole app is in Norwegian, the Home tab is 🏠, and Guidelines, Week Notes and Confirm are called Føringer, Ukeplan and Iverksett.
+- 2026-10-28: Closed. Its open real-world check moved to plan 22's "Deploy and live a real week", which covers plans 15–22 in one go.

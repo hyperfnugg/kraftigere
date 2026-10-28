@@ -34,9 +34,9 @@ Seventeenth milestone, and the second half of the AI-assisted meal planner. Iver
   - e2e: after Iverksett, editing a Recipe doesn't change Groceries, and no instruction box shows. A Menu Entry can be Removed on Hjem and checked off on Handle.
   - Built: a Confirmed week makes nothing on its own, shows no Utdatert or 🔄, and hides the instruction boxes and the editor's 🔄. 2026-10-26: the days can't be edited either (no ✏️), and the rules keep `menu`, `menuAt`, `mealsAt`, `dayNotes` and `dayNotesAt` as they are once `confirmedAt` is set. Only Recipes are edited. On Hjem a Menu Entry opens to Fjern only, with no Note.
 - [x] **Commit: week after Iverksett.** *(manual)* (user-visible; review first)
-- [ ] **Deploy and shop a real week.** Push. Iverksett a planned week and shop from it. *(user)*
-- [ ] **Move plan to `plans/done/`.** `git mv plans/active/17-iverksett.md plans/done/17-iverksett.md`, and remove it from **Now** in `ROADMAP.md`.
-- [ ] **Commit: complete iverksett milestone.** *(auto)*
+- [x] **Deploy and shop a real week.** Push. Iverksett a planned week and shop from it. *(user)* Moved to plan 22.
+- [x] **Move plan to `plans/done/`.** `git mv plans/active/17-iverksett.md plans/done/17-iverksett.md`, and remove it from **Now** in `ROADMAP.md`.
+- [x] **Commit: complete iverksett milestone.** *(auto)*
 
 ## Done when
 
@@ -49,3 +49,4 @@ Seventeenth milestone, and the second half of the AI-assisted meal planner. Iver
 - 2026-10-23: Decisions from the planning session: Iverksett is once per week, because confirming again is complicated and needs a clear need first. Wares come only from Iverksett. Matches are keyed on normalized wording. Same-unit amounts are summed in code, with no conversion. Menu Entries don't count toward `addCount`. If plan 18 shows that Ware needs a different shape for Oda, a migration script (ADR 0003) handles it.
 - 2026-10-24: Plan 19 made the Menu and Recipes appear on their own, and a course whose name changes gets a new Recipe at once. Decide whether that should still happen after Iverksett, when the old Recipe's Ingredients are already in Groceries.
 - 2026-10-24: Built while the user was away. The open question above is settled: after Iverksett nothing is made on its own, and (since 2026-10-26) the Menu can't change at all. Staples that Confirm creates have no adds, so they come last in Hjem's suggestions. The matching prompt is untested against real Gemini; check the proposals on the first real week.
+- 2026-10-28: Closed. Its open real-world check moved to plan 22's "Deploy and live a real week", which covers plans 15–22 in one go.
