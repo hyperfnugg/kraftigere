@@ -25,13 +25,12 @@ Nothing here involved signing in, adding to a basket, or ordering. Probes were a
 **Settled by the signed-in prototype** (see "Prototype: Oda's MCP server"):
 
 - The MCP server has search, add, remove, read and clear cart, and no checkout tool.
-- Registration accepts any client with a `127.0.0.1` redirect, no allowlist.
+- Registration accepts any client with no allowlist: `127.0.0.1`, `localhost` and HTTPS redirects (a Cloud Function URL) work. Custom app schemes are refused.
 - Access tokens last an hour; refresh tokens rotate.
 - The MCP product id is the id in `oda.com/no/products/<id>-...`, so one stored id works for every route.
 
 **Still open:**
 
-- Whether registration accepts an HTTPS redirect such as a Cloud Function URL, or a native app scheme.
 - Refresh token lifetime, and any rate limit.
 - Whether an extension's background `fetch` to `oda.com/api/v1/cart/...` carries the user's session cookie and passes the CSRF check. Only matters if the MCP route falls through.
 
@@ -39,7 +38,7 @@ Nothing here involved signing in, adding to a basket, or ordering. Probes were a
 
 Tried 2026-10-28 with `scratch/oda-mcp.mjs` (not committed), a Node MCP client with no dependencies. The user signed in on oda.com in the browser. The Family's cart was empty before and after; nothing was ordered.
 
-- **Registration.** `POST https://oda.com/o/register/` with `redirect_uris: ["http://127.0.0.1:8765/callback"]` and `token_endpoint_auth_method: "none"` returned a `client_id`, a `registration_access_token` and a `registration_client_uri` (RFC 7592 client management). No Oda account or approval was needed. Whether HTTPS redirects (a Cloud Function URL) or a native app scheme are accepted: not tried yet.
+- **Registration.** `POST https://oda.com/o/register/` with `redirect_uris: ["http://127.0.0.1:8765/callback"]` and `token_endpoint_auth_method: "none"` returned a `client_id`, a `registration_access_token` and a `registration_client_uri` (RFC 7592 client management). No Oda account or approval was needed. Probed with throwaway clients, each deleted right after (`DELETE` on its `registration_client_uri` gave 204, a later `GET` 401): a Cloud Function URL (`https://europe-west1-….cloudfunctions.net/…`), a `web.app` URL, `http://localhost` and even plain `http://example.com` were all accepted (201). A custom app scheme (`no.kraft.app:/oauth/callback`) was refused: `invalid_client_metadata`, `invalid_scheme`. So a native app would need an HTTPS universal or app link as its redirect, not a custom scheme.
 - **Sign-in.** Authorization code with PKCE `S256`, `resource=https://oda.com/mcp`, scope `mcp`. The user signs in and approves on oda.com; the code comes back to the local redirect.
 - **Tokens.** Access token lasts 3600 s. A refresh token comes with it. Refreshing returns a new access token and a new refresh token (rotation), but the old refresh token still worked once more right after. Refresh token lifetime: not found.
 - **Server.** `Oda MCP Server` 1.2.0, protocol `2025-06-18`, Streamable HTTP with an `Mcp-Session-Id`. Its instructions say: "Checkout and payment happen in the shop, not through MCP." The cart's `url` (`https://oda.com/no/cart/`) is where the Family Member reviews and pays.
@@ -56,7 +55,7 @@ Tried 2026-10-28 with `scratch/oda-mcp.mjs` (not committed), a Node MCP client w
 
 ### What this means
 
-The MCP server covers everything the basket needs: search with pack size, add by product id, read the cart, remove. Kraft never has to check out, and can't. The extension and native app aren't needed for capability. The one open question is where the MCP client lives: the PWA can't call `oda.com/mcp` (no CORS), so a Cloud Function needs its HTTPS callback accepted by registration.
+The MCP server covers everything the basket needs: search with pack size, add by product id, read the cart, remove. Kraft never has to check out, and can't. The extension and native app aren't needed for capability. The PWA can't call `oda.com/mcp` (no CORS), but registration accepts an HTTPS callback, so a Cloud Function can be the MCP client.
 
 ## What a Ware would store
 
