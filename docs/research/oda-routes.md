@@ -22,13 +22,41 @@ Nothing here involved signing in, adding to a basket, or ordering. Probes were a
 
 - **Calling oda.com directly from the Kraft PWA.** Oda's own JSON API and the MCP endpoint send no `Access-Control-Allow-Origin`, and the session cookie can't be sent cross-site. A plain web page on Kraft's origin can't read or fill the basket. This kills "MCP from the browser" and "unofficial API from the browser". It does not kill the MCP route as such.
 
-**Open questions only a signed-in prototype can settle:**
+**Settled by the signed-in prototype** (see "Prototype: Oda's MCP server"):
 
-- Which tools `oda.com/mcp` exposes, and their input and output (product id, pack size, availability, cart add/remove/clear, any checkout tool).
-- Whether Oda's dynamic client registration accepts any client (any `redirect_uri`, including a Cloud Function URL, `localhost`, or a native app scheme), or only allowlisted ones such as Claude.
-- Access and refresh token lifetimes for the MCP server, and any rate limit.
-- Whether an extension's background `fetch` to `oda.com/api/v1/cart/...` carries the user's session cookie and passes the CSRF check.
-- Whether the MCP product id is the same id as in `oda.com/no/products/<id>-...` and in Kassalapp's `url`. If so, one stored id works for every route.
+- The MCP server has search, add, remove, read and clear cart, and no checkout tool.
+- Registration accepts any client with a `127.0.0.1` redirect, no allowlist.
+- Access tokens last an hour; refresh tokens rotate.
+- The MCP product id is the id in `oda.com/no/products/<id>-...`, so one stored id works for every route.
+
+**Still open:**
+
+- Whether registration accepts an HTTPS redirect such as a Cloud Function URL, or a native app scheme.
+- Refresh token lifetime, and any rate limit.
+- Whether an extension's background `fetch` to `oda.com/api/v1/cart/...` carries the user's session cookie and passes the CSRF check. Only matters if the MCP route falls through.
+
+## Prototype: Oda's MCP server
+
+Tried 2026-10-28 with `scratch/oda-mcp.mjs` (not committed), a Node MCP client with no dependencies. The user signed in on oda.com in the browser. The Family's cart was empty before and after; nothing was ordered.
+
+- **Registration.** `POST https://oda.com/o/register/` with `redirect_uris: ["http://127.0.0.1:8765/callback"]` and `token_endpoint_auth_method: "none"` returned a `client_id`, a `registration_access_token` and a `registration_client_uri` (RFC 7592 client management). No Oda account or approval was needed. Whether HTTPS redirects (a Cloud Function URL) or a native app scheme are accepted: not tried yet.
+- **Sign-in.** Authorization code with PKCE `S256`, `resource=https://oda.com/mcp`, scope `mcp`. The user signs in and approves on oda.com; the code comes back to the local redirect.
+- **Tokens.** Access token lasts 3600 s. A refresh token comes with it. Refreshing returns a new access token and a new refresh token (rotation), but the old refresh token still worked once more right after. Refresh token lifetime: not found.
+- **Server.** `Oda MCP Server` 1.2.0, protocol `2025-06-18`, Streamable HTTP with an `Mcp-Session-Id`. Its instructions say: "Checkout and payment happen in the shop, not through MCP." The cart's `url` (`https://oda.com/no/cart/`) is where the Family Member reviews and pays.
+- **Tools.** 26. For filling a basket:
+  - `product_search`: up to 10 queries per call, `page` and `size` (max 20). Each product has `id`, `name`, `description` (pack text, "1% fett, 1 l"), `price`, `unitPrice`, `unitName`, `brand`, `brandId`, `url`, `availability` (`isAvailable`, `code`).
+  - `get_cart`: lines grouped by source, totals with fees and surcharge, delivery address, delivery slot, `url`.
+  - `manipulate_cart`: a list of operations, each on one `productId`, `recipeId`, `productListId` or `orderNumber`. `quantity` is a delta, never a target; negative removes and stops at zero.
+  - `clear_cart`: empties the whole cart.
+  - Others: `recipe_search`, `get_category`, `get_brand`, `likely_to_buy`, `unique_for_you`, `similar_and_related_products`, shopping and dinner lists (`get_product_lists`, `get_dinner_lists`, `get_product_list`, `create_product_list`, `manipulate_product_list`, `delete_product_list`), `get_liked_recipes`, `get_purchased_recipes`, `get_orders`, `get_order`, `order_tracking`, `get_delivery_addresses`, `get_delivery_slots`, `select_delivery_slot`, `feedback`.
+  - No checkout, payment or place-order tool. `select_delivery_slot` changes the cart's slot but doesn't order.
+- **Round trip.** `product_search` for "lettmelk" gave product `430` (Tine Lettmelk 1% fett, 1 l). `manipulate_cart` +1 added it, `get_cart` showed it, `manipulate_cart` -1 removed it. The prototype didn't call `clear_cart`, since it would also wipe whatever the Family already had in the cart.
+- **Product id.** The MCP `id` is the number in the oda.com product URL (`430` in `https://oda.com/no/products/430-tine-tine-lettmelk-1-fett/`) and the `id` in Oda's own `GET /api/v1/products/430/`. So one stored id works for MCP, the unofficial API and Kassalapp's `url`.
+- **Rate limits.** None hit or advertised.
+
+### What this means
+
+The MCP server covers everything the basket needs: search with pack size, add by product id, read the cart, remove. Kraft never has to check out, and can't. The extension and native app aren't needed for capability. The one open question is where the MCP client lives: the PWA can't call `oda.com/mcp` (no CORS), so a Cloud Function needs its HTTPS callback accepted by registration.
 
 ## What a Ware would store
 
