@@ -5,7 +5,6 @@ Where Kraft is heading. It changes often. Ideas are one line each, cheap to add 
 ## Now
 
 - [Dependency maintenance](plans/active/05-dependency-maintenance.md)
-- [Oda Link](plans/active/23-oda-link.md): the Family links its Oda account, in dev on the `oda` branch.
 
 ## Next
 
