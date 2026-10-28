@@ -73,6 +73,20 @@ function add(db: Firestore, entry: object = newEntry(), ware: object | null = co
   return batch.commit()
 }
 
+describe('/config/odaLink', () => {
+  test('no client can read or write the Oda Link, not even a Family Member', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'config/odaLink'), { tokens: { accessToken: 'a', refreshToken: 'r', expiresAt: 0 } })
+    })
+    for (const db of [member(), outsider(), anon()]) {
+      await assertFails(getDoc(doc(db, 'config/odaLink')))
+      await assertFails(setDoc(doc(db, 'config/odaLink'), { tokens: {} }))
+      await assertFails(updateDoc(doc(db, 'config/odaLink'), { tokens: {} }))
+      await assertFails(deleteDoc(doc(db, 'config/odaLink')))
+    }
+  })
+})
+
 describe('/entries', () => {
   test('a Family Member can read and write', async () => {
     const db = member()

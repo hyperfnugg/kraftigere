@@ -12,6 +12,12 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // The Oda Link: Oda client registration, a sign-in under way, and tokens. Only the Oda
+    // functions read and write it, through the Admin SDK. See docs/adr/0005-oda-route.md.
+    match /config/odaLink {
+      allow read, write: if false;
+    }
+
     // The Entry shape the app writes. See docs/adr/0003-data-shape-changes.md.
     // An Entry is for one Ware and keeps the Ware's name as its text. Added by hand, it
     // comes in the same batch that creates or counts its Ware. Iverksett adds it with the
