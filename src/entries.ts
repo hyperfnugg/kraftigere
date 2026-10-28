@@ -53,7 +53,11 @@ export type Ware = {
   name: string
   addCount: number
   usuallyAtHome?: boolean
+  oda?: OdaProduct
 }
+
+// The Oda Product a Ware points to, with its name and pack text as Oda gave them when chosen.
+export type OdaProduct = { id: number; name: string; packText: string }
 
 export const isStaple = (w: Ware) => w.addCount > 0
 
@@ -71,6 +75,7 @@ export function useWares() {
             name: d.get('name'),
             addCount: d.get('addCount'),
             usuallyAtHome: d.get('usuallyAtHome'),
+            oda: d.get('oda'),
           })),
         )
       }),
