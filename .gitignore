@@ -33,6 +33,9 @@ dist-ssr
 # Built Cloud Functions
 /functions/lib/
 
+# The Oda Link of `npm run dev`, kept across restarts: real Oda tokens
+/.oda-link.json
+
 # Firebase CLI deploy cache
 .firebase/
 

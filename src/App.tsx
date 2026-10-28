@@ -3,6 +3,7 @@ import { type User } from 'firebase/auth'
 import { MealsTab } from './Meals'
 import { formatAmount } from './amounts'
 import { signInWithGoogle, signOut, useOnline, useUser } from './firebase'
+import { linkOda, linkResult, useBasket } from './oda'
 import {
   addEntry,
   removeEntries,
@@ -88,7 +89,8 @@ function List({ user }: { user: User }) {
   const { entries } = useEntries()
   useRemoveCheckedAfterShopping(entries)
   const online = useOnline()
-  const [tab, setTab] = useState<Tab>('Home')
+  // Back from linking Oda, the app opens on Shop, where the Basket shows.
+  const [tab, setTab] = useState<Tab>(linkResult ? 'Shop' : 'Home')
   const [dishesOf, setDishesOf] = useState<Entry | null>(null)
   // A dish tapped on the List opens its Recipe in Middag.
   const [recipeLink, setRecipeLink] = useState<Dish | null>(null)
@@ -407,12 +409,43 @@ function Home({ entries, onDishes }: { entries: Entry[]; onDishes: (entry: Entry
 }
 
 // "I'm in the store": unchecked first, big text, one tap to check off.
+// The Basket on oda.com, or "Koble til Oda" when the Family has no working Oda Link.
+function OdaLine() {
+  const basket = useBasket()
+  const [linking, setLinking] = useState(false)
+  if (basket === null) return null
+  if (basket === 'error') return <div style={{ fontSize: '0.875rem', color: '#555' }}>Oda svarer ikke</div>
+  if (basket.linked) {
+    return (
+      <a href={basket.url} target="_blank" rel="noreferrer" style={{ fontSize: '0.875rem', color: '#555' }}>
+        Oda: {basket.items} {basket.items === 1 ? 'vare' : 'varer'} i handlekurven
+      </a>
+    )
+  }
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.875rem', color: '#8a5a00' }}>
+      <button
+        disabled={linking}
+        onClick={() => {
+          setLinking(true)
+          linkOda().catch(() => setLinking(false))
+        }}
+        style={{ ...smallButtonStyle, alignSelf: 'flex-start' }}
+      >
+        Koble til Oda
+      </button>
+      {linkResult === 'error' && 'Koblingen ble ikke fullført'}
+    </div>
+  )
+}
+
 function Shop({ entries, onDishes }: { entries: Entry[]; onDishes: (entry: Entry) => void }) {
   const unchecked = entries.filter((e) => !e.checked)
   const checked = entries.filter((e) => e.checked)
 
   return (
     <>
+      <OdaLine />
       {checked.length > 0 && (
         <button onClick={() => removeEntries(checked)} style={{ ...smallButtonStyle, alignSelf: 'flex-end' }}>
           Fjern avkryssede

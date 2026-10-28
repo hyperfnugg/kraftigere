@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto'
 import { describe, expect, test } from 'vitest'
-import { OdaAuthError, odaClient, pkce } from '../../functions/src/oda'
+import { OdaAuthError, odaClient, pkce, summarizeCart } from '../../functions/src/oda'
 
 const BASE = 'https://oda.test'
 
@@ -124,5 +124,23 @@ describe('odaClient', () => {
   test('an expired access token is an OdaAuthError', async () => {
     const { client } = fakeFetch(new Response(null, { status: 401 }))
     await expect(client.callTool('old', 'get_cart')).rejects.toBeInstanceOf(OdaAuthError)
+  })
+})
+
+describe('summarizeCart', () => {
+  test('counts the quantity of every line, in every group', () => {
+    const cart = {
+      groups: [
+        { source: 'search', items: [{ product: { id: 430, price: 21.9 }, quantity: 2 }, { product: { id: 7 }, quantity: 1 }] },
+        { source: 'recipe', items: [{ product: { id: 9 }, quantity: 1 }] },
+      ],
+      totals: { total: 99 },
+      url: 'https://oda.com/no/cart/',
+    }
+    expect(summarizeCart(cart)).toEqual({ items: 4, url: 'https://oda.com/no/cart/' })
+  })
+
+  test('an empty cart has no items and falls back to the cart link', () => {
+    expect(summarizeCart({ groups: [] })).toEqual({ items: 0, url: 'https://oda.com/no/cart/' })
   })
 })
