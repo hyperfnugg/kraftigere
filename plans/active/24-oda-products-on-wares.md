@@ -23,9 +23,9 @@ Twenty-fourth milestone and the second Oda one, on the `oda` branch ([ADR 0005](
 
 ## Steps
 
-- [ ] **Search in the function.** `odaSearch({ query })` calls `product_search` and maps each product to `{ id, name, packText, price, available }` (`packText` from `description`, `available` from `availability.isAvailable`), up to 20. A parsing helper in `functions/src/oda.ts` with unit tests. Not linked, or refresh failed, returns `{ linked: false }` like `odaBasket`.
-- [ ] **Oda Product on the Ware.** Rules: an update branch where only `oda` changes, and `oda` is either absent or a map of exactly `id` (int), `name` and `packText` (strings, 1–200). `useWares` reads `oda`. No migration (ADR 0003): no existing Ware has one. Rules tests: setting, replacing and removing `oda`, and rejecting other keys or bad shapes alongside it.
-- [ ] **Commit: Oda search and the Ware's Oda Product.** *(manual)* (security rules; review first)
+- [x] **Search in the function.** `odaSearch({ query })` calls `product_search` and maps each product to `{ id, name, packText, price, available }` (`packText` from `description`, `available` from `availability.isAvailable`), up to 20. A parsing helper in `functions/src/oda.ts` with unit tests. Not linked, or refresh failed, returns `{ linked: false }` like `odaBasket`.
+- [x] **Oda Product on the Ware.** Rules: an update branch where only `oda` changes, and `oda` is either absent or a map of exactly `id` (int), `name` and `packText` (strings, 1–200). `useWares` reads `oda`. No migration (ADR 0003): no existing Ware has one. Rules tests: setting, replacing and removing `oda`, and rejecting other keys or bad shapes alongside it.
+- [x] **Commit: Oda search and the Ware's Oda Product.** *(manual)* (security rules; review first)
 - [ ] **Oda line and search on Home.** The Oda line in the open Entry, the search view with 5 rows and "Flere", picking, "brukt av «…»", "Fjern Oda-vare", "Koble til Oda" when not linked, and pasted URLs matched by exact id.
 - [ ] **Try it on the dev server**, iterating on feedback: search "melk" from an Entry, pick, open the product on oda.com, "Flere", paste a URL, try a product already on another Ware, remove it. Skipped in AFK mode. *(user)*
 - [ ] **Tests.** The fake Oda answers `product_search` with a fixed list. One e2e spec: pick from search, see the Oda line, "Flere", a pasted URL picks its product, "brukt av" blocks, "Fjern Oda-vare". No test reaches oda.com.
@@ -42,3 +42,4 @@ Twenty-fourth milestone and the second Oda one, on the `oda` branch ([ADR 0005](
 ## Notes
 
 - 2026-10-28: Planned after a grilling session. Pasted URLs go through `product_search`, not Oda's unofficial `/api/v1/products/<id>/`, to stay on the MCP route (ADR 0005). A paste only picks on an exact id match.
+- 2026-10-28: `product_search`'s arguments (`queries`, `size`) and answer shape are from the plan 18 research, not checked against oda.com yet: the dev link's access token had expired, and refreshing it outside the emulator would rotate it. `searchResults` takes every object with a numeric `id` and a `name` wherever it sits, and the emulator logs the answer so the dev-server trial can check it.

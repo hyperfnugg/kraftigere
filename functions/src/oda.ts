@@ -136,3 +136,30 @@ export function summarizeCart(cart: unknown) {
   const url = (cart as { url?: unknown } | null)?.url
   return { items, url: typeof url === 'string' ? url : 'https://oda.com/no/cart/' }
 }
+
+export type OdaProduct = { id: number; name: string; packText: string; price: number | null; available: boolean }
+
+// The products in a product_search answer, at most 20. The answer groups them per query, so
+// every object with a numeric id and a name counts, wherever it is, once.
+export function searchResults(answer: unknown): OdaProduct[] {
+  const products = new Map<number, OdaProduct>()
+  const visit = (value: unknown) => {
+    if (Array.isArray(value)) value.forEach(visit)
+    else if (value && typeof value === 'object') {
+      const p = value as { id?: unknown; name?: unknown; description?: unknown; price?: unknown; availability?: { isAvailable?: unknown } }
+      if (typeof p.id === 'number' && typeof p.name === 'string') {
+        if (!products.has(p.id)) {
+          products.set(p.id, {
+            id: p.id,
+            name: p.name,
+            packText: typeof p.description === 'string' ? p.description : '',
+            price: typeof p.price === 'number' ? p.price : typeof p.price === 'string' && p.price !== '' ? Number(p.price) : null,
+            available: p.availability?.isAvailable !== false,
+          })
+        }
+      } else Object.values(value).forEach(visit)
+    }
+  }
+  visit(answer)
+  return [...products.values()].slice(0, 20)
+}
