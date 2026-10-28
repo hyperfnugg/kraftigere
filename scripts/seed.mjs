@@ -1,4 +1,5 @@
 // Seeds the Firestore emulator with a test Family. "Bearer owner" bypasses security rules.
+import { existsSync, readFileSync } from 'node:fs'
 import { pathToFileURL } from 'node:url'
 
 export const PROJECT = 'demo-kraftigere'
@@ -69,6 +70,30 @@ async function seedAccounts() {
 export async function seed() {
   await seedAccounts()
   await setMembers(MEMBERS)
+  await restoreOdaLink()
+}
+
+// In `npm run dev`, the Oda Link the function mirrored to ODA_LINK_FILE comes back, so a
+// restart stays linked. The e2e emulators don't set ODA_LINK_FILE.
+async function restoreOdaLink() {
+  const file = process.env.ODA_LINK_FILE
+  if (!file || !existsSync(file)) return
+  const res = await request(`${documents}/config/odaLink`, {
+    method: 'PATCH',
+    headers,
+    body: JSON.stringify({ fields: toFields(JSON.parse(readFileSync(file, 'utf8'))) }),
+  })
+  if (!res.ok) throw new Error(`Oda Link restore failed: ${res.status} ${await res.text()}`)
+  console.log('Restored the Oda Link')
+}
+
+// Plain JSON objects, strings and numbers as Firestore REST fields.
+function toFields(object) {
+  const value = (v) =>
+    typeof v === 'string' ? { stringValue: v }
+    : typeof v === 'number' ? (Number.isInteger(v) ? { integerValue: String(v) } : { doubleValue: v })
+    : { mapValue: { fields: toFields(v) } }
+  return Object.fromEntries(Object.entries(object).filter(([, v]) => v != null).map(([k, v]) => [k, value(v)]))
 }
 
 // Replaces the Family's members, as the Admin would in the console.

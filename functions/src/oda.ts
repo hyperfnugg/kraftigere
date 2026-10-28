@@ -119,3 +119,20 @@ export function odaClient(baseUrl: string, fetchImpl: typeof fetch = fetch) {
     },
   }
 }
+
+// What Shop shows of a get_cart answer: how many items, and the link to the Basket on oda.com.
+// The cart groups its lines by source, so every line with a quantity counts, wherever it is.
+export function summarizeCart(cart: unknown) {
+  let items = 0
+  const visit = (value: unknown) => {
+    if (Array.isArray(value)) value.forEach(visit)
+    else if (value && typeof value === 'object') {
+      const quantity = (value as { quantity?: unknown }).quantity
+      if (typeof quantity === 'number') items += quantity
+      else Object.values(value).forEach(visit)
+    }
+  }
+  visit(cart)
+  const url = (cart as { url?: unknown } | null)?.url
+  return { items, url: typeof url === 'string' ? url : 'https://oda.com/no/cart/' }
+}
