@@ -97,7 +97,7 @@ When the Guidelines change after a Menu exists, the Menu becomes **Outdated**. A
 - **Pack counts appear only here.** "3 × Tine helmelk 1 l". The AI turns an Entry's amount, Note and dishes into packs of the Ware's article. For an Entry with no dishes Kraft asks the count, with a suggested amount.
 - **Choosing Oda products.** Picking means back and forth ("did you mean this one?" "No, this one: <url>"). What's settled is remembered on the Ware as its Oda reference. When a Ware is out of stock, it falls back to its Substitutes, but only as far as its dishes' Ingredients allow.
 - **Prerequisites.** Staples, Wares and Confirm must exist first.
-- **Technical route: open.** Candidates: Oda's MCP server (https://oda.com/mcp), https://kassal.app/api with keys stored on the device, a browser extension, or a native app on Firestore. Picking one is research for when the work starts.
+- **Technical route: Oda's MCP server**, with a Cloud Function as the client. The Ware remembers its Oda product id with the name and pack text. See [ADR 0005](../adr/0005-oda-route.md).
 
 ## Order of work
 

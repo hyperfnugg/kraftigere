@@ -5,12 +5,11 @@ Where Kraft is heading. It changes often. Ideas are one line each, cheap to add 
 ## Now
 
 - [Dependency maintenance](plans/active/05-dependency-maintenance.md)
-- [Oda exploration](plans/active/18-oda-exploration.md): pick the route for filling an Oda basket.
 - [One Entry per Ware](plans/active/22-one-entry-per-ware.md): hand-added and Iverksett needs on one line, with the dishes behind a chef's hat.
 
 ## Next
 
-- Filling an Oda basket from Groceries, by the route plan 18 picks. See [Groceries and meals](docs/vision/groceries-and-meals.md#ordering-from-oda-parked).
+- Filling an Oda basket from Groceries through Oda's MCP server and a Cloud Function ([ADR 0005](docs/adr/0005-oda-route.md)).
 
 ## Ideas
 

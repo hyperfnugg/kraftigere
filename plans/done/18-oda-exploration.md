@@ -34,10 +34,10 @@ Eighteenth milestone. Decide how Kraft fills an Oda basket from Groceries, by tr
 - [x] **Commit: prototype findings.** *(auto)*
 - [x] **ADR.** `docs/adr/0005-oda-route.md`: the chosen route and why, the options rejected, what a Ware needs to hold for Oda (an Oda reference? pack size?), and the security revisit from ADR 0004, since ordering spends money: App Check, a server, where keys live, who can fill the basket.
 - [x] **Commit: ADR for the Oda route.** *(manual)* (architecture and security decision; review first)
-- [ ] **Roadmap.** Turn the Oda idea in `ROADMAP.md` into one line pointing at the ADR. Update the vision's Oda section ("Technical route: open").
-- [ ] **Clean up the prototype.** Delete the `Kraft prototype` client on oda.com through its `registration_client_uri`, and delete `scratch/`.
-- [ ] **Move plan to `plans/done/`.** `git mv plans/active/18-oda-exploration.md plans/done/18-oda-exploration.md`, and remove it from **Now** in `ROADMAP.md`.
-- [ ] **Commit: complete oda-exploration milestone.** *(auto)*
+- [x] **Roadmap.** Turn the Oda idea in `ROADMAP.md` into one line pointing at the ADR. Update the vision's Oda section ("Technical route: open").
+- [x] **Clean up the prototype.** Delete the `Kraft prototype` client on oda.com through its `registration_client_uri`, and delete `scratch/`.
+- [x] **Move plan to `plans/done/`.** `git mv plans/active/18-oda-exploration.md plans/done/18-oda-exploration.md`, and remove it from **Now** in `ROADMAP.md`.
+- [x] **Commit: complete oda-exploration milestone.** *(auto)*
 
 ## Done when
 
@@ -50,3 +50,4 @@ Eighteenth milestone. Decide how Kraft fills an Oda basket from Groceries, by tr
 - 2026-10-28: Survey done (`docs/research/oda-routes.md`). Oda's MCP server is official (OAuth 2.1, PKCE, dynamic client registration) but sends no CORS headers, so the PWA can't call it or oda.com directly: the MCP client must be a server (Cloud Function, Blaze plan) or a native app. A browser extension works on desktop only. Kassalapp has Oda products and ids but no basket. The tool list, redirect URIs for registration and token lifetimes need the signed-in prototype.
 - 2026-10-28: MCP prototype done. 26 tools, including search, `manipulate_cart` (deltas by product id), `get_cart`, `clear_cart`; no checkout. Local-redirect registration works without approval; access tokens last an hour and refresh tokens rotate. MCP product id = the oda.com URL id. Prototype removed only what it added rather than `clear_cart`, since clearing would wipe a real cart.
 - 2026-10-28: Registration accepts HTTPS redirects (Cloud Function, `web.app`), `localhost` and even plain `http`; refuses custom app schemes. Throwaway clients deleted. The MCP server doesn't fall short, so no extension or native prototype. The prototype's own client (`Kraft prototype`, 127.0.0.1) is kept until the ADR lands, then deleted.
+- 2026-10-28: ADR 0005 accepted. Prototype client deleted on oda.com (its token now gets 401) and `scratch/` removed.
