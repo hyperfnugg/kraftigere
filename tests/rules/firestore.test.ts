@@ -247,6 +247,19 @@ describe('/wares', () => {
     await assertFails(updateDoc(ware('milk'), { usuallyAtHome: true, name: 'Milk' }))
   })
 
+  test('its Oda Product can be set, replaced and removed on its own', async () => {
+    const oda = { id: 430, name: 'Tine Lettmelk 1% fett', packText: '1% fett, 1 l' }
+    await assertSucceeds(updateDoc(ware('milk'), { oda }))
+    await assertSucceeds(updateDoc(ware('milk'), { oda: { id: 7, name: 'Q Lettmelk', packText: '' } }))
+    await assertSucceeds(updateDoc(ware('milk'), { oda: deleteField() }))
+    await assertFails(updateDoc(ware('milk'), { oda, usuallyAtHome: true }))
+    await assertFails(updateDoc(ware('milk'), { oda: { ...oda, id: '430' } }))
+    await assertFails(updateDoc(ware('milk'), { oda: { ...oda, price: 21.9 } }))
+    await assertFails(updateDoc(ware('milk'), { oda: { id: 430, name: 'Tine Lettmelk 1% fett' } }))
+    await assertFails(updateDoc(ware('milk'), { oda: { ...oda, name: '' } }))
+    await assertFails(updateDoc(ware('milk'), { oda: null }))
+  })
+
   test('Staples are gone', async () => {
     await assertFails(getDocs(collection(member(), 'staples')))
     await assertFails(setDoc(doc(member(), 'staples/eggs'), countedWare()))

@@ -63,10 +63,18 @@ service cloud.firestore {
       return name is string && name.size() >= 1 && name.size() <= 100;
     }
 
+    // The Oda Product a Ware points to: Oda's id, and its name and pack text as Oda gave them.
+    function isOdaProduct(oda) {
+      return oda is map && oda.keys().hasOnly(['id', 'name', 'packText']) && oda.keys().hasAll(['id', 'name', 'packText']) &&
+             oda.id is int && oda.id > 0 &&
+             oda.name is string && oda.name.size() >= 1 && oda.name.size() <= 200 &&
+             oda.packText is string && oda.packText.size() <= 200;
+    }
+
     // A Ware: anything the Family buys. Its id is its normalized name, so names are unique
     // without a query. A hand add creates or counts it, which makes it a Staple. Iverksett
     // creates it without counting an add. usuallyAtHome is remembered from Iverksett, so
-    // salt and oil start unticked.
+    // salt and oil start unticked. Its Oda Product is set, replaced or removed on its own.
     match /wares/{wareId} {
       allow read: if isFamily();
       allow create: if isFamily() &&
@@ -84,7 +92,9 @@ service cloud.firestore {
                          request.resource.data.addCount == resource.data.addCount + 1 &&
                          request.resource.data.lastAddedAt == request.time) ||
                         (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['usuallyAtHome']) &&
-                         request.resource.data.usuallyAtHome is bool));
+                         request.resource.data.usuallyAtHome is bool) ||
+                        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['oda']) &&
+                         (!('oda' in request.resource.data) || isOdaProduct(request.resource.data.oda))));
     }
 
     // A remembered match, keyed on an Ingredient's normalized wording: the Ware (by id)

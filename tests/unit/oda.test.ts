@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto'
 import { describe, expect, test } from 'vitest'
-import { OdaAuthError, odaClient, pkce, summarizeCart } from '../../functions/src/oda'
+import { OdaAuthError, odaClient, pkce, searchResults, summarizeCart } from '../../functions/src/oda'
 
 const BASE = 'https://oda.test'
 
@@ -142,5 +142,36 @@ describe('summarizeCart', () => {
 
   test('an empty cart has no items and falls back to the cart link', () => {
     expect(summarizeCart({ groups: [] })).toEqual({ items: 0, url: 'https://oda.com/no/cart/' })
+  })
+})
+
+describe('searchResults', () => {
+  const product = (id: number, extra: object = {}) => ({
+    id,
+    name: `Produkt ${id}`,
+    description: '1 l',
+    price: 21.9,
+    brand: 'Tine',
+    availability: { isAvailable: true, code: 'available' },
+    ...extra,
+  })
+
+  test('maps products from every query, once each', () => {
+    const answer = { results: [{ query: 'melk', products: [product(430), product(7)] }, { query: 'lettmelk', products: [product(430)] }] }
+    expect(searchResults(answer)).toEqual([
+      { id: 430, name: 'Produkt 430', packText: '1 l', price: 21.9, available: true },
+      { id: 7, name: 'Produkt 7', packText: '1 l', price: 21.9, available: true },
+    ])
+  })
+
+  test('marks unavailable products and tolerates missing fields', () => {
+    expect(searchResults([product(1, { availability: { isAvailable: false } }), { id: 2, name: 'Bare navn' }])).toEqual([
+      { id: 1, name: 'Produkt 1', packText: '1 l', price: 21.9, available: false },
+      { id: 2, name: 'Bare navn', packText: '', price: null, available: true },
+    ])
+  })
+
+  test('keeps at most 20', () => {
+    expect(searchResults({ products: Array.from({ length: 25 }, (_, i) => product(i + 1)) })).toHaveLength(20)
   })
 })

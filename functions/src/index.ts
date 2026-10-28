@@ -4,7 +4,7 @@ import { initializeApp } from 'firebase-admin/app'
 import { FieldValue, getFirestore } from 'firebase-admin/firestore'
 import { logger, setGlobalOptions } from 'firebase-functions/v2'
 import { HttpsError, onCall, onRequest, type CallableRequest } from 'firebase-functions/v2/https'
-import { OdaAuthError, odaClient, pkce, summarizeCart, type Registration, type Tokens } from './oda.js'
+import { OdaAuthError, odaClient, pkce, searchResults, summarizeCart, type Registration, type Tokens } from './oda.js'
 
 // Close to the Family, and capped so a bug or a flood can't run up a bill.
 setGlobalOptions({ region: 'europe-west1', maxInstances: 2 })
@@ -165,6 +165,22 @@ export const odaBasket = onCall(async (req) => {
   } catch (e) {
     if (e instanceof OdaAuthError) return { linked: false }
     logger.error('Oda get_cart failed', e)
+    throw new HttpsError('unavailable', 'Oda svarer ikke')
+  }
+})
+
+// Oda Products for a Ware: one product_search, up to 20 results.
+export const odaSearch = onCall(async (req: CallableRequest<{ query?: unknown }>) => {
+  await requireFamily(req)
+  const query = typeof req.data?.query === 'string' ? req.data.query.trim().slice(0, 200) : ''
+  if (!query) throw new HttpsError('invalid-argument', 'No query')
+  try {
+    const answer = await callOda('product_search', { queries: [query], size: 20 })
+    if (process.env.FUNCTIONS_EMULATOR === 'true') logger.info('product_search', JSON.stringify(answer).slice(0, 2000))
+    return { linked: true, products: searchResults(answer) }
+  } catch (e) {
+    if (e instanceof OdaAuthError) return { linked: false }
+    logger.error('Oda product_search failed', e)
     throw new HttpsError('unavailable', 'Oda svarer ikke')
   }
 })
