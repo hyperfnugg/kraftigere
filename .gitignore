@@ -32,3 +32,6 @@ dist-ssr
 
 # Firebase CLI deploy cache
 .firebase/
+
+# Throwaway prototypes (plan 18)
+/scratch/

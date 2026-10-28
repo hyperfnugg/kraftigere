@@ -28,7 +28,8 @@ Eighteenth milestone. Decide how Kraft fills an Oda basket from Groceries, by tr
 
 - [x] **Survey.** Use the `research` skill to collect what each route offers: auth, product search, basket API, terms of use, cost, and whether it can be called from a browser. Write the findings to `docs/research/oda-routes.md`. Mark routes that are clearly dead.
 - [x] **Commit: Oda route survey.** *(auto)*
-- [ ] **Prototype the remaining routes,** one step each, rewritten after the survey. Each prototype lives outside `src/`, under `scratch/` (gitignored), and is deleted afterwards. Record what worked and what didn't in the research file. Never place an order: stop at a filled basket and empty it again. *(user signs in)*
+- [ ] **Prototype: Oda's MCP server.** `scratch/oda-mcp.mjs`, a Node script with no dependencies: register a client, sign in through the browser with PKCE and a `127.0.0.1` redirect, list the tools, then search, add one item, read the basket and empty it. Answers whether registration takes a local redirect, which tools exist, and how long tokens last. Tools that could order are refused by the script. *(user signs in)*
+- [ ] **Prototype the browser extension or native app only if the MCP server falls short** (no basket tools, or registration refuses every redirect Kraft could use). Kassalapp has no basket, so it gets no prototype. Record what worked and what didn't in the research file. Never place an order: stop at a filled basket and empty it again. *(user signs in)*
 - [ ] **Commit: prototype findings.** *(auto)*
 - [ ] **ADR.** `docs/adr/0005-oda-route.md`: the chosen route and why, the options rejected, what a Ware needs to hold for Oda (an Oda reference? pack size?), and the security revisit from ADR 0004, since ordering spends money: App Check, a server, where keys live, who can fill the basket.
 - [ ] **Commit: ADR for the Oda route.** *(manual)* (architecture and security decision; review first)
