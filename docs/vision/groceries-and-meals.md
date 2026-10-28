@@ -5,23 +5,25 @@ Where Groceries, meal planning and Oda are heading, and how they connect. This i
 ## The model in one picture
 
 ```
-Home ──types "melk"──▶ Ware "melk" (a Staple) ──accepts──▶ Ware "lettmelk" (Substitute)
+Home ──types "melk"──▶ Ware "melk" (a Staple) ──accepts──▶ Ware "melk, lett" (Substitute)
                          │
                          ▼
-                  Entry "melk · mye · 🍽 500 g" ──🍽──▶ Sufflé
-                         ▲
-                      Confirm
-                         │
-Week ─▶ Menu ─▶ Meal ─▶ Recipe "Sufflé" ─▶ Step ─▶ Ingredient "helmelk 500 g" ──matched──▶ Ware "melk"
+                  Entry "melk · mye"
+
+Week ─▶ Menu ─▶ Meal ─▶ Recipe "Sufflé" ─▶ Step ─▶ Ingredient "melk, hel 500 g" ──matched──▶ Ware "melk, hel"
+                                                         │
+                                                      Confirm
+                                                         ▼
+                                     Entry "melk, hel · 👨‍🍳 500 g" ──👨‍🍳──▶ Sufflé
 ```
 
 Three different things are easy to confuse here:
 
-- **Ware**: anything the Family buys, named how they say it ("melk"). Later an Oda article belongs to exactly one Ware.
+- **Ware**: anything the Family buys, named how they say it, the thing first ("melk", "melk, hel"). Later an Oda article belongs to exactly one Ware.
 - **Staple**: a Ware the Family has added by hand. It carries what comes from knowing it well: how often it's added, whether it's usually at home, its Substitutes.
-- **Ingredient**: what a Recipe needs ("helmelk 500 g"). Its wording says how strict the need is.
+- **Ingredient**: what a Recipe needs ("melk, hel 500 g"). Its wording says how strict the need is.
 
-The soufflé's helmelk and the fridge's "melk" are one Entry, for the Ware "melk". The strictness stays in the Recipe: 🍽 lists the dishes behind an Entry, so the shopper, or later the AI filling an Oda basket, reads from the soufflé that this milk must be whole.
+A Ware is on the List once: "egg" added by hand and the week's eggs are one Entry, "egg · store · 👨‍🍳 360 g (6 stk)", and the chef's hat (👨‍🍳 here) lists the dishes behind it. The Recipe's intent is kept: the soufflé's "melk, hel" is its own Ware, so it sits next to the fridge's "melk" as a separate line. Once the Staple "melk" points to an Oda article that is whole milk, the two can become one pack.
 
 ## Groceries
 
@@ -76,9 +78,9 @@ When the Guidelines change after a Menu exists, the Menu becomes **Outdated**. A
 
 ### Confirm
 
-- Each Ingredient is matched to the most general **Ware** the Family has that fits: "helmelk" to "melk". The AI proposes matches, the Family Member corrects them, and the Family's matches are remembered for later weeks. Duplicate Wares are cleaned up as they show up.
+- Each Ingredient is matched to the **Ware** that is the same thing to buy. What doesn't change the purchase is dropped ("salt, fin" is "salt"), but the Recipe's intent is kept ("melk, hel" stays "melk, hel" even when the Family has "melk"). The AI proposes matches, the Family Member corrects them, and the Family's matches are remembered for later weeks. Duplicate Wares are cleaned up as they show up.
 - The Confirm screen shows one line per Ware with its summed grams, stk where there are pieces, and days: "egg 360 g (6 stk) · fre". An unticked line is at home, and its Ware is remembered as usually at home. A Ware already waiting on the List isn't shown.
-- Each Ware's Entry gets the dishes that need it, with their grams and stk, and shows the sum: "egg · store · 🍽 360 g (6 stk)". 🍽 lists the dishes, each opening its Recipe. In the store, the shopper picks packs from what's on the shelf.
+- Each Ware's Entry gets the dishes that need it, with their grams and stk, and shows the sum: "egg · store · 👨‍🍳 360 g (6 stk)". The chef's hat lists the dishes, each opening its Recipe. In the store, the shopper picks packs from what's on the shelf.
 - A week is Confirmed once. Afterwards its Menu and Recipes can still be edited by hand, but without the AI, and the edits don't change Groceries.
 
 ### Later

@@ -90,9 +90,9 @@ export function SavedText({
 }
 
 // "What's for dinner": planning the week's Menu from Guidelines and Day Notes, and cooking
-// from its Recipes.
-export function MealsTab() {
-  const [weekId, setWeekId] = useState(() => isoWeekId(new Date()))
+// from its Recipes. A dish tapped on the List opens with its Recipe.
+export function MealsTab({ openAt }: { openAt: { week: string; recipe: string } | null }) {
+  const [weekId, setWeekId] = useState(() => openAt?.week ?? isoWeekId(new Date()))
   const menuWeeks = useMenuWeeks()
   const [guidelinesOpen, setGuidelinesOpen] = useState(false)
   const guidelines = useGuidelines()
@@ -161,6 +161,7 @@ export function MealsTab() {
           guidelines={guidelines}
           recipes={recipes}
           job={job}
+          openAt={openAt?.week === weekId ? openAt.recipe : undefined}
         />
       )}
     </>
@@ -387,15 +388,21 @@ function MenuSection({
   guidelines,
   recipes,
   job,
+  openAt,
 }: {
   weekId: string
   week: Week
   guidelines: Guidelines
   recipes: Record<string, StoredRecipe>
   job: Job
+  openAt?: string
 }) {
   const { busy, error, run, pending } = job
-  const [openRecipe, setOpenRecipe] = useState<{ day: Day; course: number } | null>(null)
+  const [openRecipe, setOpenRecipe] = useState<{ day: Day; course: number } | null>(() => {
+    if (!openAt) return null
+    const [day, course] = openAt.split('-')
+    return { day: day as Day, course: Number(course) }
+  })
   const [editing, setEditing] = useState<Day | null>(null)
   const [confirming, setConfirming] = useState(false)
   const menu = week.menu

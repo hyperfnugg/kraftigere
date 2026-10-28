@@ -39,8 +39,8 @@ beforeEach(async () => {
   await env.clearFirestore()
   await env.withSecurityRulesDisabled(async (ctx) => {
     await setDoc(doc(ctx.firestore(), 'config/family'), { members: [MEMBER] })
-    await setDoc(doc(ctx.firestore(), 'staples/milk'), { name: 'milk', addCount: 1, lastAddedAt: Timestamp.now() })
-    await setDoc(doc(ctx.firestore(), 'entries/e1'), { text: 'milk', staple: 'milk', checked: false, createdAt: Timestamp.now() })
+    await setDoc(doc(ctx.firestore(), 'wares/milk'), { name: 'milk', addCount: 1, lastAddedAt: Timestamp.now() })
+    await setDoc(doc(ctx.firestore(), 'entries/e1'), { text: 'milk', ware: 'milk', checked: false, createdAt: Timestamp.now() })
   })
 })
 
@@ -54,22 +54,22 @@ const member = () => env.authenticatedContext('alice', { email: MEMBER }).firest
 const outsider = () => env.authenticatedContext('eve', { email: OUTSIDER }).firestore()
 const anon = () => env.unauthenticatedContext().firestore()
 
-// What the app's addEntry writes: the Entry, and its Staple created or counted in the same batch.
+// What the app's addEntry writes: the Entry, and its Ware created or counted in the same batch.
 const newEntry = (fields: object = {}) => ({
   text: 'eggs',
-  staple: 'eggs',
+  ware: 'eggs',
   checked: false,
   createdAt: serverTimestamp(),
   ...fields,
 })
-const countedStaple = (name = 'eggs') => ({ name, addCount: increment(1), lastAddedAt: serverTimestamp() })
+const countedWare = (name = 'eggs') => ({ name, addCount: increment(1), lastAddedAt: serverTimestamp() })
 
 let n = 0
 // A fresh Entry id each time, so every Entry write is a create rather than an update.
-function add(db: Firestore, entry: object = newEntry(), staple: object | null = countedStaple(), stapleId = 'eggs') {
+function add(db: Firestore, entry: object = newEntry(), ware: object | null = countedWare(), wareId = 'eggs') {
   const batch = writeBatch(db)
   batch.set(doc(db, `entries/new${n++}`), entry)
-  if (staple) batch.set(doc(db, `staples/${stapleId}`), staple, { merge: true })
+  if (ware) batch.set(doc(db, `wares/${wareId}`), ware, { merge: true })
   return batch.commit()
 }
 
@@ -95,26 +95,27 @@ describe('/entries', () => {
 })
 
 describe('/entries shape', () => {
-  const create = (entry: object, staple: object | null = countedStaple()) => add(member(), entry, staple)
+  const create = (entry: object, ware: object | null = countedWare()) => add(member(), entry, ware)
 
-  test('a new Entry for a new Staple is accepted', async () => {
+  test('a new Entry for a new Ware is accepted', async () => {
     await assertSucceeds(create(newEntry()))
   })
 
-  test('a new Entry for an existing Staple is accepted', async () => {
-    await assertSucceeds(add(member(), newEntry({ text: 'milk', staple: 'milk' }), countedStaple('milk'), 'milk'))
+  test('a new Entry for an existing Ware is accepted', async () => {
+    await assertSucceeds(add(member(), newEntry({ text: 'milk', ware: 'milk' }), countedWare('milk'), 'milk'))
   })
 
   test('a new Entry with an extra or missing field is refused', async () => {
     await assertFails(create(newEntry({ quantity: 2 })))
     await assertFails(create({ text: 'eggs', checked: false, createdAt: serverTimestamp() }))
-    await assertFails(create({ staple: 'eggs', checked: false, createdAt: serverTimestamp() }))
+    await assertFails(create({ ware: 'eggs', checked: false, createdAt: serverTimestamp() }))
+    await assertFails(create(newEntry({ staple: 'eggs' })))
   })
 
-  test('a new Entry without its Staple, or with other text than the Staple name, is refused', async () => {
+  test('a new Entry without its Ware, or with other text than the Ware name, is refused', async () => {
     await assertFails(create(newEntry(), null))
     await assertFails(create(newEntry({ text: 'Eggs' })))
-    await assertFails(create(newEntry({ staple: 'nope' })))
+    await assertFails(create(newEntry({ ware: 'nope' })))
   })
 
   test('a new Entry that is already Checked or has a client-chosen time is refused', async () => {
@@ -141,7 +142,7 @@ describe('/entries shape', () => {
     const e1 = doc(member(), 'entries/e1')
     await assertFails(updateDoc(e1, { text: 'oat milk' }))
     await assertFails(updateDoc(e1, { quantity: 2 }))
-    await assertFails(updateDoc(e1, { staple: 'eggs' }))
+    await assertFails(updateDoc(e1, { ware: 'eggs' }))
   })
 })
 
@@ -174,127 +175,128 @@ describe('/entries note', () => {
   })
 })
 
-describe('/staples', () => {
-  const staple = (id = 'eggs') => doc(member(), `staples/${id}`)
+describe('/wares', () => {
+  const ware = (id = 'eggs') => doc(member(), `wares/${id}`)
 
   test('a Family Member can read, a non-member cannot', async () => {
-    await assertSucceeds(getDocs(collection(member(), 'staples')))
-    await assertFails(getDocs(collection(outsider(), 'staples')))
-    await assertFails(getDocs(collection(anon(), 'staples')))
+    await assertSucceeds(getDocs(collection(member(), 'wares')))
+    await assertFails(getDocs(collection(outsider(), 'wares')))
+    await assertFails(getDocs(collection(anon(), 'wares')))
   })
 
-  test('a new Staple has a name, an add count of 1 and server time', async () => {
-    await assertSucceeds(setDoc(staple(), countedStaple()))
-    await assertSucceeds(setDoc(staple('long'), countedStaple('x'.repeat(100))))
+  test('a hand-added Ware has a name, an add count of 1 and server time', async () => {
+    await assertSucceeds(setDoc(ware(), countedWare()))
+    await assertSucceeds(setDoc(ware('long'), countedWare('x'.repeat(100))))
   })
 
-  test('a new Staple with a bad name, count, time or extra field is refused', async () => {
-    await assertFails(setDoc(staple(), countedStaple('')))
-    await assertFails(setDoc(staple(), countedStaple('x'.repeat(101))))
-    await assertFails(setDoc(staple(), { name: 'eggs', addCount: 2, lastAddedAt: serverTimestamp() }))
-    await assertFails(setDoc(staple(), { name: 'eggs', addCount: 1, lastAddedAt: clientTime }))
-    await assertFails(setDoc(staple(), { ...countedStaple(), ware: 'x' }))
-    await assertFails(setDoc(staple(), { name: 'eggs', addCount: 1 }))
+  test('a new Ware with a bad name, count, time or extra field is refused', async () => {
+    await assertFails(setDoc(ware(), countedWare('')))
+    await assertFails(setDoc(ware(), countedWare('x'.repeat(101))))
+    await assertFails(setDoc(ware(), { name: 'eggs', addCount: 2, lastAddedAt: serverTimestamp() }))
+    await assertFails(setDoc(ware(), { name: 'eggs', addCount: 1, lastAddedAt: clientTime }))
+    await assertFails(setDoc(ware(), { ...countedWare(), price: 10 }))
+    await assertFails(setDoc(ware(), { name: 'eggs', addCount: 1 }))
+    await assertFails(setDoc(ware(), { name: 'eggs' }))
   })
 
   test('an add counts once and may respell the name', async () => {
-    await assertSucceeds(setDoc(staple('milk'), countedStaple('milk'), { merge: true }))
-    await assertSucceeds(setDoc(staple('milk'), countedStaple('Milk'), { merge: true }))
+    await assertSucceeds(setDoc(ware('milk'), countedWare('milk'), { merge: true }))
+    await assertSucceeds(setDoc(ware('milk'), countedWare('Milk'), { merge: true }))
   })
 
   test('an update that counts more than once, sets the time or adds a field is refused', async () => {
-    const milk = staple('milk')
+    const milk = ware('milk')
     await assertFails(updateDoc(milk, { addCount: increment(2), lastAddedAt: serverTimestamp() }))
     await assertFails(updateDoc(milk, { addCount: 5, lastAddedAt: serverTimestamp() }))
     await assertFails(updateDoc(milk, { addCount: increment(1), lastAddedAt: clientTime }))
     await assertFails(updateDoc(milk, { name: 'oat milk' }))
-    await assertFails(updateDoc(milk, { addCount: increment(1), lastAddedAt: serverTimestamp(), ware: 'x' }))
+    await assertFails(updateDoc(milk, { addCount: increment(1), lastAddedAt: serverTimestamp(), price: 10 }))
   })
 
-  test('a Staple cannot be deleted', async () => {
-    await assertFails(deleteDoc(staple('milk')))
+  test('a Ware cannot be deleted', async () => {
+    await assertFails(deleteDoc(ware('milk')))
   })
 
-  test('Confirm can create a Staple without counting an add, and remember it as usually at home', async () => {
-    await assertSucceeds(setDoc(staple('salt'), { name: 'salt', addCount: 0 }))
-    await assertSucceeds(setDoc(staple('oil'), { name: 'oil', addCount: 0, usuallyAtHome: true }))
-    await assertFails(setDoc(staple('pepper'), { name: 'pepper', addCount: 0, lastAddedAt: serverTimestamp() }))
-    await assertFails(setDoc(staple('pepper'), { name: 'pepper', addCount: 0, usuallyAtHome: 'yes' }))
-    // A Staple made by Confirm counts its first add like any other.
-    await assertSucceeds(setDoc(staple('salt'), countedStaple('salt'), { merge: true }))
+  test('Iverksett can create a Ware without counting an add, and remember it as usually at home', async () => {
+    await assertSucceeds(setDoc(ware('salt'), { name: 'salt', addCount: 0 }))
+    await assertSucceeds(setDoc(ware('oil'), { name: 'oil', addCount: 0, usuallyAtHome: true }))
+    await assertFails(setDoc(ware('pepper'), { name: 'pepper', addCount: 0, lastAddedAt: serverTimestamp() }))
+    await assertFails(setDoc(ware('pepper'), { name: 'pepper', addCount: 0, usuallyAtHome: 'yes' }))
+    // A Ware made by Iverksett counts its first hand add like any other.
+    await assertSucceeds(setDoc(ware('salt'), countedWare('salt'), { merge: true }))
   })
 
   test('usuallyAtHome can change on its own, but not with anything else', async () => {
-    await assertSucceeds(updateDoc(staple('milk'), { usuallyAtHome: true }))
-    await assertSucceeds(updateDoc(staple('milk'), { usuallyAtHome: false }))
-    await assertFails(updateDoc(staple('milk'), { usuallyAtHome: 'no' }))
-    await assertFails(updateDoc(staple('milk'), { usuallyAtHome: true, name: 'Milk' }))
+    await assertSucceeds(updateDoc(ware('milk'), { usuallyAtHome: true }))
+    await assertSucceeds(updateDoc(ware('milk'), { usuallyAtHome: false }))
+    await assertFails(updateDoc(ware('milk'), { usuallyAtHome: 'no' }))
+    await assertFails(updateDoc(ware('milk'), { usuallyAtHome: true, name: 'Milk' }))
+  })
+
+  test('Staples are gone', async () => {
+    await assertFails(getDocs(collection(member(), 'staples')))
+    await assertFails(setDoc(doc(member(), 'staples/eggs'), countedWare()))
   })
 })
 
-describe('/wares and /matches', () => {
-  test('a Family Member can write a Ware and a remembered match, a non-member cannot', async () => {
-    await assertSucceeds(setDoc(doc(member(), 'wares/helmelk'), { name: 'Helmelk' }))
-    await assertSucceeds(getDocs(collection(member(), 'wares')))
-    await assertSucceeds(setDoc(doc(member(), 'matches/helmelk'), { wording: 'helmelk', ware: 'helmelk' }))
-    await assertSucceeds(setDoc(doc(member(), 'matches/helmelk'), { wording: 'Helmelk', staple: 'milk' }))
+describe('/matches', () => {
+  test('a Family Member can read and write a remembered match, a non-member cannot', async () => {
+    await assertSucceeds(setDoc(doc(member(), 'matches/helmelk'), { wording: 'helmelk', ware: 'milk' }))
+    await assertSucceeds(setDoc(doc(member(), 'matches/helmelk'), { wording: 'Helmelk', ware: 'helmelk' }))
     await assertSucceeds(getDocs(collection(member(), 'matches')))
-    await assertFails(getDocs(collection(outsider(), 'wares')))
     await assertFails(getDocs(collection(outsider(), 'matches')))
-    await assertFails(setDoc(doc(outsider(), 'wares/helmelk'), { name: 'Helmelk' }))
-    await assertFails(setDoc(doc(outsider(), 'matches/helmelk'), { wording: 'helmelk', staple: 'milk' }))
+    await assertFails(setDoc(doc(outsider(), 'matches/helmelk'), { wording: 'helmelk', ware: 'milk' }))
   })
 
-  test('a Ware or match in the wrong shape is refused', async () => {
-    await assertFails(setDoc(doc(member(), 'wares/x'), { name: '' }))
-    await assertFails(setDoc(doc(member(), 'wares/x'), { name: 'x', price: 10 }))
+  test('a match in the wrong shape is refused', async () => {
     await assertFails(setDoc(doc(member(), 'matches/x'), { wording: 'x' }))
-    await assertFails(setDoc(doc(member(), 'matches/x'), { wording: 'x', staple: 'x', ware: 'x' }))
-    await assertFails(setDoc(doc(member(), 'matches/x'), { wording: '', staple: 'x' }))
-    await assertFails(setDoc(doc(member(), 'matches/x'), { wording: 'x', staple: '' }))
+    await assertFails(setDoc(doc(member(), 'matches/x'), { wording: 'x', staple: 'x' }))
+    await assertFails(setDoc(doc(member(), 'matches/x'), { wording: 'x', ware: 'x', staple: 'x' }))
+    await assertFails(setDoc(doc(member(), 'matches/x'), { wording: '', ware: 'x' }))
+    await assertFails(setDoc(doc(member(), 'matches/x'), { wording: 'x', ware: '' }))
   })
 
-  test('Wares and matches cannot be deleted', async () => {
-    await assertFails(deleteDoc(doc(member(), 'wares/helmelk')))
+  test('a match cannot be deleted', async () => {
     await assertFails(deleteDoc(doc(member(), 'matches/helmelk')))
   })
 })
 
-describe('/entries made by Confirm', () => {
-  const forWare = { text: 'Helmelk', ware: 'helmelk' }
-  const menuEntry = (fields: object = {}, target: object = { text: 'løk', staple: 'løk' }) => ({
-    ...target,
-    week: '2026-W44',
-    days: ['mon', 'fri'],
-    amount: '400 g',
+describe('/entries made by Iverksett', () => {
+  const dish = { week: '2026-W44', recipe: 'mon-0', course: 'Taco', grams: 200, pieces: 2 }
+  const iverksatt = (fields: object = {}) => ({
+    text: 'løk',
+    ware: 'løk',
+    dishes: [dish],
     checked: false,
     createdAt: serverTimestamp(),
     ...fields,
   })
   const create = (entry: object) => setDoc(doc(member(), `entries/menu${n++}`), entry)
 
-  test('a Menu Entry for a Staple or a Ware is made without counting the Staple', async () => {
-    await assertSucceeds(create(menuEntry()))
-    await assertSucceeds(create(menuEntry({}, forWare)))
-    await assertSucceeds(create(menuEntry({ amount: '' })))
+  test('an Entry with dishes is made without counting its Ware', async () => {
+    await assertSucceeds(create(iverksatt()))
+    await assertSucceeds(create(iverksatt({ dishes: Array(50).fill(dish) })))
   })
 
-  test('a Menu Entry in the wrong shape is refused', async () => {
-    await assertFails(create(menuEntry({}, { text: 'løk' })))
-    await assertFails(create(menuEntry({ ware: 'helmelk' })))
-    await assertFails(create(menuEntry({ week: 'next' })))
-    await assertFails(create(menuEntry({ days: [] })))
-    await assertFails(create(menuEntry({ amount: 400 })))
-    await assertFails(create(menuEntry({ note: 'lots' })))
-    await assertFails(create(menuEntry({ checked: true })))
-    await assertFails(create(menuEntry({ createdAt: clientTime })))
+  test('an Entry with dishes in the wrong shape is refused', async () => {
+    await assertFails(create(iverksatt({ ware: '' })))
+    await assertFails(create(iverksatt({ dishes: [] })))
+    await assertFails(create(iverksatt({ dishes: Array(51).fill(dish) })))
+    await assertFails(create(iverksatt({ dishes: dish })))
+    await assertFails(create(iverksatt({ days: ['mon'] })))
+    await assertFails(create(iverksatt({ checked: true })))
+    await assertFails(create(iverksatt({ createdAt: clientTime })))
   })
 
-  test('a Menu Entry can be checked off and Removed, but gets no Note', async () => {
+  test('dishes can be added to a waiting Entry, which can also get a Note', async () => {
     const e = doc(member(), 'entries/menu-x')
-    await assertSucceeds(setDoc(e, menuEntry()))
+    await assertSucceeds(setDoc(e, iverksatt()))
+    await assertSucceeds(updateDoc(e, { dishes: [dish, { ...dish, recipe: 'fri-0' }] }))
+    await assertSucceeds(updateDoc(e, { note: 'de store' }))
+    await assertSucceeds(updateDoc(doc(member(), 'entries/e1'), { dishes: [dish] }))
+    await assertFails(updateDoc(e, { dishes: [] }))
+    await assertFails(updateDoc(e, { dishes: 'Taco' }))
     await assertSucceeds(updateDoc(e, { checked: true, checkedAt: serverTimestamp() }))
-    await assertFails(updateDoc(e, { note: 'lots' }))
     await assertSucceeds(deleteDoc(e))
   })
 })

@@ -97,7 +97,7 @@ _UI_: none (Steps are separated by rules; "+ steg" when editing)
 _Avoid_: Stage, section
 
 **Ingredient**:
-One line of a Step saying what is needed and how much: grams first, and a kitchen measure ("2 dl", "en klype") where it helps. A measure that's a count ("2 stk", or just "2") is pieces. It is worded to say how strict the need is ("helmelk" versus "melk, hvilken som helst"). At Confirm each Ingredient is matched to the most general Ware the Family has that fits ("helmelk" to "melk"), and the strictness stays in the Recipe. The Family's matches are remembered.
+One line of a Step saying what is needed and how much: grams first, and a kitchen measure ("2 dl", "en klype") where it helps. A measure that's a count ("2 stk", or just "2") is pieces. It is named in the singular, the thing first, and worded to say how strict the need is ("melk, hel" versus "melk, hvilken som helst"). At Confirm each Ingredient is matched to the Ware that is the same thing to buy. What doesn't change the purchase is dropped ("salt, fin" is "salt"), but the Recipe's intent is kept: "melk, hel" is its own Ware even when the Family has "melk". The Family's matches are remembered.
 _UI_: "Ingrediens"
 _Avoid_: Grocery, item
 

@@ -1,68 +1,78 @@
 import { expect, test } from '@playwright/test'
-import { MEMBERS, addEntry, entry, openTab, readDoc, reset, seed, signIn } from './helpers'
+import { MEMBERS, addEntry, entry, openTab, readDoc, reset, seed, signIn, writeDoc } from './helpers'
 
 test.beforeEach(async () => {
   await reset()
   await seed()
 })
 
-test('adding the same Staple in different spellings counts one Staple', async ({ page }) => {
+// A Ware as the REST API takes it, added by hand `count` times. 0 is one only Iverksett made.
+const ware = (name: string, count: number) => ({ name: { stringValue: name }, addCount: { integerValue: String(count) } })
+
+test('adding a Ware that is waiting, in any spelling, opens its Note instead of adding it again', async ({ page }) => {
   await signIn(page, MEMBERS[0])
   await addEntry(page, 'Melk')
-  await addEntry(page, 'Melk')
+  const note = page.getByRole('textbox', { name: 'Notat' })
+
   await page.getByPlaceholder('Hva trenger vi?').fill('melk ')
   await page.getByRole('button', { name: 'Legg til', exact: true }).click()
-  await expect(entry(page, 'Melk')).toHaveCount(3)
+  await expect(note).toBeFocused()
+  await note.fill('mye')
+  await note.press('Enter')
+  await expect(entry(page, 'Melk')).toHaveText('Melk · mye')
 
-  await expect(async () => {
-    const staple = await readDoc('staples/melk')
-    expect(staple.name.stringValue).toBe('Melk')
-    expect(staple.addCount.integerValue).toBe('3')
-  }).toPass()
+  // Tapping a suggestion does the same.
+  await page.getByPlaceholder('Hva trenger vi?').fill('me')
+  await page.getByRole('button', { name: 'Melk', exact: true }).click()
+  await expect(note).toHaveValue('mye')
+  await expect(page.getByPlaceholder('Hva trenger vi?')).toHaveValue('')
+  await expect(entry(page, 'Melk')).toHaveCount(1)
+
+  const melk = await readDoc('wares/melk')
+  expect(melk.name.stringValue).toBe('Melk')
+  expect(melk.addCount.integerValue).toBe('1')
 })
 
-test('typing suggests Staples, and tapping one adds it', async ({ page }) => {
+test('adding a Ware that is checked off replaces its Entry with a new one', async ({ page }) => {
   await signIn(page, MEMBERS[0])
   await addEntry(page, 'Melk')
-  await page.getByPlaceholder('Hva trenger vi?').fill('me')
-  await page.getByRole('button', { name: 'Melk' }).click()
-  await expect(entry(page, 'Melk')).toHaveCount(2)
-  await expect(page.getByPlaceholder('Hva trenger vi?')).toHaveValue('')
+  await openTab(page, 'Handle')
+  await entry(page, 'Melk').getByRole('checkbox').click()
+  await expect(entry(page, 'Melk').getByRole('checkbox')).toBeChecked()
+
+  await openTab(page, 'Hjem')
+  await addEntry(page, 'melk')
+  await openTab(page, 'Handle')
+  await expect(entry(page, 'Melk')).toHaveCount(1)
+  await expect(entry(page, 'Melk').getByRole('checkbox')).not.toBeChecked()
+  await expect.poll(async () => (await readDoc('wares/melk')).addCount.integerValue).toBe('2')
 })
 
-test('suggestions starting with the text come first, then by how often they are added', async ({ page }) => {
-  await signIn(page, MEMBERS[0])
-  const input = page.getByPlaceholder('Hva trenger vi?')
-  for (const name of ['nutmeg', 'nutmeg', 'nutmeg', 'egg noodles', 'eggs', 'eggs']) {
-    await input.fill(name)
-    await input.press('Enter')
+test('typing suggests Staples starting with the text first, then by how often they are added', async ({ page }) => {
+  for (const [id, count] of [
+    ['nutmeg', 3],
+    ['egg noodles', 1],
+    ['eggs', 2],
+    ['eggplant', 0],
+  ] as const) {
+    await writeDoc(`wares/${id}`, ware(id, count))
   }
-  await expect(page.getByRole('listitem')).toHaveCount(6)
-  await input.fill('eg')
-  const suggestions = page.getByRole('button', { name: /^(eggs|egg noodles|nutmeg)$/ })
+  await signIn(page, MEMBERS[0])
+  await page.getByPlaceholder('Hva trenger vi?').fill('eg')
+  // eggplant came only from Iverksett, so it's no Staple.
+  const suggestions = page.getByRole('button', { name: /^(eggs|egg noodles|nutmeg|eggplant)$/ })
   await expect(suggestions).toHaveText(['eggs', 'egg noodles', 'nutmeg'])
 })
 
 test('with the field empty, the most added Staples not already waiting show', async ({ page }) => {
+  for (const [id, count] of [
+    ['milk', 4],
+    ['eggs', 2],
+    ['bread', 1],
+  ] as const) {
+    await writeDoc(`wares/${id}`, ware(id, count))
+  }
   await signIn(page, MEMBERS[0])
-  const input = page.getByPlaceholder('Hva trenger vi?')
-  for (const name of ['milk', 'milk', 'milk', 'milk', 'eggs', 'eggs', 'bread']) {
-    await input.fill(name)
-    await input.press('Enter')
-  }
-  await expect(page.getByRole('listitem')).toHaveCount(7)
-  await openTab(page, 'Handle')
-  // Shop moves each Entry down as it's checked, so always take the first unchecked one.
-  const unchecked = page.getByRole('checkbox', { checked: false })
-  for (let left = 7; left > 0; left--) {
-    await expect(unchecked).toHaveCount(left)
-    await unchecked.first().click()
-  }
-  await expect(unchecked).toHaveCount(0)
-  await page.getByRole('button', { name: 'Fjern avkryssede' }).click()
-  await expect(page.getByRole('listitem')).toHaveCount(0)
-  await openTab(page, 'Hjem')
-
   const suggestions = page.getByRole('button', { name: /^(milk|eggs|bread)$/ })
   await expect(suggestions).toHaveText(['milk', 'eggs', 'bread'])
 

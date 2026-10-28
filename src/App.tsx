@@ -1,21 +1,22 @@
 import { useState, type FormEvent } from 'react'
 import { type User } from 'firebase/auth'
 import { MealsTab } from './Meals'
-import { DAY_SHORT } from './weeks'
+import { formatAmount } from './amounts'
 import { signInWithGoogle, signOut, useOnline, useUser } from './firebase'
 import {
   addEntry,
   removeEntries,
   removeEntry,
   setNote,
-  stapleId,
-  stapleName,
   suggest,
   toggleEntry,
   useAccess,
   useEntries,
   useRemoveCheckedAfterShopping,
-  useStaples,
+  useWares,
+  wareId,
+  wareName,
+  type Dish,
   type Entry,
 } from './entries'
 
@@ -88,6 +89,15 @@ function List({ user }: { user: User }) {
   useRemoveCheckedAfterShopping(entries)
   const online = useOnline()
   const [tab, setTab] = useState<Tab>('Home')
+  const [dishesOf, setDishesOf] = useState<Entry | null>(null)
+  // A dish tapped on the List opens its Recipe in Middag.
+  const [recipeLink, setRecipeLink] = useState<Dish | null>(null)
+
+  function openRecipe(dish: Dish) {
+    setDishesOf(null)
+    setRecipeLink(dish)
+    setTab('Meals')
+  }
 
   return (
     <main
@@ -122,10 +132,11 @@ function List({ user }: { user: User }) {
       </header>
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-        {tab === 'Home' && <Home entries={entries} />}
-        {tab === 'Meals' && <MealsTab />}
-        {tab === 'Shop' && <Shop entries={entries} />}
+        {tab === 'Home' && <Home entries={entries} onDishes={setDishesOf} />}
+        {tab === 'Meals' && <MealsTab openAt={recipeLink} />}
+        {tab === 'Shop' && <Shop entries={entries} onDishes={setDishesOf} />}
       </div>
+      {dishesOf && <Dishes entry={dishesOf} onOpen={openRecipe} onClose={() => setDishesOf(null)} />}
 
       <nav
         style={{
@@ -142,7 +153,10 @@ function List({ user }: { user: User }) {
         {TABS.map(({ tab: t, label, name }) => (
           <button
             key={t}
-            onClick={() => setTab(t)}
+            onClick={() => {
+              setRecipeLink(null)
+              setTab(t)
+            }}
             aria-pressed={tab === t}
             aria-label={name}
             style={{
@@ -169,37 +183,126 @@ const listStyle = {
   gap: '0.5rem',
 } as const
 
-// A Menu Entry's amount and days, or an Entry's Note.
-function Details({ entry }: { entry: Entry }) {
-  if (entry.days) {
-    return (
-      <>
-        {entry.amount && ` ${entry.amount}`}
-        <span style={{ color: '#666' }}> · {entry.days.map((d) => DAY_SHORT[d]).join(', ')}</span>
-      </>
-    )
-  }
-  return entry.note ? <span style={{ color: '#666' }}> · {entry.note}</span> : null
+// The dishes an Entry is for: a chef's hat, drawn in the text's colour and size, so it sits
+// in the line like the ⌂ and ↻ glyphs. Unicode has no plain one, only a colour emoji.
+function ChefsHat() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      style={{ width: '1.1em', height: '1.1em', verticalAlign: '-0.2em' }}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.75}
+      strokeLinejoin="round"
+    >
+      <path d="M7 20 V15 A3.5 3.5 0 0 1 7.6 8.1 A4.5 4.5 0 0 1 16.4 8.1 A3.5 3.5 0 0 1 17 15 V20 Z M7 17 H17" />
+    </svg>
+  )
+}
+
+// An Entry's Note, and the chef's hat with what its dishes need, which lists the dishes.
+function Details({ entry, onDishes }: { entry: Entry; onDishes: (entry: Entry) => void }) {
+  return (
+    <>
+      {entry.note && <span style={{ color: '#666' }}> · {entry.note}</span>}
+      {entry.dishes && (
+        <>
+          <span style={{ color: '#666' }}> · </span>
+          <button
+            aria-label="Fra middag"
+            onClick={(e) => {
+              // Not the line's own tap: opening it on Hjem, checking it off on Handle.
+              e.preventDefault()
+              e.stopPropagation()
+              onDishes(entry)
+            }}
+            style={{ font: 'inherit', color: '#666', padding: 0, border: 'none', background: 'none', cursor: 'pointer' }}
+          >
+            <ChefsHat /> {formatAmount(entry.dishes)}
+          </button>
+        </>
+      )}
+    </>
+  )
+}
+
+// The dishes an Entry was added for at Iverksett, each opening its Recipe.
+function Dishes({ entry, onOpen, onClose }: { entry: Entry; onOpen: (dish: Dish) => void; onClose: () => void }) {
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 3,
+        background: 'rgba(0, 0, 0, 0.3)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
+      <div
+        role="dialog"
+        aria-label={`${entry.text} fra middag`}
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          background: 'white',
+          padding: '1rem',
+          width: 'min(100% - 2rem, 24rem)',
+          boxSizing: 'border-box',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '0.75rem',
+          fontFamily: 'system-ui, sans-serif',
+        }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <strong style={{ fontSize: '1.125rem' }}>{entry.text}</strong>
+          <button onClick={onClose} aria-label="Lukk" style={smallButtonStyle}>
+            ✕
+          </button>
+        </div>
+        <ul style={listStyle}>
+          {entry.dishes?.map((dish, i) => (
+            <li key={i}>
+              <button
+                onClick={() => onOpen(dish)}
+                style={{ ...buttonStyle, width: '100%', textAlign: 'left', fontSize: '1.125rem' }}
+              >
+                {dish.course}
+              </button>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  )
 }
 
 // "Quick, before I forget": adding and editing Groceries, newest first. Entries are never
 // checked off here. Removing takes two taps, to avoid misclicks.
-function Home({ entries }: { entries: Entry[] }) {
-  const staples = useStaples()
+function Home({ entries, onDishes }: { entries: Entry[]; onDishes: (entry: Entry) => void }) {
+  const wares = useWares()
   const [text, setText] = useState('')
   const [open, setOpen] = useState<{ entryId: string; note: string } | null>(null)
 
   const newestFirst = entries.toReversed()
 
-  const suggestions = suggest(staples, text, entries)
+  const suggestions = suggest(wares, text, entries)
 
-  // Typed text that matches a Staple adds that Staple under its own name.
+  // Typed text that matches a Ware adds that Ware under its own name. A Ware already
+  // waiting opens its Entry for the Note instead.
+  function add(name: string) {
+    const waiting = addEntry(name, entries)
+    if (waiting) setOpen({ entryId: waiting.id, note: waiting.note ?? '' })
+    setText('')
+  }
+
   function onAdd(e: FormEvent) {
     e.preventDefault()
-    const t = stapleName(text)
-    if (!t) return
-    addEntry(staples.find((s) => s.id === stapleId(t))?.name ?? t)
-    setText('')
+    const t = wareName(text)
+    if (t) add(wares.find((w) => w.id === wareId(t))?.name ?? t)
   }
 
   function saveNote() {
@@ -233,10 +336,7 @@ function Home({ entries }: { entries: Entry[] }) {
           {suggestions.map((s) => (
             <button
               key={s.id}
-              onClick={() => {
-                addEntry(s.name)
-                setText('')
-              }}
+              onClick={() => add(s.name)}
               style={smallButtonStyle}
             >
               {s.name}
@@ -264,7 +364,7 @@ function Home({ entries }: { entries: Entry[] }) {
                   }}
                 >
                   {entry.text}
-                  <Details entry={entry} />
+                  <Details entry={entry} onDishes={onDishes} />
                 </span>
               </div>
               {isOpen && (
@@ -276,19 +376,16 @@ function Home({ entries }: { entries: Entry[] }) {
                   }}
                   style={{ display: 'flex', gap: '0.5rem' }}
                 >
-                  {/* A Menu Entry has no Note. */}
-                  {!entry.days && (
-                    <input
-                      autoFocus
-                      value={open.note}
-                      onChange={(e) => setOpen({ ...open, note: e.target.value })}
-                      onBlur={saveNote}
-                      maxLength={200}
-                      placeholder="Notat"
-                      aria-label="Notat"
-                      style={{ flex: 1, minWidth: 0, fontSize: '1rem', padding: '0.25rem' }}
-                    />
-                  )}
+                  <input
+                    autoFocus
+                    value={open.note}
+                    onChange={(e) => setOpen({ ...open, note: e.target.value })}
+                    onBlur={saveNote}
+                    maxLength={200}
+                    placeholder="Notat"
+                    aria-label="Notat"
+                    style={{ flex: 1, minWidth: 0, fontSize: '1rem', padding: '0.25rem' }}
+                  />
                   <button
                     type="button"
                     onClick={() => {
@@ -310,7 +407,7 @@ function Home({ entries }: { entries: Entry[] }) {
 }
 
 // "I'm in the store": unchecked first, big text, one tap to check off.
-function Shop({ entries }: { entries: Entry[] }) {
+function Shop({ entries, onDishes }: { entries: Entry[]; onDishes: (entry: Entry) => void }) {
   const unchecked = entries.filter((e) => !e.checked)
   const checked = entries.filter((e) => e.checked)
 
@@ -333,7 +430,7 @@ function Shop({ entries }: { entries: Entry[] }) {
               />
               <span style={{ textDecoration: entry.checked ? 'line-through' : 'none' }}>
                 {entry.text}
-                <Details entry={entry} />
+                <Details entry={entry} onDishes={onDishes} />
               </span>
             </label>
           </li>

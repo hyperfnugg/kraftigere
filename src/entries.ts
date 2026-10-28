@@ -18,54 +18,54 @@ import {
 } from 'firebase/firestore'
 import { useEffect, useState } from 'react'
 import { db } from './firebase'
-import type { Day } from './weeks'
+
+// One dish Iverksett added an Entry for: its Recipe, by week and id, and what it needs.
+export type Dish = { week: string; recipe: string; course: string; grams: number | null; pieces: number | null }
 
 export type Entry = {
   id: string
+  // The Ware's name, and its id.
   text: string
-  // A hand-added Entry always has a Staple. A Menu Entry has a Staple or a Ware.
-  staple?: string
-  ware?: string
+  ware: string
   checked: boolean
   note?: string
-  // Only on Menu Entries: the week they were Confirmed from, its days, and the summed
-  // amount as text.
-  week?: string
-  days?: Day[]
-  amount?: string
+  dishes?: Dish[]
   // Missing on Entries checked off before checkedAt existed.
   checkedAt?: Timestamp
   createdAt: Timestamp | null
 }
 
-// How a Staple's name is written: trimmed, inner whitespace collapsed.
-export function stapleName(text: string) {
+// How a Ware's name is written: trimmed, inner whitespace collapsed.
+export function wareName(text: string) {
   return text.trim().replace(/\s+/g, ' ')
 }
 
-// A Staple's id is its normalized name, so "Melk" and "melk " are the same Staple.
+// A Ware's id is its normalized name, so "Melk" and "melk " are the same Ware.
 // Ids can't contain "/" or be "." or "..", or look like __reserved__.
-export function stapleId(name: string) {
-  const id = stapleName(name).toLowerCase().replaceAll('/', '∕')
+export function wareId(name: string) {
+  const id = wareName(name).toLowerCase().replaceAll('/', '∕')
   return /^\.\.?$|^__.*__$/.test(id) ? `~${id}` : id
 }
 
-export type Staple = {
+// Anything the Family buys. One they've added by hand (addCount 1 or more) is a Staple.
+export type Ware = {
   id: string
   name: string
   addCount: number
   usuallyAtHome?: boolean
 }
 
-// All the Family's Staples. The persistent cache makes them available at once and keeps
+export const isStaple = (w: Ware) => w.addCount > 0
+
+// All the Family's Wares. The persistent cache makes them available at once and keeps
 // them fresh, so autocomplete needs no lookups.
-export function useStaples() {
-  const [staples, setStaples] = useState<Staple[]>([])
+export function useWares() {
+  const [wares, setWares] = useState<Ware[]>([])
 
   useEffect(
     () =>
-      onSnapshot(collection(db, 'staples'), (snap) => {
-        setStaples(
+      onSnapshot(collection(db, 'wares'), (snap) => {
+        setWares(
           snap.docs.map((d) => ({
             id: d.id,
             name: d.get('name'),
@@ -77,17 +77,18 @@ export function useStaples() {
     [],
   )
 
-  return staples
+  return wares
 }
 
 // Up to 5 Staples for what's typed: names starting with it first, then names containing
 // it, each ordered by how often they're added. With nothing typed, the most added Staples
 // that aren't already waiting on the List.
-export function suggest(staples: Staple[], text: string, entries: Entry[]) {
-  const byCount = (a: Staple, b: Staple) => b.addCount - a.addCount
-  const t = stapleId(text)
+export function suggest(wares: Ware[], text: string, entries: Entry[]) {
+  const staples = wares.filter(isStaple)
+  const byCount = (a: Ware, b: Ware) => b.addCount - a.addCount
+  const t = wareId(text)
   if (!t) {
-    const waiting = new Set(entries.filter((e) => !e.checked).map((e) => e.staple))
+    const waiting = new Set(entries.filter((e) => !e.checked).map((e) => e.ware))
     return staples.filter((s) => !waiting.has(s.id)).sort(byCount).slice(0, 5)
   }
   const starting = staples.filter((s) => s.id.startsWith(t)).sort(byCount)
@@ -95,22 +96,28 @@ export function suggest(staples: Staple[], text: string, entries: Entry[]) {
   return [...starting, ...containing].slice(0, 5)
 }
 
-// Adds an Entry for the Staple with this name, creating the Staple or counting the add.
-export function addEntry(name: string) {
-  const staple = stapleId(name)
+// Adds an Entry for the Ware with this name, creating the Ware or counting the add. A Ware
+// is on the List once: one that's waiting isn't added again, and its Entry is returned
+// instead. A Checked Entry for it is replaced.
+export function addEntry(name: string, entries: Entry[]) {
+  const ware = wareId(name)
+  const waiting = entries.find((e) => e.ware === ware && !e.checked)
+  if (waiting) return waiting
   const batch = writeBatch(db)
+  for (const e of entries) if (e.ware === ware) batch.delete(doc(db, 'entries', e.id))
   batch.set(doc(collection(db, 'entries')), {
     text: name,
-    staple,
+    ware,
     checked: false,
     createdAt: serverTimestamp(),
   })
   batch.set(
-    doc(db, 'staples', staple),
+    doc(db, 'wares', ware),
     { name, addCount: increment(1), lastAddedAt: serverTimestamp() },
     { merge: true },
   )
-  return batch.commit()
+  batch.commit().catch(console.error)
+  return null
 }
 
 // Checking off records when, so Checked Entries can be removed after shopping.

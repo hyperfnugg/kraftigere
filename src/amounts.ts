@@ -21,3 +21,18 @@ export function measureText(measure: string) {
   const n = piecesOf(measure)
   return n === null ? measure.trim() : `${formatNumber(n)} stk`
 }
+
+// Grams or pieces added up, leaving out the unknown ones ("etter smak"). None known is null.
+export function sumKnown(ns: (number | null)[]) {
+  const known = ns.filter((n) => n !== null)
+  return known.length > 0 ? known.reduce((a, n) => a + n, 0) : null
+}
+
+// Grams added up, with pieces in parentheses when there are any: "360 g (6 stk)".
+export function formatAmount(amounts: { grams: number | null; pieces: number | null }[]) {
+  const grams = sumKnown(amounts.map((a) => a.grams))
+  const pieces = sumKnown(amounts.map((a) => a.pieces))
+  const g = grams === null ? '' : `${formatNumber(grams)} g`
+  const p = pieces === null ? '' : `${formatNumber(pieces)} stk`
+  return g && p ? `${g} (${p})` : g || p
+}

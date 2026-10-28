@@ -13,33 +13,27 @@ service cloud.firestore {
     }
 
     // The Entry shape the app writes. See docs/adr/0003-data-shape-changes.md.
-    // An Entry is added in the same batch that creates or counts its Staple, and
-    // keeps the Staple's name as its text.
+    // An Entry is for one Ware and keeps the Ware's name as its text. Added by hand, it
+    // comes in the same batch that creates or counts its Ware. Iverksett adds it with the
+    // dishes that need it, without counting the Ware, so the rules don't look the Ware up
+    // then (a batch may hold many, and rules can only read 20 documents per batch).
     function isNewEntry(data) {
-      return data.keys().hasOnly(['text', 'staple', 'checked', 'createdAt', 'note']) &&
-             data.keys().hasAll(['text', 'staple', 'checked', 'createdAt']) &&
+      return data.keys().hasOnly(['text', 'ware', 'checked', 'createdAt', 'note', 'dishes']) &&
+             data.keys().hasAll(['text', 'ware', 'checked', 'createdAt']) &&
              (!('note' in data) || isNote(data.note)) &&
-             data.staple is string &&
-             getAfter(/databases/$(database)/documents/staples/$(data.staple)).data.name == data.text &&
+             isWareName(data.text) &&
+             isWareName(data.ware) &&
+             (('dishes' in data && isDishes(data.dishes)) ||
+              (!('dishes' in data) &&
+               getAfter(/databases/$(database)/documents/wares/$(data.ware)).data.name == data.text)) &&
              data.checked == false &&
              data.createdAt == request.time;
     }
 
-    // A Menu Entry, made by Confirm from a week's Ingredients: one per Ware or Staple,
-    // named after it, with the summed amount as text and the days it serves. It has no
-    // Note and is made without counting its Staple, so the rules don't look the Staple up
-    // (a batch may hold many, and rules can only read 20 documents per batch).
-    function isMenuEntry(data) {
-      return data.keys().hasOnly(['text', 'staple', 'ware', 'week', 'days', 'amount', 'checked', 'createdAt']) &&
-             data.keys().hasAll(['text', 'week', 'days', 'amount', 'checked', 'createdAt']) &&
-             ('staple' in data) != ('ware' in data) &&
-             isStapleName(data.text) &&
-             isStapleName(data.get('staple', data.get('ware', null))) &&
-             data.week is string && data.week.matches('^[0-9]{4}-W[0-9]{2}$') &&
-             data.days is list && data.days.size() >= 1 && data.days.size() <= 7 &&
-             data.amount is string && data.amount.size() <= 200 &&
-             data.checked == false &&
-             data.createdAt == request.time;
+    // The dishes Iverksett added an Entry for. The rules can't loop, so they check that
+    // it's a short list but not the shape of each dish.
+    function isDishes(dishes) {
+      return dishes is list && dishes.size() >= 1 && dishes.size() <= 50;
     }
 
     // A free-text Note, such as "lots" or "the lactose-free one".
@@ -47,68 +41,62 @@ service cloud.firestore {
       return note is string && note.size() >= 1 && note.size() <= 200;
     }
 
-    // An update checks off or unchecks, or sets or removes the Note. Checking off
-    // records when; unchecking forgets it. A Menu Entry has no Note.
+    // An update checks off or unchecks, sets or removes the Note, or adds dishes.
+    // Checking off records when; unchecking forgets it.
     function isEntryUpdate(before, after) {
       let changed = after.diff(before).affectedKeys();
-      return changed.hasOnly(['checked', 'checkedAt', 'note']) &&
+      return changed.hasOnly(['checked', 'checkedAt', 'note', 'dishes']) &&
              (!changed.hasAny(['checked', 'checkedAt']) ||
               (after.checked == true && after.checkedAt == request.time) ||
               (after.checked == false && !('checkedAt' in after))) &&
-             (!('note' in after) || (isNote(after.note) && !('week' in after)));
+             (!('note' in after) || isNote(after.note)) &&
+             (!changed.hasAny(['dishes']) || isDishes(after.dishes));
     }
 
-    function isStapleName(name) {
+    function isWareName(name) {
       return name is string && name.size() >= 1 && name.size() <= 100;
     }
 
-    // A Staple's id is its normalized name, so names are unique without a query. It is
-    // created by its first add, or by Confirm without counting an add. usuallyAtHome is
-    // remembered from Confirm, so salt and oil start unticked.
-    match /staples/{stapleId} {
+    // A Ware: anything the Family buys. Its id is its normalized name, so names are unique
+    // without a query. A hand add creates or counts it, which makes it a Staple. Iverksett
+    // creates it without counting an add. usuallyAtHome is remembered from Iverksett, so
+    // salt and oil start unticked.
+    match /wares/{wareId} {
       allow read: if isFamily();
       allow create: if isFamily() &&
                        request.resource.data.keys().hasOnly(['name', 'addCount', 'lastAddedAt', 'usuallyAtHome']) &&
                        request.resource.data.keys().hasAll(['name', 'addCount']) &&
-                       isStapleName(request.resource.data.name) &&
+                       isWareName(request.resource.data.name) &&
                        request.resource.data.get('usuallyAtHome', false) is bool &&
                        ((request.resource.data.addCount == 1 && request.resource.data.lastAddedAt == request.time) ||
                         (request.resource.data.addCount == 0 && !('lastAddedAt' in request.resource.data)));
-      // Each add counts once. The name may change to the spelling last added. Confirm
+      // Each add counts once. The name may change to the spelling last added. Iverksett
       // only sets usuallyAtHome.
       allow update: if isFamily() &&
                        ((request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'addCount', 'lastAddedAt']) &&
-                         isStapleName(request.resource.data.name) &&
+                         isWareName(request.resource.data.name) &&
                          request.resource.data.addCount == resource.data.addCount + 1 &&
                          request.resource.data.lastAddedAt == request.time) ||
                         (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['usuallyAtHome']) &&
                          request.resource.data.usuallyAtHome is bool));
     }
 
-    // A Ware, created by Confirm. Its id is its normalized name, like a Staple's.
-    match /wares/{wareId} {
-      allow read: if isFamily();
-      allow create, update: if isFamily() &&
-                               request.resource.data.keys().hasOnly(['name']) &&
-                               isStapleName(request.resource.data.name);
-    }
-
-    // A remembered match, keyed on an Ingredient's normalized wording: the Ware or Staple
-    // (by id) that Confirm matched it to last.
+    // A remembered match, keyed on an Ingredient's normalized wording: the Ware (by id)
+    // that Iverksett matched it to last.
     match /matches/{wordingId} {
       allow read: if isFamily();
       allow create, update: if isFamily() &&
-                               request.resource.data.keys().hasOnly(['wording', 'staple', 'ware']) &&
+                               request.resource.data.keys().hasOnly(['wording', 'ware']) &&
+                               request.resource.data.keys().hasAll(['wording', 'ware']) &&
                                request.resource.data.wording is string &&
                                request.resource.data.wording.size() >= 1 &&
                                request.resource.data.wording.size() <= 200 &&
-                               ('staple' in request.resource.data) != ('ware' in request.resource.data) &&
-                               isStapleName(request.resource.data.get('staple', request.resource.data.get('ware', null)));
+                               isWareName(request.resource.data.ware);
     }
 
     match /entries/{entryId} {
       allow read, delete: if isFamily();
-      allow create: if isFamily() && (isNewEntry(request.resource.data) || isMenuEntry(request.resource.data));
+      allow create: if isFamily() && isNewEntry(request.resource.data);
       allow update: if isFamily() && isEntryUpdate(resource.data, request.resource.data);
     }
 
