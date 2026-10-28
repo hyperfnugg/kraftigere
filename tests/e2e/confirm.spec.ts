@@ -11,6 +11,9 @@ test.beforeEach(async () => {
 
 const screen = (page: Page) => page.getByRole('dialog', { name: 'Iverksett' })
 const line = (page: Page, name: string) => screen(page).getByRole('group', { name, exact: true })
+// Opens an Entry's editor by tapping its name. The name and the dishes' button share one
+// element, so a click in its middle can land on the button, depending on the fonts (it does on CI).
+const openEditor = (page: Page, name: string) => entry(page, name).getByText(name).click({ position: { x: 4, y: 4 } })
 
 // A REST number value, or null.
 const num = (v: { integerValue?: string; doubleValue?: number }) =>
@@ -108,7 +111,7 @@ test('a corrected match is used next week without the AI', async ({ page }) => {
 test('a Ware already waiting on the List is left off the screen, and gets the dishes', async ({ page }) => {
   await addThenMakeRecipes(page, async (page) => {
     await addEntry(page, 'løk')
-    await entry(page, 'løk').getByText('løk').click()
+    await openEditor(page, 'løk')
     await page.getByRole('textbox', { name: 'Notat' }).fill('store')
     await page.getByRole('textbox', { name: 'Notat' }).press('Enter')
   })
@@ -194,11 +197,11 @@ test('an Iverksett Entry shows what its dishes need, lists them, takes a Note, a
   await expect(recipe).toHaveCount(0)
 
   await openTab(page, 'Hjem')
-  await entry(page, 'løk').getByText('løk').click()
+  await openEditor(page, 'løk')
   await page.getByRole('textbox', { name: 'Notat' }).fill('store')
   await page.getByRole('textbox', { name: 'Notat' }).press('Enter')
   await expect(entry(page, 'løk')).toHaveText('løk · store · 1200 g (12 stk)')
-  await entry(page, 'løk').getByText('løk').click()
+  await openEditor(page, 'løk')
   await entry(page, 'løk').getByRole('button', { name: 'Fjern' }).click()
   await expect(entry(page, 'løk')).toHaveCount(0)
 
