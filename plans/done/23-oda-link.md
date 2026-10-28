@@ -35,9 +35,9 @@ Twenty-third milestone and the first Oda one, on the long-lived `oda` branch ([A
 - [x] **Try it on the dev server**, iterating on feedback: link, see the count change after adding something on oda.com, restart `npm run dev` and still be linked, wait out the hour-long access token and see it refresh. Skipped in AFK mode. *(user)*
 - [x] **Tests.** A fake Oda (OAuth endpoints that approve at once, and an `/mcp` that answers `get_cart`) started by Playwright on its own port, with the test emulators' function pointed at it. One e2e spec: "Koble til Oda" → back on Shop → "Oda: N varer i handlekurven". No test reaches oda.com.
 - [x] **Commit: Basket count on Shop.** *(manual)* (user-visible; review first)
-- [ ] **Draft PR `oda` → `main`**, so `pr-check` runs CI on every push. Pushes after a rebase onto `main` use `--force-with-lease`.
-- [ ] **Move plan to `plans/done/`.** `git mv plans/active/23-oda-link.md plans/done/23-oda-link.md`, and remove it from **Now** in `ROADMAP.md`.
-- [ ] **Commit: complete Oda Link milestone.** *(auto)*
+- [x] **Draft PR `oda` → `main`**, so `pr-check` runs CI on every push. Pushes after a rebase onto `main` use `--force-with-lease`.
+- [x] **Move plan to `plans/done/`.** `git mv plans/active/23-oda-link.md plans/done/23-oda-link.md`, and remove it from **Now** in `ROADMAP.md`.
+- [x] **Commit: complete Oda Link milestone.** *(auto)*
 
 ## Done when
 
@@ -51,3 +51,4 @@ Twenty-third milestone and the first Oda one, on the long-lived `oda` branch ([A
 - 2026-10-28: The callback lands on `<app origin>/?oda=linked` (or `?oda=error`), taken from the callable's `Origin`, so the Shop line step opens Shop from that. The redirect URI is built from the emulator's host and only the emulator is set up. `ODA_BASE_URL` (default `https://oda.com`) passes from the emulator's environment to the function, so the tests can set it on their `emulators:exec`. A client is registered again only if the redirect URI changes.
 - 2026-10-28: Refresh takes a short lease in `config/odaLink` (`refreshingUntil`), claimed in a transaction, so callers arriving together don't spend the same rotating refresh token twice. An in-process lock didn't work, because the emulator runs concurrent requests in separate workers. Refreshing inside the transaction didn't work either, because contended transactions retry. `get_cart`'s exact shape is unverified: `summarizeCart` sums every `quantity` it finds, and the emulator logs the cart so the trial can check it. Only `npm run dev` sets `ODA_LINK_FILE` (`.oda-link.json`), so e2e never mirrors or restores a link.
 - 2026-10-28: Tried on the dev server against the real oda.com: linking, the count, and keeping the link across a restart all work. The hour-long token refresh gets checked naturally in later plans.
+- 2026-10-28: Draft PR #15 (`oda` → `main`) is open, so CI runs on every push.
