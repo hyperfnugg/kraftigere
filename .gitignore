@@ -30,6 +30,9 @@ dist-ssr
 /.playwright-mcp/
 /dist-e2e/
 
+# Built Cloud Functions
+/functions/lib/
+
 # Firebase CLI deploy cache
 .firebase/
 

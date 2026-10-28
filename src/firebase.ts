@@ -14,6 +14,7 @@ import {
   persistentLocalCache,
   persistentMultipleTabManager,
 } from 'firebase/firestore'
+import { connectFunctionsEmulator, getFunctions } from 'firebase/functions'
 import { useEffect, useState, useSyncExternalStore } from 'react'
 
 export const firebaseConfig = {
@@ -38,6 +39,7 @@ export const auth = getAuth(app)
 export const db = initializeFirestore(app, {
   localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
 })
+export const functions = getFunctions(app, 'europe-west1')
 
 if (useEmulators) {
   // The e2e tests run their own emulators, on the hosts in .env.e2e.
@@ -45,6 +47,8 @@ if (useEmulators) {
   const [firestoreHost, firestorePort] = (env.VITE_FIRESTORE_EMULATOR_HOST ?? '127.0.0.1:8080').split(':')
   connectAuthEmulator(auth, `http://${env.VITE_AUTH_EMULATOR_HOST ?? '127.0.0.1:9099'}`, { disableWarnings: true })
   connectFirestoreEmulator(db, firestoreHost, Number(firestorePort))
+  const [functionsHost, functionsPort] = (env.VITE_FUNCTIONS_EMULATOR_HOST ?? '127.0.0.1:5001').split(':')
+  connectFunctionsEmulator(functions, functionsHost, Number(functionsPort))
 }
 
 const provider = new GoogleAuthProvider()
