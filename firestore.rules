@@ -74,7 +74,8 @@ service cloud.firestore {
     // A Ware: anything the Family buys. Its id is its normalized name, so names are unique
     // without a query. A hand add creates or counts it, which makes it a Staple. Iverksett
     // creates it without counting an add. usuallyAtHome is remembered from Iverksett, so
-    // salt and oil start unticked. Its Oda Product is set, replaced or removed on its own.
+    // salt and oil start unticked. Its Oda Product is set, replaced or removed on its own,
+    // and so is neverOda, which keeps it out of every Oda Order.
     match /wares/{wareId} {
       allow read: if isFamily();
       allow create: if isFamily() &&
@@ -94,7 +95,9 @@ service cloud.firestore {
                         (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['usuallyAtHome']) &&
                          request.resource.data.usuallyAtHome is bool) ||
                         (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['oda']) &&
-                         (!('oda' in request.resource.data) || isOdaProduct(request.resource.data.oda))));
+                         (!('oda' in request.resource.data) || isOdaProduct(request.resource.data.oda))) ||
+                        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['neverOda']) &&
+                         request.resource.data.get('neverOda', true) == true));
     }
 
     // A remembered match, keyed on an Ingredient's normalized wording: the Ware (by id)
@@ -110,10 +113,18 @@ service cloud.firestore {
                                isWareName(request.resource.data.ware);
     }
 
+    // An In Basket Entry has a basket, which only the Oda functions write. It is locked until
+    // the Oda Order is Ordered or Cancelled. Locking the rest of Groceries meanwhile is the
+    // app's job: the rules can't ask whether any Entry is In Basket.
+    function notInBasket() {
+      return resource == null || !('basket' in resource.data);
+    }
+
     match /entries/{entryId} {
-      allow read, delete: if isFamily();
+      allow read: if isFamily();
+      allow delete: if isFamily() && notInBasket();
       allow create: if isFamily() && isNewEntry(request.resource.data);
-      allow update: if isFamily() && isEntryUpdate(resource.data, request.resource.data);
+      allow update: if isFamily() && notInBasket() && isEntryUpdate(resource.data, request.resource.data);
     }
 
     // Guidelines: one text for the Family. updatedAt is when it last changed, for Outdated.

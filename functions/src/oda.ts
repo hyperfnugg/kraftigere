@@ -163,3 +163,37 @@ export function searchResults(answer: unknown): OdaProduct[] {
   visit(answer)
   return [...products.values()].slice(0, 20)
 }
+
+// What one Entry put in the Basket: packs of its Ware's Oda Product.
+export type BasketLine = { productId: number; quantity: number }
+
+// The manipulate_cart operations that fill the Basket: one pack per Entry. Quantities are
+// deltas, added to whatever the Basket holds.
+export function fillOperations(productIds: number[]): BasketLine[] {
+  return productIds.map((productId) => ({ productId, quantity: 1 }))
+}
+
+// Packs per Oda Product in a get_cart answer. The cart groups its lines by source, so a
+// product added on its own and with a recipe has two lines, both counted.
+export function cartQuantities(cart: unknown) {
+  const quantities = new Map<number, number>()
+  const visit = (value: unknown) => {
+    if (Array.isArray(value)) value.forEach(visit)
+    else if (value && typeof value === 'object') {
+      const line = value as { product?: { id?: unknown }; quantity?: unknown }
+      if (typeof line.product?.id === 'number' && typeof line.quantity === 'number') {
+        quantities.set(line.product.id, (quantities.get(line.product.id) ?? 0) + line.quantity)
+      } else Object.values(value).forEach(visit)
+    }
+  }
+  visit(cart)
+  return quantities
+}
+
+// Whether the Basket holds anything Kraft didn't put there: a product no In Basket Entry
+// added, or more packs of one than they added.
+export function hasForeign(cart: unknown, added: BasketLine[]) {
+  const ours = new Map<number, number>()
+  for (const { productId, quantity } of added) ours.set(productId, (ours.get(productId) ?? 0) + quantity)
+  return [...cartQuantities(cart)].some(([id, quantity]) => quantity > (ours.get(id) ?? 0))
+}

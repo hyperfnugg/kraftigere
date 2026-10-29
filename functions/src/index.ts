@@ -4,7 +4,18 @@ import { initializeApp } from 'firebase-admin/app'
 import { FieldValue, getFirestore } from 'firebase-admin/firestore'
 import { logger, setGlobalOptions } from 'firebase-functions/v2'
 import { HttpsError, onCall, onRequest, type CallableRequest } from 'firebase-functions/v2/https'
-import { OdaAuthError, odaClient, pkce, searchResults, summarizeCart, type Registration, type Tokens } from './oda.js'
+import {
+  OdaAuthError,
+  fillOperations,
+  hasForeign,
+  odaClient,
+  pkce,
+  searchResults,
+  summarizeCart,
+  type BasketLine,
+  type Registration,
+  type Tokens,
+} from './oda.js'
 
 // Close to the Family, and capped so a bug or a flood can't run up a bill.
 setGlobalOptions({ region: 'europe-west1', maxInstances: 2 })
@@ -155,13 +166,18 @@ async function callOda(name: string, args?: object) {
   return oda.callTool((await refreshOnce(client.clientId, tokens.refreshToken)).accessToken, name, args)
 }
 
+// The In Basket Entries. An Oda Order lasts as long as there are any.
+const inBasket = () => db.collection('entries').where('basket', '!=', null)
+
 // The Basket for Shop. Not linked, or a link Oda no longer accepts, both mean "Koble til Oda".
+// foreign says whether it holds anything the In Basket Entries didn't put there.
 export const odaBasket = onCall(async (req) => {
   await requireFamily(req)
   try {
     const cart = await callOda('get_cart')
     if (process.env.FUNCTIONS_EMULATOR === 'true') logger.info('get_cart', JSON.stringify(cart).slice(0, 2000))
-    return { linked: true, ...summarizeCart(cart) }
+    const added = (await inBasket().get()).docs.map((d) => d.get('basket') as BasketLine)
+    return { linked: true, ...summarizeCart(cart), foreign: hasForeign(cart, added) }
   } catch (e) {
     if (e instanceof OdaAuthError) return { linked: false }
     logger.error('Oda get_cart failed', e)
@@ -183,4 +199,69 @@ export const odaSearch = onCall(async (req: CallableRequest<{ query?: unknown }>
     logger.error('Oda product_search failed', e)
     throw new HttpsError('unavailable', 'Oda svarer ikke')
   }
+})
+
+// Fills the Basket with one pack per Entry, which starts an Oda Order. The Entries are
+// claimed In Basket first, in a transaction that refuses if an Oda Order is already under
+// way, and released if Oda doesn't take them: a transaction can be retried, and a retried
+// manipulate_cart would add twice.
+export const odaFill = onCall(async (req: CallableRequest<{ entryIds?: unknown }>) => {
+  await requireFamily(req)
+  const ids = req.data?.entryIds
+  if (!Array.isArray(ids) || ids.length === 0 || ids.length > 200 || !ids.every((id) => typeof id === 'string' && /^[^/]{1,100}$/.test(id))) {
+    throw new HttpsError('invalid-argument', 'No Entries')
+  }
+  const refs = [...new Set(ids as string[])].map((id) => db.collection('entries').doc(id))
+  const lines = await db.runTransaction(async (tx) => {
+    if (!(await tx.get(inBasket().limit(1))).empty) throw new HttpsError('failed-precondition', 'Odabestilling pågår')
+    const entries = await tx.getAll(...refs)
+    if (entries.some((e) => !e.exists || e.get('checked'))) throw new HttpsError('failed-precondition', 'An Entry is gone or checked off')
+    const wares = await tx.getAll(...entries.map((e) => db.collection('wares').doc(e.get('ware'))))
+    const productIds = wares.map((w) => w.get('oda.id'))
+    if (wares.some((w) => w.get('neverOda')) || productIds.some((id) => typeof id !== 'number')) {
+      throw new HttpsError('failed-precondition', 'Alle varer må ha et odaprodukt')
+    }
+    const lines = fillOperations(productIds)
+    entries.forEach((e, i) => tx.update(e.ref, { basket: lines[i] }))
+    return lines
+  })
+  try {
+    await callOda('manipulate_cart', { operations: lines })
+    return { linked: true }
+  } catch (e) {
+    const batch = db.batch()
+    for (const ref of refs) batch.update(ref, { basket: FieldValue.delete() })
+    await batch.commit()
+    if (e instanceof OdaAuthError) return { linked: false }
+    logger.error('Oda manipulate_cart failed', e)
+    throw new HttpsError('unavailable', 'Oda svarer ikke')
+  }
+})
+
+// Ordered: the Family Member placed the order in Oda, so the In Basket Entries are checked off.
+// Oda's order history isn't checked.
+export const odaOrdered = onCall(async (req) => {
+  await requireFamily(req)
+  const batch = db.batch()
+  for (const d of (await inBasket().get()).docs) {
+    batch.update(d.ref, { checked: true, checkedAt: FieldValue.serverTimestamp(), basket: FieldValue.delete() })
+  }
+  await batch.commit()
+})
+
+// Cancelled: empties the whole Basket, then leaves the In Basket Entries unchecked. Shop has
+// warned first if the Basket held anything Kraft didn't put there.
+export const odaCancel = onCall(async (req) => {
+  await requireFamily(req)
+  try {
+    await callOda('clear_cart')
+  } catch (e) {
+    if (e instanceof OdaAuthError) return { linked: false }
+    logger.error('Oda clear_cart failed', e)
+    throw new HttpsError('unavailable', 'Oda svarer ikke')
+  }
+  const batch = db.batch()
+  for (const d of (await inBasket().get()).docs) batch.update(d.ref, { basket: FieldValue.delete() })
+  await batch.commit()
+  return { linked: true }
 })
