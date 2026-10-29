@@ -61,6 +61,11 @@ export type OdaProduct = { id: number; name: string; packText: string }
 
 export const isStaple = (w: Ware) => w.addCount > 0
 
+// Sets, replaces or (with null) removes the Ware's Oda Product.
+export function setOdaProduct(wareId: string, oda: OdaProduct | null) {
+  return updateDoc(doc(db, 'wares', wareId), { oda: oda ?? deleteField() })
+}
+
 // All the Family's Wares. The persistent cache makes them available at once and keeps
 // them fresh, so autocomplete needs no lookups.
 export function useWares() {

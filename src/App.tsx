@@ -1,14 +1,16 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { useCombobox } from 'downshift'
 import { type User } from 'firebase/auth'
 import { MealsTab } from './Meals'
 import { formatAmount } from './amounts'
 import { signInWithGoogle, signOut, useOnline, useUser } from './firebase'
-import { linkOda, linkResult, useBasket } from './oda'
+import { linkOda, linkResult, odaProductUrl, parseOdaUrl, searchOda, useBasket, type OdaResult, type Search } from './oda'
 import {
   addEntry,
   removeEntries,
   removeEntry,
   setNote,
+  setOdaProduct,
   suggest,
   toggleEntry,
   useAccess,
@@ -19,6 +21,7 @@ import {
   wareName,
   type Dish,
   type Entry,
+  type Ware,
 } from './entries'
 
 const centerStyle = {
@@ -383,6 +386,8 @@ function Home({ entries, onDishes }: { entries: Entry[]; onDishes: (entry: Entry
                     value={open.note}
                     onChange={(e) => setOpen({ ...open, note: e.target.value })}
                     onBlur={saveNote}
+                    // Usually replaced rather than amended.
+                    onFocus={(e) => e.target.select()}
                     maxLength={200}
                     placeholder="Notat"
                     aria-label="Notat"
@@ -400,11 +405,240 @@ function Home({ entries, onDishes }: { entries: Entry[]; onDishes: (entry: Entry
                   </button>
                 </form>
               )}
+              {isOpen && <OdaProductLine ware={wares.find((w) => w.id === entry.ware)} wares={wares} />}
             </li>
           )
         })}
       </ul>
     </>
+  )
+}
+
+// The Ware's Oda Product, opening on oda.com. Changing it is removing it and choosing again,
+// searching Oda in its place.
+function OdaProductLine({ ware, wares }: { ware?: Ware; wares: Ware[] }) {
+  const [searching, setSearching] = useState(false)
+  if (!ware) return null
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.875rem', color: '#555' }}>
+      {ware.oda ? (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <a href={odaProductUrl(ware.oda.id)} target="_blank" rel="noreferrer" style={{ color: 'inherit' }}>
+            {ware.oda.name}
+            {ware.oda.packText && ` · ${ware.oda.packText}`}
+          </a>
+          <button
+            onClick={() => setOdaProduct(ware.id, null)}
+            aria-label="Fjern Oda-vare"
+            title="Fjern Oda-vare"
+            style={{ font: 'inherit', fontSize: '1.25rem', lineHeight: 1, color: '#000', padding: 0, border: 'none', background: 'none', cursor: 'pointer' }}
+          >
+            ×
+          </button>
+        </div>
+      ) : searching ? (
+        <OdaSearch ware={ware} wares={wares} onClose={() => setSearching(false)} />
+      ) : (
+        <button onClick={() => setSearching(true)} style={{ ...smallButtonStyle, alignSelf: 'flex-start' }}>
+          Velg Oda-vare
+        </button>
+      )}
+    </div>
+  )
+}
+
+// A search field over Oda with its results below it: ↑/↓ to move, Enter to pick, Esc to close
+// the list and Esc again, or leaving it, to close the search. It searches as you type, starting
+// with the Ware's name. A pasted link to an Oda Product picks it when the search finds that id.
+type OdaRow = OdaResult | 'more'
+
+function OdaSearch({ ware, wares, onClose }: { ware: Ware; wares: Ware[]; onClose: () => void }) {
+  const [query, setQuery] = useState(ware.name)
+  // 'idle' while the text is too short to search.
+  const [search, setSearch] = useState<Search | 'idle' | 'searching' | 'error'>('searching')
+  const [all, setAll] = useState(false)
+  const [message, setMessage] = useState('')
+  const latest = useRef(0)
+  const timer = useRef<ReturnType<typeof setTimeout>>(undefined)
+
+  // An Oda Product belongs to at most one Ware.
+  const usedBy = (id: number) => wares.find((w) => w.id !== ware.id && w.oda?.id === id)
+
+  function pick(p: OdaResult) {
+    setOdaProduct(ware.id, { id: p.id, name: p.name, packText: p.packText })
+    onClose()
+  }
+
+  async function run(q: string) {
+    const n = ++latest.current
+    const link = parseOdaUrl(q)
+    setAll(false)
+    setMessage('')
+    if (link && !link.words) {
+      setSearch({ linked: true, products: [] })
+      setMessage('Fant ikke produktet fra lenken')
+      return
+    }
+    setSearch('searching')
+    try {
+      const result = await searchOda(link ? link.words : q)
+      if (n !== latest.current) return
+      setSearch(result)
+      if (!link || !result.linked) return
+      const hit = result.products.find((p) => p.id === link.id)
+      const other = hit && usedBy(hit.id)
+      if (!hit) setMessage('Fant ikke produktet fra lenken')
+      else if (other) setMessage(`Brukt av «${other.name}»`)
+      else pick(hit)
+    } catch {
+      if (n === latest.current) setSearch('error')
+    }
+  }
+
+  // Waits for a pause in typing, except for a pasted link. Earlier results go at once, so
+  // nothing in the list moves under the pointer.
+  function schedule(q: string) {
+    clearTimeout(timer.current)
+    latest.current++
+    setMessage('')
+    const t = q.trim()
+    if (parseOdaUrl(t)) run(t)
+    else if (t.length < 2) setSearch('idle')
+    else {
+      setSearch('searching')
+      timer.current = setTimeout(() => run(t), 400)
+    }
+  }
+
+  // Searches once, when the search opens.
+  useEffect(() => {
+    const n = ++latest.current
+    searchOda(ware.name).then(
+      (result) => n === latest.current && setSearch(result),
+      () => n === latest.current && setSearch('error'),
+    )
+    return () => clearTimeout(timer.current)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const products = typeof search === 'object' && search.linked ? search.products : []
+  // Rows only for a finished search.
+  const rows: OdaRow[] =
+    typeof search === 'object' && search.linked
+      ? [...(all ? products : products.slice(0, 5)), ...(!all && products.length > 5 ? ['more' as const] : [])]
+      : []
+
+  const { isOpen, highlightedIndex, getInputProps, getMenuProps, getItemProps } = useCombobox<OdaRow>({
+    items: rows,
+    inputValue: query,
+    selectedItem: null,
+    initialIsOpen: true,
+    itemToString: (row) => (typeof row === 'object' && row ? row.name : ''),
+    isItemDisabled: (row) => typeof row === 'object' && !!usedBy(row.id),
+    onInputValueChange: ({ inputValue, type }) => {
+      if (type !== useCombobox.stateChangeTypes.InputChange) return
+      setQuery(inputValue)
+      schedule(inputValue)
+    },
+    onSelectedItemChange: ({ selectedItem }) => {
+      if (selectedItem === 'more') setAll(true)
+      else if (selectedItem) pick(selectedItem)
+    },
+    stateReducer: (state, { type, changes }) => {
+      // Leaving the field never picks, and "Flere" keeps the list open where it was.
+      if (type === useCombobox.stateChangeTypes.InputBlur)
+        return { ...changes, selectedItem: state.selectedItem, inputValue: state.inputValue }
+      if (changes.selectedItem === 'more')
+        return { ...changes, isOpen: true, inputValue: state.inputValue, highlightedIndex: state.highlightedIndex }
+      return changes
+    },
+  })
+
+  const listed = isOpen && rows.length > 0
+
+  return (
+    <div
+      onBlur={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget)) onClose()
+      }}
+      style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}
+    >
+      <div style={{ display: 'flex', flexDirection: 'column' }}>
+        <input
+          {...getInputProps({
+            autoFocus: true,
+            onFocus: (e) => e.target.select(),
+            onKeyDown: (e) => {
+              // Esc with the list closed closes the search.
+              if (e.key === 'Escape' && !isOpen) {
+                ;(e.nativeEvent as { preventDownshiftDefault?: boolean }).preventDownshiftDefault = true
+                onClose()
+              }
+            },
+          })}
+          maxLength={200}
+          placeholder="Søk, eller lim inn lenke fra oda.com"
+          aria-label="Søk på Oda"
+          style={{
+            fontSize: '1rem',
+            padding: '0.25rem',
+            borderWidth: 1,
+            borderStyle: 'solid',
+            borderColor: listed ? '#888 #888 #ddd' : '#888',
+          }}
+        />
+        <ul
+          {...getMenuProps()}
+          style={{
+            listStyle: 'none',
+            margin: 0,
+            padding: 0,
+            borderWidth: 1,
+            borderStyle: listed ? 'none solid solid' : 'none',
+            borderColor: '#888',
+          }}
+        >
+          {listed &&
+            rows.map((row, index) => {
+              const other = typeof row === 'object' && usedBy(row.id)
+              return (
+                <li
+                  key={typeof row === 'object' ? row.id : row}
+                  {...getItemProps({ item: row, index })}
+                  style={{
+                    padding: '0.375rem 0.5rem',
+                    cursor: other ? 'default' : 'pointer',
+                    background: highlightedIndex === index ? '#eee' : 'transparent',
+                    color: other ? '#888' : '#222',
+                  }}
+                >
+                  {row === 'more' ? (
+                    'Flere...'
+                  ) : (
+                    <>
+                      {row.name}
+                      {row.packText && ` · ${row.packText}`}
+                      {row.price !== null && ` · ${row.price.toFixed(2).replace('.', ',')} kr`}
+                      {!row.available && ' · ikke tilgjengelig'}
+                      {other && ` · brukt av «${other.name}»`}
+                    </>
+                  )}
+                </li>
+              )
+            })}
+        </ul>
+      </div>
+      {search === 'searching' && <div>Søker …</div>}
+      {search === 'error' && <div>Oda svarer ikke</div>}
+      {typeof search === 'object' && !search.linked && (
+        <button onClick={() => linkOda()} style={{ ...smallButtonStyle, alignSelf: 'flex-start' }}>
+          Koble til Oda
+        </button>
+      )}
+      {message && <div style={{ color: '#8a5a00' }}>{message}</div>}
+      {typeof search === 'object' && search.linked && products.length === 0 && !message && <div>Ingen treff</div>}
+    </div>
   )
 }
 
