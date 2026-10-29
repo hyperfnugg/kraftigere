@@ -30,8 +30,8 @@ Twenty-fourth milestone and the second Oda one, on the `oda` branch ([ADR 0005](
 - [x] **Try it on the dev server**, iterating on feedback: search "melk" from an Entry, pick, open the product on oda.com, "Flere...", paste a URL, try a product already on another Ware, remove it. Skipped in AFK mode. *(user)*
 - [x] **Tests.** The fake Oda answers `product_search` with a fixed list. One e2e spec: pick from search, see the Oda line, "Flere...", a pasted URL picks its product, "brukt av" blocks, "Fjern Oda-vare". No test reaches oda.com.
 - [x] **Commit: pick Oda Products for Wares on Home.** *(manual)* (user-visible; review first)
-- [ ] **Move plan to `plans/done/`.** `git mv plans/active/24-oda-products-on-wares.md plans/done/24-oda-products-on-wares.md`, and remove it from **Now** in `ROADMAP.md`.
-- [ ] **Commit: complete Oda Products on Wares milestone.** *(auto)*
+- [x] **Move plan to `plans/done/`.** `git mv plans/active/24-oda-products-on-wares.md plans/done/24-oda-products-on-wares.md`, and remove it from **Now** in `ROADMAP.md`.
+- [x] **Commit: complete Oda Products on Wares milestone.** *(auto)*
 
 ## Done when
 
