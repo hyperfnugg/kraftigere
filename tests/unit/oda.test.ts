@@ -156,8 +156,14 @@ describe('searchResults', () => {
     ...extra,
   })
 
+  // The shape oda.com answered with on 2026-10-28, prices as strings.
   test('maps products from every query, once each', () => {
-    const answer = { results: [{ query: 'melk', products: [product(430), product(7)] }, { query: 'lettmelk', products: [product(430)] }] }
+    const answer = {
+      result: [
+        { query: 'melk', hasMore: true, products: [product(430), product(7, { price: '21.90' })] },
+        { query: 'lettmelk', hasMore: false, products: [product(430)] },
+      ],
+    }
     expect(searchResults(answer)).toEqual([
       { id: 430, name: 'Produkt 430', packText: '1 l', price: 21.9, available: true },
       { id: 7, name: 'Produkt 7', packText: '1 l', price: 21.9, available: true },
