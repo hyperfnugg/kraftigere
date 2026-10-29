@@ -23,7 +23,7 @@ _UI_: "Dagligvarer"
 _Avoid_: Food list
 
 **Ware**:
-Anything the Family buys, named the way they say it, such as "melk", "løk, gul" or "vinterjakke". It need not be groceries and may be bought only once. A Ware has a name unique within the Family and lasts beyond any one Entry. It is the Family's own idea of the thing, not a shop's product, though later an Oda article may belong to exactly one Ware.
+Anything the Family buys, named the way they say it, such as "melk", "løk, gul" or "vinterjakke". It need not be groceries and may be bought only once. A Ware has a name unique within the Family and lasts beyond any one Entry. It is the Family's own idea of the thing, not a shop's product, though an Oda Product may belong to exactly one Ware.
 _UI_: "Vare"
 _Avoid_: Product, grocery, item, article
 
@@ -127,6 +127,42 @@ _Avoid_: Week (the tab's old name), planner, calendar
 The tab for "I'm in the store": Groceries with unchecked first and one tap to check off.
 _UI_: "Handle"
 _Avoid_: Store, buy
+
+### Oda
+
+**Oda Product**:
+Something Oda sells, such as "Tine Lettmelk 1% fett, 1 l". A Ware may point to one Oda Product, and an Oda Product belongs to at most one Ware.
+_Avoid_: Article, item, product (without "Oda")
+
+**Basket**:
+The Family's shopping cart on oda.com, which Kraft fills and the Family Member orders from in Oda.
+_UI_: "handlekurv"
+_Avoid_: Cart
+
+**Oda Link**:
+The Family's connection to its Oda account, set up once by one Family Member, which lets any Family Member fill the Basket. Each Family has its own.
+_UI_: "Koble til Oda"
+_Avoid_: Oda login, integration
+
+**Oda Order**:
+Filling the Basket from Groceries and seeing it through, from when a Family Member starts it until it is Ordered or Cancelled. A Family has at most one at a time. The order itself is placed in Oda, never by Kraft.
+_UI_: "odabestilling"; starting one is "Start odabestilling"
+_Avoid_: Checkout, basket run, sync
+
+**In Basket**:
+The state of an Entry that an Oda Order has put in the Basket. It is locked until the Oda Order is Ordered or Cancelled.
+_UI_: "i handlekurven"
+_Avoid_: Pending, reserved
+
+**Ordered**:
+The end of an Oda Order once a Family Member has placed the order in Oda, which checks off every In Basket Entry.
+_UI_: "Bestilt"
+_Avoid_: Confirm (that is Iverksett), done, checked out
+
+**Cancelled**:
+The end of an Oda Order that won't be ordered, which empties the Basket and leaves its Entries unchecked.
+_UI_: "Avbryt"
+_Avoid_: Abort, undo
 
 ### People
 

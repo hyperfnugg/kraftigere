@@ -73,6 +73,20 @@ function add(db: Firestore, entry: object = newEntry(), ware: object | null = co
   return batch.commit()
 }
 
+describe('/config/odaLink', () => {
+  test('no client can read or write the Oda Link, not even a Family Member', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'config/odaLink'), { tokens: { accessToken: 'a', refreshToken: 'r', expiresAt: 0 } })
+    })
+    for (const db of [member(), outsider(), anon()]) {
+      await assertFails(getDoc(doc(db, 'config/odaLink')))
+      await assertFails(setDoc(doc(db, 'config/odaLink'), { tokens: {} }))
+      await assertFails(updateDoc(doc(db, 'config/odaLink'), { tokens: {} }))
+      await assertFails(deleteDoc(doc(db, 'config/odaLink')))
+    }
+  })
+})
+
 describe('/entries', () => {
   test('a Family Member can read and write', async () => {
     const db = member()
@@ -231,6 +245,19 @@ describe('/wares', () => {
     await assertSucceeds(updateDoc(ware('milk'), { usuallyAtHome: false }))
     await assertFails(updateDoc(ware('milk'), { usuallyAtHome: 'no' }))
     await assertFails(updateDoc(ware('milk'), { usuallyAtHome: true, name: 'Milk' }))
+  })
+
+  test('its Oda Product can be set, replaced and removed on its own', async () => {
+    const oda = { id: 430, name: 'Tine Lettmelk 1% fett', packText: '1% fett, 1 l' }
+    await assertSucceeds(updateDoc(ware('milk'), { oda }))
+    await assertSucceeds(updateDoc(ware('milk'), { oda: { id: 7, name: 'Q Lettmelk', packText: '' } }))
+    await assertSucceeds(updateDoc(ware('milk'), { oda: deleteField() }))
+    await assertFails(updateDoc(ware('milk'), { oda, usuallyAtHome: true }))
+    await assertFails(updateDoc(ware('milk'), { oda: { ...oda, id: '430' } }))
+    await assertFails(updateDoc(ware('milk'), { oda: { ...oda, price: 21.9 } }))
+    await assertFails(updateDoc(ware('milk'), { oda: { id: 430, name: 'Tine Lettmelk 1% fett' } }))
+    await assertFails(updateDoc(ware('milk'), { oda: { ...oda, name: '' } }))
+    await assertFails(updateDoc(ware('milk'), { oda: null }))
   })
 
   test('Staples are gone', async () => {
