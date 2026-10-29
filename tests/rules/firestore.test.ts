@@ -160,6 +160,36 @@ describe('/entries shape', () => {
   })
 })
 
+describe('/entries In Basket', () => {
+  const basket = { productId: 430, quantity: 1 }
+
+  beforeEach(async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'entries/e2'), { text: 'milk', ware: 'milk', checked: false, createdAt: Timestamp.now(), basket })
+    })
+  })
+
+  test('no client writes basket', async () => {
+    await assertFails(add(member(), newEntry({ basket })))
+    await assertFails(updateDoc(doc(member(), 'entries/e1'), { basket }))
+    await assertFails(updateDoc(doc(member(), 'entries/e2'), { basket: deleteField() }))
+  })
+
+  test('an In Basket Entry cannot be checked off, changed or removed', async () => {
+    const e2 = doc(member(), 'entries/e2')
+    await assertSucceeds(getDoc(e2))
+    await assertFails(updateDoc(e2, { checked: true, checkedAt: serverTimestamp() }))
+    await assertFails(updateDoc(e2, { note: 'lots' }))
+    await assertFails(deleteDoc(e2))
+  })
+
+  test('other Entries can still be changed and removed', async () => {
+    const e1 = doc(member(), 'entries/e1')
+    await assertSucceeds(updateDoc(e1, { note: 'lots' }))
+    await assertSucceeds(deleteDoc(e1))
+  })
+})
+
 describe('/entries note', () => {
   test('a new Entry may have a Note of 1 to 200 characters', async () => {
     await assertSucceeds(add(member(), newEntry({ note: 'lots' })))
@@ -258,6 +288,16 @@ describe('/wares', () => {
     await assertFails(updateDoc(ware('milk'), { oda: { id: 430, name: 'Tine Lettmelk 1% fett' } }))
     await assertFails(updateDoc(ware('milk'), { oda: { ...oda, name: '' } }))
     await assertFails(updateDoc(ware('milk'), { oda: null }))
+  })
+
+  test('never from Oda can be set and cleared on its own', async () => {
+    await assertSucceeds(updateDoc(ware('milk'), { neverOda: true }))
+    await assertSucceeds(updateDoc(ware('milk'), { neverOda: deleteField() }))
+    await assertFails(updateDoc(ware('milk'), { neverOda: false }))
+    await assertFails(updateDoc(ware('milk'), { neverOda: 'yes' }))
+    await assertFails(updateDoc(ware('milk'), { neverOda: true, usuallyAtHome: true }))
+    await assertFails(updateDoc(ware('milk'), { neverOda: true, oda: { id: 430, name: 'Tine Lettmelk 1% fett', packText: '' } }))
+    await assertFails(setDoc(ware(), { ...countedWare(), neverOda: true }))
   })
 
   test('Staples are gone', async () => {
