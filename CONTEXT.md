@@ -131,7 +131,8 @@ _Avoid_: Store, buy
 ### Oda
 
 **Oda Product**:
-Something Oda sells, such as "Tine Lettmelk 1% fett, 1 l". A Ware may point to one Oda Product, and an Oda Product belongs to at most one Ware.
+Something Oda sells, such as "Tine Lettmelk 1% fett, 1 l". A Ware may point to one Oda Product, and an Oda Product belongs to at most one Ware. A Ware may instead be *never from Oda*, such as socks bought elsewhere, which keeps it out of every Oda Order.
+_UI_: "Oda-vare"; never from Oda is "Aldri fra Oda", and such Wares on the List are "varer utenfor Oda"
 _Avoid_: Article, item, product (without "Oda")
 
 **Basket**:
@@ -145,12 +146,12 @@ _UI_: "Koble til Oda"
 _Avoid_: Oda login, integration
 
 **Oda Order**:
-Filling the Basket from Groceries and seeing it through, from when a Family Member starts it until it is Ordered or Cancelled. A Family has at most one at a time. The order itself is placed in Oda, never by Kraft.
-_UI_: "odabestilling"; starting one is "Start odabestilling"
+Filling the Basket with the Groceries Entries a Family Member chooses, and seeing it through, from when the Basket is filled until it is Ordered or Cancelled. A Family has at most one at a time, and while it lasts Groceries can't be changed. The order itself is placed in Oda, never by Kraft.
+_UI_: "odabestilling"; "Start odabestilling" opens the choosing, and "Fyll handlekurven" fills the Basket
 _Avoid_: Checkout, basket run, sync
 
 **In Basket**:
-The state of an Entry that an Oda Order has put in the Basket. It is locked until the Oda Order is Ordered or Cancelled.
+The state of an Entry that an Oda Order has put in the Basket, as packs of its Ware's Oda Product. An Oda Order lasts as long as any Entry is In Basket. The Entry is locked until the Oda Order is Ordered or Cancelled.
 _UI_: "i handlekurven"
 _Avoid_: Pending, reserved
 
