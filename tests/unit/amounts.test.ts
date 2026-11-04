@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { formatAmount, measureText, packCount, piecesOf, sumKnown } from '../../src/amounts'
+import { formatAmount, measureText, packCount, packSizeOf, piecesOf, sumKnown } from '../../src/amounts'
 
 describe('piecesOf', () => {
   test.each([
@@ -51,6 +51,19 @@ describe('formatAmount', () => {
     expect(formatAmount([dish(200, 2), dish(null, null)])).toBe('200 g (2 stk)')
     expect(formatAmount([dish(null, null)])).toBe('')
     expect(formatAmount([])).toBe('')
+  })
+})
+
+describe('packSizeOf', () => {
+  test('takes positive grams, with whole pieces if there are any', () => {
+    expect(packSizeOf(1030, null)).toEqual({ packGrams: 1030 })
+    expect(packSizeOf(717.5, 12)).toEqual({ packGrams: 717.5, packPieces: 12 })
+    expect(packSizeOf(250, undefined)).toEqual({ packGrams: 250 })
+  })
+
+  test('refuses an answer that is no Pack Size', () => {
+    for (const grams of [0, -1, '250', null, undefined, NaN, Infinity]) expect(packSizeOf(grams, null)).toBeNull()
+    for (const pieces of [0, -1, 0.5, '12']) expect(packSizeOf(250, pieces)).toBeNull()
   })
 })
 

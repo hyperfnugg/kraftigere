@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto'
 import { describe, expect, test } from 'vitest'
-import { OdaAuthError, fillOperations, odaClient, pkce, removeOperations, resultsPerQuery, searchResults, summarizeCart } from '../../functions/src/oda'
+import { OdaAuthError, fillEntries, odaClient, pkce, removeOperations, resultsPerQuery, searchResults, summarizeCart } from '../../functions/src/oda'
 
 const BASE = 'https://oda.test'
 
@@ -192,13 +192,22 @@ describe('searchResults', () => {
   })
 })
 
-describe('fillOperations', () => {
-  // manipulate_cart's operations, as its schema on oda.com gave them on 2026-10-29.
-  test('adds one pack of each Oda Product', () => {
-    expect(fillOperations([430, 7])).toEqual([
-      { productId: 430, quantity: 1 },
-      { productId: 7, quantity: 1 },
+describe('fillEntries', () => {
+  test('takes Entries with a Pack Count from 1 to 20, and nothing else on them', () => {
+    expect(fillEntries([{ id: 'a', quantity: 1 }, { id: 'b', quantity: 20, productId: 7 }])).toEqual([
+      { id: 'a', quantity: 1 },
+      { id: 'b', quantity: 20 },
     ])
+  })
+
+  test('refuses anything else', () => {
+    for (const quantity of [0, 21, 1.5, -1, '2', null, undefined]) expect(fillEntries([{ id: 'a', quantity }])).toBeNull()
+    for (const id of ['', 'a/b', 7, 'x'.repeat(101)]) expect(fillEntries([{ id, quantity: 1 }])).toBeNull()
+    expect(fillEntries([{ id: 'a', quantity: 1 }, { id: 'a', quantity: 2 }])).toBeNull()
+    expect(fillEntries([])).toBeNull()
+    expect(fillEntries(undefined)).toBeNull()
+    expect(fillEntries([null])).toBeNull()
+    expect(fillEntries(Array.from({ length: 201 }, (_, i) => ({ id: `e${i}`, quantity: 1 })))).toBeNull()
   })
 })
 

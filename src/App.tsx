@@ -2,7 +2,8 @@ import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useCombobox } from 'downshift'
 import { type User } from 'firebase/auth'
 import { MealsTab } from './Meals'
-import { formatAmount } from './amounts'
+import { readPackSizes, warmUp } from './ai'
+import { MAX_PACKS, type PackSize, formatAmount, packCount } from './amounts'
 import { signInWithGoogle, signOut, useOnline, useUser } from './firebase'
 import {
   cancelOda,
@@ -528,7 +529,7 @@ function OdaProductLine({ ware, wares }: { ware?: Ware; wares: Ware[] }) {
   )
 }
 
-const toOdaProduct = (p: OdaResult) => ({ id: p.id, name: p.name, packText: p.packText })
+const toOdaProduct = (p: OdaProduct) => ({ id: p.id, name: p.name, packText: p.packText })
 
 function ClearButton({ label, onClick }: { label: string; onClick: () => void }) {
   return (
@@ -829,6 +830,7 @@ function OdaTab({ entries, ordering, onDishes }: { entries: Entry[]; ordering: b
   const basket = useBasket()
   const wares = useWares()
   const [linking, setLinking] = useState(false)
+  useEffect(warmUp, [])
 
   if (ordering) {
     return (
@@ -847,7 +849,7 @@ function OdaTab({ entries, ordering, onDishes }: { entries: Entry[]; ordering: b
                   </span>
                   {oda && (
                     <a href={odaProductUrl(oda.id)} target="_blank" rel="noreferrer" style={{ fontSize: '0.875rem', color: '#555' }}>
-                      {oda.name}
+                      {entry.basket?.quantity} × {oda.name}
                       {oda.packText && ` · ${oda.packText}`}
                     </a>
                   )}
@@ -900,6 +902,10 @@ function OdaTab({ entries, ordering, onDishes }: { entries: Entry[]; ordering: b
 // other Ware has, preferring one that's available. Only Entries whose Ware has an Oda Product
 // start ticked. Picks made here are saved on their Wares only when the Basket is filled, and
 // only for ticked Entries. Wares never from Oda wait, folded, at the bottom.
+//
+// Each Entry's Pack Count comes from its dishes and its Oda Product's Pack Size, which the AI
+// reads once, in one request, for the products that need it. A count set by hand lasts as long as
+// its Oda Product does.
 function Choosing({ entries, onDishes }: { entries: Entry[]; onDishes: (entry: Entry) => void }) {
   const wares = useWares()
   const [ticks, setTicks] = useState<Record<string, boolean>>({})
@@ -907,6 +913,11 @@ function Choosing({ entries, onDishes }: { entries: Entry[]; onDishes: (entry: E
   const [picks, setPicks] = useState<Record<string, OdaResult>>({})
   const [suggesting, setSuggesting] = useState(true)
   const suggested = useRef(false)
+  // Set by hand, by Entry id, for the Oda Product they were set on.
+  const [handCounts, setHandCounts] = useState<Record<string, { product: number; count: number }>>({})
+  // Read by the AI here, by Oda Product id, not yet saved.
+  const [sizes, setSizes] = useState<Record<number, PackSize | 'failed'>>({})
+  const asked = useRef(new Set<number>())
   const [unfolded, setUnfolded] = useState(false)
   const [tried, setTried] = useState(false)
   const [filling, setFilling] = useState(false)
@@ -925,10 +936,42 @@ function Choosing({ entries, onDishes }: { entries: Entry[]; onDishes: (entry: E
   const ticked = (r: (typeof rows)[number]) => ticks[r.entry.id] ?? !!r.ware?.oda
   const chosen = inside.filter(ticked)
   const lacking = new Set(chosen.filter((r) => !r.ware?.oda && !pickOf(r)).map((r) => r.entry.id))
+  const productOf = (r: (typeof rows)[number]): OdaProduct | undefined => r.ware?.oda ?? pickOf(r)
+  const hasAmounts = (e: Entry) => (e.dishes ?? []).some((d) => d.grams !== null || d.pieces !== null)
+  const needsSize = (r: (typeof rows)[number]) => {
+    const product = productOf(r)
+    return product && hasAmounts(r.entry) && !product.packGrams ? [product] : []
+  }
+  const packs = (r: (typeof rows)[number]) => {
+    const product = productOf(r)
+    if (!product) return null
+    const hand = handCounts[r.entry.id]
+    if (hand?.product === product.id) return { count: hand.count }
+    if (!hasAmounts(r.entry)) return { count: 1 }
+    const size = product.packGrams ? product : sizes[product.id]
+    if (!size) return { count: 1, waiting: true }
+    if (size === 'failed') return { count: 1, failed: true }
+    return { count: packCount(r.entry.dishes ?? [], size) }
+  }
+  const counting = chosen.some((r) => packs(r)?.waiting)
+  const unsized = inside.flatMap(needsSize)
 
-  // Once, as soon as the Wares have loaded.
+  // Once the suggestions are in, then again for anything that comes to need a Pack Size. Leaving
+  // the tab and coming back asks again for what failed.
   useEffect(() => {
-    if (suggested.current || wares.length === 0) return
+    if (suggesting) return
+    const want = [...new Map(unsized.filter((p) => !asked.current.has(p.id)).map((p) => [p.id, p])).values()]
+    if (want.length === 0) return
+    for (const p of want) asked.current.add(p.id)
+    readPackSizes(want)
+      .catch(() => want.map(() => null))
+      .then((answers) => setSizes((s) => ({ ...s, ...Object.fromEntries(want.map((p, i) => [p.id, answers[i] ?? 'failed'])) })))
+  }, [suggesting, unsized])
+
+  // Once, as soon as the Wares and Entries have loaded. Back from linking Oda, the app opens here
+  // and either can come first.
+  useEffect(() => {
+    if (suggested.current || wares.length === 0 || entries.length === 0) return
     suggested.current = true
     const want = inside.flatMap((r) => (r.ware && !r.ware.oda ? [r.ware] : []))
     const done = () => setSuggesting(false)
@@ -951,10 +994,15 @@ function Choosing({ entries, onDishes }: { entries: Entry[]; onDishes: (entry: E
       })
       .catch(() => {})
       .finally(done)
-  }, [inside, wares])
+  }, [entries, inside, wares])
 
   const row = (r: (typeof rows)[number]) => {
     const marked = tried && lacking.has(r.entry.id)
+    const pack = packs(r)
+    const setCount = (count: number) => {
+      setHandCounts({ ...handCounts, [r.entry.id]: { product: productOf(r)!.id, count } })
+      setTicks({ ...ticks, [r.entry.id]: true })
+    }
     return (
       <li key={r.entry.id} style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', fontSize: '1.125rem' }}>
         <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}>
@@ -986,6 +1034,7 @@ function Choosing({ entries, onDishes }: { entries: Entry[]; onDishes: (entry: E
               />
             )
           )}
+          {pack && <PackStepper {...pack} onChange={setCount} />}
         </div>
       </li>
     )
@@ -1012,14 +1061,19 @@ function Choosing({ entries, onDishes }: { entries: Entry[]; onDishes: (entry: E
     if (lacking.size > 0) return
     setFilling(true)
     try {
-      // The function reads the Oda Products from the Wares, so they're saved first.
+      // The function reads the Oda Products from the Wares, so they're saved first, with any
+      // Pack Size read here.
       const links = chosen.flatMap((r): [string, OdaProduct][] => {
-        const p = pickOf(r)
-        return r.ware && p ? [[r.ware.id, toOdaProduct(p)]] : []
+        const p = productOf(r)
+        if (!r.ware || !p) return []
+        const size = sizes[p.id]
+        const read = size && size !== 'failed' ? size : undefined
+        return pickOf(r) || read ? [[r.ware.id, { ...toOdaProduct(p), ...read }]] : []
       })
       if (links.length > 0) await setOdaProducts(links)
       // Filled, the Oda Order begins and takes the choosing's place.
-      if (!(await fillBasket(chosen.map((r) => r.entry.id)))) setError('Koble til Oda på nytt')
+      const filled = await fillBasket(chosen.map((r) => ({ id: r.entry.id, quantity: packs(r)?.count ?? 1 })))
+      if (!filled) setError('Koble til Oda på nytt')
     } catch {
       setError('Fikk ikke fylt handlekurven')
     } finally {
@@ -1067,10 +1121,41 @@ function Choosing({ entries, onDishes }: { entries: Entry[]; onDishes: (entry: E
       )}
       {tried && lacking.size > 0 && <div style={{ color: '#b00020' }}>Alle varer må ha et Oda-produkt</div>}
       {error && <div style={{ color: '#8a5a00' }}>{error}</div>}
-      <button onClick={fill} disabled={chosen.length === 0 || filling} style={{ ...buttonStyle, alignSelf: 'flex-start' }}>
-        Fyll handlekurven
-      </button>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+        <button onClick={fill} disabled={chosen.length === 0 || filling || counting} style={buttonStyle}>
+          Fyll handlekurven
+        </button>
+        {counting && <span style={{ fontSize: '0.875rem', color: '#555' }}>Regner ut antall pakker …</span>}
+      </div>
     </>
+  )
+}
+
+// An Entry's Pack Count, changed by hand from 1 to 20, and not while the AI is reading its Pack
+// Size. If that failed, it says so until the count is changed.
+function PackStepper({
+  count,
+  waiting,
+  failed,
+  onChange,
+}: {
+  count: number
+  waiting?: boolean
+  failed?: boolean
+  onChange: (count: number) => void
+}) {
+  const step = { ...smallButtonStyle, padding: '0 0.625rem' }
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.25rem', fontSize: '0.875rem', color: '#555' }}>
+      <button aria-label="Færre pakker" disabled={waiting || count <= 1} onClick={() => onChange(count - 1)} style={step}>
+        −
+      </button>
+      <span aria-label="Antall pakker">{waiting ? '…' : count}</span>
+      <button aria-label="Flere pakker" disabled={waiting || count >= MAX_PACKS} onClick={() => onChange(count + 1)} style={step}>
+        +
+      </button>
+      {failed && <span style={{ color: '#8a5a00' }}>Fikk ikke regnet ut antall pakker</span>}
+    </div>
   )
 }
 
