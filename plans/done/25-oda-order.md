@@ -41,8 +41,8 @@ Twenty-fifth milestone and the third Oda one, on the `oda` branch ([ADR 0005](..
 - [x] **Try it on the dev server**, iterating on feedback: choose Entries, give one an Oda Product in the choosing, set one "Aldri fra Oda", fill against a Basket that already holds something, see the Basket on oda.com, check that Home and Shop are locked on a second browser, then "Bestilt"; and once more with "Avbryt" after adding something on oda.com. Skipped in AFK mode. *(user)*
 - [x] **Tests.** `openTab` in `helpers.ts` opens Middag through ⋮, and `oda.spec.ts` finds the Basket on Odabestilling. The fake Oda keeps a Basket that `manipulate_cart` changes, starting with the 4 items `oda.spec.ts` expects. e2e specs: choosing and filling on Odabestilling (starting with 4 items already in the Basket, and "Alle varer må ha et Oda-produkt"), Home and Shop locked, "Bestilt" checking off, "Avbryt" with its question, taking out only Kraft's packs, and "Aldri fra Oda". No test reaches oda.com.
 - [x] **Commit: Oda Order on Shop.** *(manual)* (user-visible; review first)
-- [ ] **Move plan to `plans/done/`.** `git mv plans/active/25-oda-order.md plans/done/25-oda-order.md`, and remove it from **Now** in `ROADMAP.md`.
-- [ ] **Commit: complete Oda Order milestone.** *(auto)*
+- [x] **Move plan to `plans/done/`.** `git mv plans/active/25-oda-order.md plans/done/25-oda-order.md`, and remove it from **Now** in `ROADMAP.md`.
+- [x] **Commit: complete Oda Order milestone.** *(auto)*
 
 ## Done when
 
