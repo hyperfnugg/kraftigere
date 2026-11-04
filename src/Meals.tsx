@@ -91,7 +91,8 @@ export function SavedText({
 
 // "What's for dinner": planning the week's Menu from Guidelines and Day Notes, and cooking
 // from its Recipes. A dish tapped on the List opens with its Recipe.
-export function MealsTab({ openAt }: { openAt: { week: string; recipe: string } | null }) {
+// ordering: an Oda Order lasts, so Iverksett waits.
+export function MealsTab({ openAt, ordering }: { openAt: { week: string; recipe: string } | null; ordering: boolean }) {
   const [weekId, setWeekId] = useState(() => openAt?.week ?? isoWeekId(new Date()))
   const menuWeeks = useMenuWeeks()
   const [guidelinesOpen, setGuidelinesOpen] = useState(false)
@@ -162,6 +163,7 @@ export function MealsTab({ openAt }: { openAt: { week: string; recipe: string } 
           recipes={recipes}
           job={job}
           openAt={openAt?.week === weekId ? openAt.recipe : undefined}
+          ordering={ordering}
         />
       )}
     </>
@@ -389,6 +391,7 @@ function MenuSection({
   recipes,
   job,
   openAt,
+  ordering,
 }: {
   weekId: string
   week: Week
@@ -396,6 +399,7 @@ function MenuSection({
   recipes: Record<string, StoredRecipe>
   job: Job
   openAt?: string
+  ordering: boolean
 }) {
   const { busy, error, run, pending } = job
   const [openRecipe, setOpenRecipe] = useState<{ day: Day; course: number } | null>(() => {
@@ -588,13 +592,14 @@ function MenuSection({
             >
               Lag oppskrifter
             </button>
-            <button onClick={() => setConfirming(true)} disabled={!!busy || !ready} style={buttonStyle}>
+            <button onClick={() => setConfirming(true)} disabled={!!busy || !ready || ordering} style={buttonStyle}>
               Iverksett
             </button>
+            {ordering && <span style={{ alignSelf: 'center', color: '#555' }}>Odabestilling pågår</span>}
           </div>
         )
       )}
-      {confirming && <ConfirmView weekId={weekId} recipes={recipes} onClose={() => setConfirming(false)} />}
+      {confirming && !ordering && <ConfirmView weekId={weekId} recipes={recipes} onClose={() => setConfirming(false)} />}
     </section>
   )
 }

@@ -30,6 +30,8 @@ export type Entry = {
   checked: boolean
   note?: string
   dishes?: Dish[]
+  // Set while an Oda Order has the Entry In Basket, by the Oda functions only.
+  basket?: { productId: number; quantity: number }
   // Missing on Entries checked off before checkedAt existed.
   checkedAt?: Timestamp
   createdAt: Timestamp | null
@@ -54,6 +56,8 @@ export type Ware = {
   addCount: number
   usuallyAtHome?: boolean
   oda?: OdaProduct
+  // Never from Oda: kept out of every Oda Order.
+  neverOda?: boolean
 }
 
 // The Oda Product a Ware points to, with its name and pack text as Oda gave them when chosen.
@@ -64,6 +68,18 @@ export const isStaple = (w: Ware) => w.addCount > 0
 // Sets, replaces or (with null) removes the Ware's Oda Product.
 export function setOdaProduct(wareId: string, oda: OdaProduct | null) {
   return updateDoc(doc(db, 'wares', wareId), { oda: oda ?? deleteField() })
+}
+
+// Sets the Oda Products of several Wares at once, as [wareId, product] pairs.
+export function setOdaProducts(links: [string, OdaProduct][]) {
+  const batch = writeBatch(db)
+  for (const [wareId, oda] of links) batch.update(doc(db, 'wares', wareId), { oda })
+  return batch.commit()
+}
+
+// Marks the Ware never from Oda, or (with false) clears it.
+export function setNeverOda(wareId: string, never: boolean) {
+  return updateDoc(doc(db, 'wares', wareId), { neverOda: never || deleteField() })
 }
 
 // All the Family's Wares. The persistent cache makes them available at once and keeps
@@ -81,6 +97,7 @@ export function useWares() {
             addCount: d.get('addCount'),
             usuallyAtHome: d.get('usuallyAtHome'),
             oda: d.get('oda'),
+            neverOda: d.get('neverOda'),
           })),
         )
       }),

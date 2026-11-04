@@ -1,15 +1,29 @@
 // A fake oda.com for e2e, so no test reaches the real one: OAuth endpoints that approve at
-// once, and an /mcp that answers get_cart with a Basket of 4 items and product_search with the
-// same 7 products whatever the query. The test emulators'
-// function finds it through ODA_BASE_URL (playwright.config.ts).
+// once, and an /mcp with a Basket that starts with 4 items and that manipulate_cart changes,
+// and a product_search that answers every query with the same 7 products, or none for a query
+// with "ukjent" in it. Tests read and change the Basket at /basket, and put it back at /reset.
+// The test emulators' function finds it through ODA_BASE_URL (playwright.config.ts).
 import { createServer } from 'node:http'
 
 const FAKE_ODA_PORT = 8866
 const base = `http://127.0.0.1:${FAKE_ODA_PORT}`
 
-const cart = {
-  groups: [{ items: [{ product: { id: 430, name: 'Tine Lettmelk 1% fett' }, quantity: 3 }, { product: { id: 7 }, quantity: 1 }] }],
+// Quantities by product id.
+const START = { 430: 3, 7: 1 }
+let basket = { ...START }
+
+const cart = () => ({
+  groups: [{ items: Object.entries(basket).map(([id, quantity]) => ({ product: { id: Number(id) }, quantity })) }],
   url: 'https://oda.com/no/cart/',
+})
+
+// Quantities are deltas, and a removal stops at zero.
+function manipulate(operations) {
+  for (const { productId, quantity } of operations) {
+    const next = Math.max(0, (basket[productId] ?? 0) + quantity)
+    if (next === 0) delete basket[productId]
+    else basket[productId] = next
+  }
 }
 
 const product = (id, name, description, price, isAvailable = true) => ({
@@ -21,23 +35,19 @@ const product = (id, name, description, price, isAvailable = true) => ({
   availability: { isAvailable, code: isAvailable ? 'available' : 'unavailable' },
 })
 
+const PRODUCTS = [
+  product(430, 'Tine Lettmelk 1% fett', '1% fett, 1 l', '19.40'),
+  product(8143, 'Tine Lettmelk 1% fett', '1% fett, 1,75 l', '31.90'),
+  product(24681, 'Tine Laktosefri Helmelk', '1 l', '34.40', false),
+  product(125, 'TINE Ekte smør', '250 g', '38.90'),
+  product(12235, 'TINE Ekte meierismør', '500 g', '69.90'),
+  product(901, 'Q Lettmelk', '1 l', '20.90'),
+  product(902, 'Q Helmelk', '1 l', '21.90'),
+]
+
 // Shaped like oda.com's answer: products per query, prices as strings.
-const search = (query) => ({
-  result: [
-    {
-      query,
-      hasMore: false,
-      products: [
-        product(430, 'Tine Lettmelk 1% fett', '1% fett, 1 l', '19.40'),
-        product(8143, 'Tine Lettmelk 1% fett', '1% fett, 1,75 l', '31.90'),
-        product(24681, 'Tine Laktosefri Helmelk', '1 l', '34.40', false),
-        product(125, 'TINE Ekte smør', '250 g', '38.90'),
-        product(12235, 'TINE Ekte meierismør', '500 g', '69.90'),
-        product(901, 'Q Lettmelk', '1 l', '20.90'),
-        product(902, 'Q Helmelk', '1 l', '21.90'),
-      ],
-    },
-  ],
+const search = (queries) => ({
+  result: queries.map((query) => ({ query, hasMore: false, products: query.toLowerCase().includes('ukjent') ? [] : PRODUCTS })),
 })
 
 let n = 0
@@ -53,6 +63,13 @@ createServer(async (req, res) => {
   for await (const chunk of req) body += chunk
 
   switch (url.pathname) {
+    // POSTed operations change the Basket as if on oda.com.
+    case '/basket':
+      if (req.method === 'POST') manipulate(JSON.parse(body))
+      return json(res, 200, basket)
+    case '/reset':
+      basket = { ...START }
+      return json(res, 200, basket)
     case '/o/register/':
       n++
       return json(res, 201, {
@@ -81,7 +98,9 @@ createServer(async (req, res) => {
         return res.end()
       }
       const tool = message.params?.name
-      const text = JSON.stringify(tool === 'product_search' ? search(message.params.arguments.queries[0]) : cart)
+      const args = message.params?.arguments ?? {}
+      if (tool === 'manipulate_cart') manipulate(args.operations)
+      const text = JSON.stringify(tool === 'product_search' ? search(args.queries) : cart())
       return json(res, 200, { jsonrpc: '2.0', id: message.id, result: { content: [{ type: 'text', text }] } })
     }
     default:

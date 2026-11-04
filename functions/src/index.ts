@@ -7,9 +7,10 @@ import { HttpsError, onCall, onRequest, type CallableRequest } from 'firebase-fu
 import {
   OdaAuthError,
   fillOperations,
-  hasForeign,
   odaClient,
   pkce,
+  removeOperations,
+  resultsPerQuery,
   searchResults,
   summarizeCart,
   type BasketLine,
@@ -170,14 +171,12 @@ async function callOda(name: string, args?: object) {
 const inBasket = () => db.collection('entries').where('basket', '!=', null)
 
 // The Basket for Shop. Not linked, or a link Oda no longer accepts, both mean "Koble til Oda".
-// foreign says whether it holds anything the In Basket Entries didn't put there.
 export const odaBasket = onCall(async (req) => {
   await requireFamily(req)
   try {
     const cart = await callOda('get_cart')
     if (process.env.FUNCTIONS_EMULATOR === 'true') logger.info('get_cart', JSON.stringify(cart).slice(0, 2000))
-    const added = (await inBasket().get()).docs.map((d) => d.get('basket') as BasketLine)
-    return { linked: true, ...summarizeCart(cart), foreign: hasForeign(cart, added) }
+    return { linked: true, ...summarizeCart(cart) }
   } catch (e) {
     if (e instanceof OdaAuthError) return { linked: false }
     logger.error('Oda get_cart failed', e)
@@ -194,6 +193,29 @@ export const odaSearch = onCall(async (req: CallableRequest<{ query?: unknown }>
     const answer = await callOda('product_search', { queries: [query], size: 20 })
     if (process.env.FUNCTIONS_EMULATOR === 'true') logger.info('product_search', JSON.stringify(answer).slice(0, 2000))
     return { linked: true, products: searchResults(answer) }
+  } catch (e) {
+    if (e instanceof OdaAuthError) return { linked: false }
+    logger.error('Oda product_search failed', e)
+    throw new HttpsError('unavailable', 'Oda svarer ikke')
+  }
+})
+
+// product_search takes at most 10 queries (checked on oda.com 2026-11-01).
+const QUERIES_PER_SEARCH = 10
+
+// Suggestions for Wares without an Oda Product when the Oda Order's choosing opens: a few
+// products per Ware name, in as few product_searches as Oda allows.
+export const odaSuggest = onCall(async (req: CallableRequest<{ queries?: unknown }>) => {
+  await requireFamily(req)
+  const raw = req.data?.queries
+  const queries = Array.isArray(raw) ? raw.filter((q): q is string => typeof q === 'string').map((q) => q.trim().slice(0, 200)) : []
+  if (queries.length === 0 || queries.length > 100 || queries.some((q) => !q)) throw new HttpsError('invalid-argument', 'No queries')
+  try {
+    const batches = Array.from({ length: Math.ceil(queries.length / QUERIES_PER_SEARCH) }, (_, i) =>
+      queries.slice(i * QUERIES_PER_SEARCH, (i + 1) * QUERIES_PER_SEARCH),
+    )
+    const answers = await Promise.all(batches.map((batch) => callOda('product_search', { queries: batch, size: 5 })))
+    return { linked: true, products: batches.flatMap((batch, i) => resultsPerQuery(answers[i], batch)) }
   } catch (e) {
     if (e instanceof OdaAuthError) return { linked: false }
     logger.error('Oda product_search failed', e)
@@ -219,7 +241,7 @@ export const odaFill = onCall(async (req: CallableRequest<{ entryIds?: unknown }
     const wares = await tx.getAll(...entries.map((e) => db.collection('wares').doc(e.get('ware'))))
     const productIds = wares.map((w) => w.get('oda.id'))
     if (wares.some((w) => w.get('neverOda')) || productIds.some((id) => typeof id !== 'number')) {
-      throw new HttpsError('failed-precondition', 'Alle varer må ha et odaprodukt')
+      throw new HttpsError('failed-precondition', 'Alle varer må ha et Oda-produkt')
     }
     const lines = fillOperations(productIds)
     entries.forEach((e, i) => tx.update(e.ref, { basket: lines[i] }))
@@ -249,19 +271,21 @@ export const odaOrdered = onCall(async (req) => {
   await batch.commit()
 })
 
-// Cancelled: empties the whole Basket, then leaves the In Basket Entries unchecked. Shop has
-// warned first if the Basket held anything Kraft didn't put there.
+// Cancelled: takes out of the Basket exactly what the In Basket Entries added, and leaves them
+// unchecked. Anything else in the Basket stays.
 export const odaCancel = onCall(async (req) => {
   await requireFamily(req)
+  const docs = (await inBasket().get()).docs
   try {
-    await callOda('clear_cart')
+    const operations = removeOperations(docs.map((d) => d.get('basket') as BasketLine))
+    if (operations.length > 0) await callOda('manipulate_cart', { operations })
   } catch (e) {
     if (e instanceof OdaAuthError) return { linked: false }
-    logger.error('Oda clear_cart failed', e)
+    logger.error('Oda cancel failed', e)
     throw new HttpsError('unavailable', 'Oda svarer ikke')
   }
   const batch = db.batch()
-  for (const d of (await inBasket().get()).docs) batch.update(d.ref, { basket: FieldValue.delete() })
+  for (const d of docs) batch.update(d.ref, { basket: FieldValue.delete() })
   await batch.commit()
   return { linked: true }
 })

@@ -5,8 +5,12 @@ import { type OdaProduct } from './entries'
 import { functions } from './firebase'
 
 export type Basket = { linked: false } | { linked: true; items: number; url: string }
+type Linked = { linked: boolean }
 
 const odaBasket = httpsCallable<void, Basket>(functions, 'odaBasket')
+const odaFill = httpsCallable<{ entryIds: string[] }, Linked>(functions, 'odaFill')
+const odaOrdered = httpsCallable<void, void>(functions, 'odaOrdered')
+const odaCancel = httpsCallable<void, Linked>(functions, 'odaCancel')
 const odaLinkStart = httpsCallable<void, { url: string }>(functions, 'odaLinkStart')
 
 // A product_search result: an Oda Product with today's price and availability.
@@ -14,6 +18,16 @@ export type OdaResult = OdaProduct & { price: number | null; available: boolean 
 export type Search = { linked: false } | { linked: true; products: OdaResult[] }
 
 const odaSearch = httpsCallable<{ query: string }, Search>(functions, 'odaSearch')
+
+const odaSuggest = httpsCallable<{ queries: string[] }, { linked: false } | { linked: true; products: OdaResult[][] }>(
+  functions,
+  'odaSuggest',
+)
+
+// A few Oda Products for each of the Ware names, in one search, per name in the order given.
+export async function suggestOda(queries: string[]) {
+  return (await odaSuggest({ queries })).data
+}
 
 // Up to 20 Oda Products for the words, or { linked: false } when the Family has no working Oda Link.
 export async function searchOda(query: string) {
@@ -28,6 +42,21 @@ export const odaProductUrl = (id: number) => `https://oda.com/no/products/${id}/
 export function parseOdaUrl(text: string) {
   const m = text.match(/oda\.com\/\w+\/products\/(\d+)(?:-([^/?#\s]*))?/)
   return m ? { id: Number(m[1]), words: (m[2] ?? '').replaceAll('-', ' ') } : null
+}
+
+// Fills the Basket with one pack per Entry, which starts the Oda Order.
+export async function fillBasket(entryIds: string[]) {
+  return (await odaFill({ entryIds })).data.linked
+}
+
+// Ordered: checks off the In Basket Entries.
+export async function orderedOda() {
+  await odaOrdered()
+}
+
+// Cancelled: empties the Basket and leaves the In Basket Entries unchecked.
+export async function cancelOda() {
+  return (await odaCancel()).data.linked
 }
 
 // The Basket, read once when Shop opens. 'error' when Oda or the function doesn't answer.

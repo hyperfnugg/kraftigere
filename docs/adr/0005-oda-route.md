@@ -12,7 +12,7 @@ A Ware chosen for Oda holds Oda's numeric product id, the number in `https://oda
 
 - Tokens live only in the function's reach: a Firestore document the rules deny to every client, read and written by the Admin SDK. They never reach a device.
 - The function is callable only by signed-in Family Members on the allowlist, with App Check enforced on it. App Check already loads lazily for Gemini, so this adds nothing at launch.
-- The function exposes a few narrow operations (search, add to cart, read cart, empty cart), not the MCP server. It empties the cart (`clear_cart`) only when an Oda Order is Cancelled, after a warning if the cart holds anything the Oda Order didn't put there. It never touches delivery slots, lists or orders.
+- The function exposes a few narrow operations (search, add to cart, read cart, remove what it added), not the MCP server. It removes from the cart only when an Oda Order is Cancelled, and only the packs the Oda Order added. It never empties the cart, and never touches delivery slots, lists or orders.
 - Firestore and Auth stay unenforced for App Check, as ADR 0004 says. Ordering doesn't change that, since Kraft can't order.
 
 ## Considered Options
@@ -38,3 +38,4 @@ A Ware chosen for Oda holds Oda's numeric product id, the number in `https://oda
 ## Amendments
 
 - 2026-10-28: Cancelling an Oda Order empties the whole Basket, not only what Kraft added, so the function may call `clear_cart`. Two warnings guard it: one at "Start odabestilling" if the Basket isn't empty, and one at "Avbryt" if the Basket holds anything the Oda Order didn't put there. Before this, the function only added and never removed. See the vision's Oda section.
+- 2026-10-30: Reversed: cancelling takes out exactly the packs the Oda Order added, with negative `manipulate_cart` quantities, which stop at zero. The rest of the Basket stays, so the function doesn't call `clear_cart`, and neither warning is needed. Avbryt asks before it acts.
