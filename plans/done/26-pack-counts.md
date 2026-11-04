@@ -40,8 +40,8 @@ Twenty-sixth milestone and the fourth Oda one, on the `oda` branch ([ADR 0005](.
 - [x] **Try it on the dev server**, iterating on feedback, with real Gemini: fill from a week's Entries, and look at whether the sizes and counts are right for awkward pack text (a multipack, something by the piece, something in litres, "ca." weights). Change a count, change a product, and see an Entry with only a Note stay at 1. Then "Avbryt", and check that only Kraft's packs leave the Basket. Skipped in AFK mode. *(user)*
 - [x] **Tests.** e2e against the fake Oda and the Gemini stub: a dish's amounts giving more than one pack and that count reaching the Basket, a bare Entry at 1, `−` and `+`, the Pack Size saved and not asked for again, `2 ×` during the Oda Order, and "Avbryt" taking out the whole count. Unit test what a bad AI answer gives. No test reaches oda.com or Gemini.
 - [x] **Commit: Pack Counts in the Oda Order.** *(manual)* (user-visible; review first)
-- [ ] **Move plan to `plans/done/`.** `git mv plans/active/26-pack-counts.md plans/done/26-pack-counts.md`, and remove it from **Now** in `ROADMAP.md`.
-- [ ] **Commit: complete Pack Counts milestone.** *(auto)*
+- [x] **Move plan to `plans/done/`.** `git mv plans/active/26-pack-counts.md plans/done/26-pack-counts.md`, and remove it from **Now** in `ROADMAP.md`.
+- [x] **Commit: complete Pack Counts milestone.** *(auto)*
 
 ## Done when
 
