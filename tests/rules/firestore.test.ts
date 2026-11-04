@@ -290,6 +290,18 @@ describe('/wares', () => {
     await assertFails(updateDoc(ware('milk'), { oda: null }))
   })
 
+  test('its Oda Product can hold a Pack Size, with positive grams and whole pieces', async () => {
+    const oda = { id: 430, name: 'Tine Lettmelk 1% fett', packText: '1% fett, 1 l' }
+    await assertSucceeds(updateDoc(ware('milk'), { oda: { ...oda, packGrams: 1030 } }))
+    await assertSucceeds(updateDoc(ware('milk'), { oda: { ...oda, packGrams: 717.5, packPieces: 12 } }))
+    await assertFails(updateDoc(ware('milk'), { oda: { ...oda, packGrams: 0 } }))
+    await assertFails(updateDoc(ware('milk'), { oda: { ...oda, packGrams: -1 } }))
+    await assertFails(updateDoc(ware('milk'), { oda: { ...oda, packGrams: '1030' } }))
+    await assertFails(updateDoc(ware('milk'), { oda: { ...oda, packPieces: 0 } }))
+    await assertFails(updateDoc(ware('milk'), { oda: { ...oda, packPieces: 0.5 } }))
+    await assertFails(updateDoc(ware('milk'), { oda: { ...oda, packPieces: '12' } }))
+  })
+
   test('never from Oda can be set and cleared on its own', async () => {
     await assertSucceeds(updateDoc(ware('milk'), { neverOda: true }))
     await assertSucceeds(updateDoc(ware('milk'), { neverOda: deleteField() }))

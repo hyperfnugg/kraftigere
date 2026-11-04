@@ -60,8 +60,9 @@ export type Ware = {
   neverOda?: boolean
 }
 
-// The Oda Product a Ware points to, with its name and pack text as Oda gave them when chosen.
-export type OdaProduct = { id: number; name: string; packText: string }
+// The Oda Product a Ware points to, with its name and pack text as Oda gave them when chosen,
+// and its Pack Size once the AI has read it.
+export type OdaProduct = { id: number; name: string; packText: string; packGrams?: number; packPieces?: number }
 
 export const isStaple = (w: Ware) => w.addCount > 0
 
