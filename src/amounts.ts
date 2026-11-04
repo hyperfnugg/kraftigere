@@ -30,6 +30,17 @@ export function sumKnown(ns: (number | null)[]) {
 
 export const MAX_PACKS = 20
 
+export type PackSize = { packGrams: number; packPieces?: number }
+
+// A Pack Size from the AI's answer, or null if it isn't one: grams must be a positive number, and
+// pieces, if any, a positive whole number.
+export function packSizeOf(grams: unknown, pieces: unknown): PackSize | null {
+  if (typeof grams !== 'number' || !Number.isFinite(grams) || grams <= 0) return null
+  if (pieces === null || pieces === undefined) return { packGrams: grams }
+  if (!Number.isInteger(pieces) || (pieces as number) <= 0) return null
+  return { packGrams: grams, packPieces: pieces as number }
+}
+
 // The Pack Count: enough packs for the dishes, by grams and by pieces, whichever needs more. A
 // side with nothing to compare is left out, and with neither side it's one pack.
 export function packCount(

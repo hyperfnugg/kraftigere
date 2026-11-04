@@ -6,7 +6,7 @@ import { logger, setGlobalOptions } from 'firebase-functions/v2'
 import { HttpsError, onCall, onRequest, type CallableRequest } from 'firebase-functions/v2/https'
 import {
   OdaAuthError,
-  fillOperations,
+  fillEntries,
   odaClient,
   pkce,
   removeOperations,
@@ -223,17 +223,15 @@ export const odaSuggest = onCall(async (req: CallableRequest<{ queries?: unknown
   }
 })
 
-// Fills the Basket with one pack per Entry, which starts an Oda Order. The Entries are
+// Fills the Basket with each Entry's Pack Count, which starts an Oda Order. The Entries are
 // claimed In Basket first, in a transaction that refuses if an Oda Order is already under
 // way, and released if Oda doesn't take them: a transaction can be retried, and a retried
 // manipulate_cart would add twice.
-export const odaFill = onCall(async (req: CallableRequest<{ entryIds?: unknown }>) => {
+export const odaFill = onCall(async (req: CallableRequest<{ entries?: unknown }>) => {
   await requireFamily(req)
-  const ids = req.data?.entryIds
-  if (!Array.isArray(ids) || ids.length === 0 || ids.length > 200 || !ids.every((id) => typeof id === 'string' && /^[^/]{1,100}$/.test(id))) {
-    throw new HttpsError('invalid-argument', 'No Entries')
-  }
-  const refs = [...new Set(ids as string[])].map((id) => db.collection('entries').doc(id))
+  const chosen = fillEntries(req.data?.entries)
+  if (!chosen) throw new HttpsError('invalid-argument', 'No Entries')
+  const refs = chosen.map(({ id }) => db.collection('entries').doc(id))
   const lines = await db.runTransaction(async (tx) => {
     if (!(await tx.get(inBasket().limit(1))).empty) throw new HttpsError('failed-precondition', 'Odabestilling pågår')
     const entries = await tx.getAll(...refs)
@@ -243,7 +241,8 @@ export const odaFill = onCall(async (req: CallableRequest<{ entryIds?: unknown }
     if (wares.some((w) => w.get('neverOda')) || productIds.some((id) => typeof id !== 'number')) {
       throw new HttpsError('failed-precondition', 'Alle varer må ha et Oda-produkt')
     }
-    const lines = fillOperations(productIds)
+    // Quantities are deltas, added to whatever the Basket holds.
+    const lines: BasketLine[] = productIds.map((productId, i) => ({ productId, quantity: chosen[i].quantity }))
     entries.forEach((e, i) => tx.update(e.ref, { basket: lines[i] }))
     return lines
   })

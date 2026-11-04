@@ -1,5 +1,6 @@
 import type { Schema as SchemaType } from 'firebase/ai'
 import { initializeApp } from 'firebase/app'
+import { type PackSize, packSizeOf } from './amounts'
 import { app, firebaseConfig, useEmulators } from './firebase'
 import {
   DAYS,
@@ -270,6 +271,49 @@ export async function makeMatches(wordings: string[], wares: string[]): Promise<
     const a = answers.find((m) => clean(m.wording, 200).toLowerCase() === w.toLowerCase()) ?? answers[i]
     return clean(a?.name, 100) || wareFromWording(w)
   })
+}
+
+// The Pack Size of each Oda Product, in the same order, or null for one the answer gives none
+// for. Kraft works out the Pack Count from it, so the AI only reads, and doesn't count.
+export async function readPackSizes(products: { id: number; name: string; packText: string }[]): Promise<(PackSize | null)[]> {
+  if (!realAi) return products.map(stubPackSize)
+  const prompt = [
+    'Du leser hvor mye én pakning av hver vare i en nettbutikk inneholder, ut fra navnet og pakningsteksten.',
+    'Oppgi vekten av hele pakningen i gram. Regn om det som er oppgitt i liter eller annet mål, omtrentlig (1 l melk er omtrent 1030 g, 1 l olje omtrent 920 g), og anslå vekten når bare antallet er oppgitt (12 egg er omtrent 720 g).',
+    'Oppgi antall stykk i pakningen bare for det som kjøpes per stykk, som egg (12), en sitron (1) eller en løk (1). For det som kjøpes etter vekt eller volum, som melk, mel og smør, skal antall stykk være tomt.',
+    `Varer:\n${products.map((p) => `- ${p.id}: ${p.name} (${p.packText || 'ingen pakningstekst'})`).join('\n')}`,
+  ].join('\n\n')
+  const json = (await generateJson(prompt, 6000, (Schema) =>
+    Schema.object({
+      properties: {
+        products: Schema.array({
+          maxItems: products.length,
+          items: Schema.object({
+            properties: {
+              id: Schema.integer({ description: 'Varens nummer, som gitt' }),
+              grams: Schema.number({ nullable: true, description: 'Vekten av én pakning i gram' }),
+              pieces: Schema.integer({ nullable: true, description: 'Antall stykk i én pakning, eller tomt' }),
+            },
+          }),
+        }),
+      },
+    }),
+  )) as { products?: unknown }
+  const answers = Array.isArray(json.products) ? (json.products as Partial<Record<'id' | 'grams' | 'pieces', unknown>>[]) : []
+  return products.map((p) => {
+    const a = answers.find((a) => a.id === p.id)
+    return a ? packSizeOf(a.grams, a.pieces) : null
+  })
+}
+
+// Reads the plain cases, and none for pack text that names no amount, which is how tests see
+// the AI failing.
+function stubPackSize({ packText }: { packText: string }) {
+  const m = /(\d+(?:,\d+)?)\s*(kg|g|l|dl|stk)\b/.exec(packText)
+  if (!m) return null
+  const n = Number(m[1].replace(',', '.'))
+  const grams = { kg: 1000, g: 1, l: 1000, dl: 100, stk: 60 }[m[2]] ?? 1
+  return packSizeOf(n * grams, m[2] === 'stk' ? n : null)
 }
 
 // The stubs answer at once with fixed content, and an instruction shows up in what they

@@ -8,7 +8,7 @@ export type Basket = { linked: false } | { linked: true; items: number; url: str
 type Linked = { linked: boolean }
 
 const odaBasket = httpsCallable<void, Basket>(functions, 'odaBasket')
-const odaFill = httpsCallable<{ entryIds: string[] }, Linked>(functions, 'odaFill')
+const odaFill = httpsCallable<{ entries: { id: string; quantity: number }[] }, Linked>(functions, 'odaFill')
 const odaOrdered = httpsCallable<void, void>(functions, 'odaOrdered')
 const odaCancel = httpsCallable<void, Linked>(functions, 'odaCancel')
 const odaLinkStart = httpsCallable<void, { url: string }>(functions, 'odaLinkStart')
@@ -44,9 +44,9 @@ export function parseOdaUrl(text: string) {
   return m ? { id: Number(m[1]), words: (m[2] ?? '').replaceAll('-', ' ') } : null
 }
 
-// Fills the Basket with one pack per Entry, which starts the Oda Order.
-export async function fillBasket(entryIds: string[]) {
-  return (await odaFill({ entryIds })).data.linked
+// Fills the Basket with each Entry's Pack Count, which starts the Oda Order.
+export async function fillBasket(entries: { id: string; quantity: number }[]) {
+  return (await odaFill({ entries })).data.linked
 }
 
 // Ordered: checks off the In Basket Entries.

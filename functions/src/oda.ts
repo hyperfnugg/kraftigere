@@ -174,10 +174,17 @@ export function resultsPerQuery(answer: unknown, queries: string[]): OdaProduct[
 // What one Entry put in the Basket: packs of its Ware's Oda Product.
 export type BasketLine = { productId: number; quantity: number }
 
-// The manipulate_cart operations that fill the Basket: one pack per Entry. Quantities are
-// deltas, added to whatever the Basket holds.
-export function fillOperations(productIds: number[]): BasketLine[] {
-  return productIds.map((productId) => ({ productId, quantity: 1 }))
+const MAX_ENTRIES = 200
+const MAX_PACKS = 20
+
+// The Entries and Pack Counts odaFill was asked for, or null if they don't make sense.
+export function fillEntries(raw: unknown): { id: string; quantity: number }[] | null {
+  if (!Array.isArray(raw) || raw.length === 0 || raw.length > MAX_ENTRIES) return null
+  const valid = raw.every(
+    (e) => typeof e?.id === 'string' && /^[^/]{1,100}$/.test(e.id) && Number.isInteger(e.quantity) && e.quantity >= 1 && e.quantity <= MAX_PACKS,
+  )
+  if (!valid || new Set(raw.map((e) => e.id)).size !== raw.length) return null
+  return raw.map(({ id, quantity }) => ({ id, quantity }))
 }
 
 // The manipulate_cart operations that take out exactly what the In Basket Entries added.
