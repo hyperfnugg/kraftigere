@@ -28,6 +28,23 @@ export function sumKnown(ns: (number | null)[]) {
   return known.length > 0 ? known.reduce((a, n) => a + n, 0) : null
 }
 
+export const MAX_PACKS = 20
+
+// The Pack Count: enough packs for the dishes, by grams and by pieces, whichever needs more. A
+// side with nothing to compare is left out, and with neither side it's one pack.
+export function packCount(
+  dishes: { grams: number | null; pieces: number | null }[],
+  size: { packGrams?: number; packPieces?: number },
+) {
+  const packs = (need: number | null, perPack?: number) => (need !== null && perPack ? need / perPack : 0)
+  const needed = Math.max(
+    packs(sumKnown(dishes.map((d) => d.grams)), size.packGrams),
+    packs(sumKnown(dishes.map((d) => d.pieces)), size.packPieces),
+  )
+  // Rounded first, so that adding up decimals doesn't make 1.0000000000000002 two packs.
+  return Math.min(MAX_PACKS, Math.max(1, Math.ceil(Number(needed.toFixed(6)))))
+}
+
 // Grams added up, with pieces in parentheses when there are any: "360 g (6 stk)".
 export function formatAmount(amounts: { grams: number | null; pieces: number | null }[]) {
   const grams = sumKnown(amounts.map((a) => a.grams))

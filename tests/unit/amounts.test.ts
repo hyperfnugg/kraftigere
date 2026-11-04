@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { formatAmount, measureText, piecesOf, sumKnown } from '../../src/amounts'
+import { formatAmount, measureText, packCount, piecesOf, sumKnown } from '../../src/amounts'
 
 describe('piecesOf', () => {
   test.each([
@@ -51,5 +51,46 @@ describe('formatAmount', () => {
     expect(formatAmount([dish(200, 2), dish(null, null)])).toBe('200 g (2 stk)')
     expect(formatAmount([dish(null, null)])).toBe('')
     expect(formatAmount([])).toBe('')
+  })
+})
+
+describe('packCount', () => {
+  const dish = (grams: number | null, pieces: number | null = null) => ({ grams, pieces })
+
+  test('rounds up to enough packs for the grams', () => {
+    expect(packCount([dish(500)], { packGrams: 1030 })).toBe(1)
+    expect(packCount([dish(1000)], { packGrams: 1000 })).toBe(1)
+    expect(packCount([dish(1050)], { packGrams: 1000 })).toBe(2)
+  })
+
+  test('adds up the dishes, leaving out what is to taste', () => {
+    expect(packCount([dish(600), dish(600), dish(null)], { packGrams: 1000 })).toBe(2)
+  })
+
+  test('goes by whichever of grams and pieces needs more', () => {
+    expect(packCount([dish(900, 6)], { packGrams: 180, packPieces: 1 })).toBe(6)
+    expect(packCount([dish(360, 6)], { packGrams: 720, packPieces: 12 })).toBe(1)
+    expect(packCount([dish(2000, 2)], { packGrams: 500, packPieces: 1 })).toBe(4)
+  })
+
+  test('leaves out a side with nothing to compare', () => {
+    expect(packCount([dish(null, 3)], { packGrams: 500, packPieces: 2 })).toBe(2)
+    expect(packCount([dish(1500, 3)], { packGrams: 500 })).toBe(3)
+    expect(packCount([dish(null, 3)], { packGrams: 500 })).toBe(1)
+  })
+
+  test('is one pack with no amounts or no Pack Size', () => {
+    expect(packCount([], { packGrams: 1000 })).toBe(1)
+    expect(packCount([dish(null)], { packGrams: 1000 })).toBe(1)
+    expect(packCount([dish(5000, 6)], {})).toBe(1)
+  })
+
+  test('stays within 1 to 20', () => {
+    expect(packCount([dish(1)], { packGrams: 1000 })).toBe(1)
+    expect(packCount([dish(100000)], { packGrams: 100 })).toBe(20)
+  })
+
+  test('does not add a pack for a rounding error in the decimals', () => {
+    expect(packCount([dish(0.1), dish(0.2)], { packGrams: 0.3 })).toBe(1)
   })
 })
