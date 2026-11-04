@@ -164,6 +164,13 @@ export function searchResults(answer: unknown): OdaProduct[] {
   return [...products.values()].slice(0, 20)
 }
 
+// The products of a product_search answer for several queries, per query in the order asked.
+// The answer names each group's query; a query it has no group for gets none.
+export function resultsPerQuery(answer: unknown, queries: string[]): OdaProduct[][] {
+  const groups = (answer as { result?: { query?: unknown }[] } | null)?.result ?? []
+  return queries.map((query) => searchResults(groups.find((g) => g.query === query) ?? []))
+}
+
 // What one Entry put in the Basket: packs of its Ware's Oda Product.
 export type BasketLine = { productId: number; quantity: number }
 
@@ -173,27 +180,8 @@ export function fillOperations(productIds: number[]): BasketLine[] {
   return productIds.map((productId) => ({ productId, quantity: 1 }))
 }
 
-// Packs per Oda Product in a get_cart answer. The cart groups its lines by source, so a
-// product added on its own and with a recipe has two lines, both counted.
-export function cartQuantities(cart: unknown) {
-  const quantities = new Map<number, number>()
-  const visit = (value: unknown) => {
-    if (Array.isArray(value)) value.forEach(visit)
-    else if (value && typeof value === 'object') {
-      const line = value as { product?: { id?: unknown }; quantity?: unknown }
-      if (typeof line.product?.id === 'number' && typeof line.quantity === 'number') {
-        quantities.set(line.product.id, (quantities.get(line.product.id) ?? 0) + line.quantity)
-      } else Object.values(value).forEach(visit)
-    }
-  }
-  visit(cart)
-  return quantities
-}
-
-// Whether the Basket holds anything Kraft didn't put there: a product no In Basket Entry
-// added, or more packs of one than they added.
-export function hasForeign(cart: unknown, added: BasketLine[]) {
-  const ours = new Map<number, number>()
-  for (const { productId, quantity } of added) ours.set(productId, (ours.get(productId) ?? 0) + quantity)
-  return [...cartQuantities(cart)].some(([id, quantity]) => quantity > (ours.get(id) ?? 0))
+// The manipulate_cart operations that take out exactly what the In Basket Entries added.
+// Removals stop at zero, and anything else in the Basket stays.
+export function removeOperations(added: BasketLine[]): BasketLine[] {
+  return added.map(({ productId, quantity }) => ({ productId, quantity: -quantity }))
 }

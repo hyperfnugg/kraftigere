@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { MEMBERS, addEntry, dishes, entry, listDocs, openMiddag, openTab, readDoc, reset, seed, signIn } from './helpers'
+import { MEMBERS, addEntry, dishes, entry, expectTab, listDocs, openMiddag, openTab, readDoc, reset, seed, signIn } from './helpers'
 
 test.beforeEach(async () => {
   await reset()
@@ -190,7 +190,7 @@ test('an Iverksett Entry shows what its dishes need, lists them, takes a Note, a
   const popup = page.getByRole('dialog', { name: 'løk fra middag' })
   await expect(popup.getByRole('button')).toHaveText(['✕', 'Fiskesuppe', 'Taco', 'Pasta med kjøttsaus', 'Pizza', 'Lammestek', 'Pannekaker'])
   await popup.getByRole('button', { name: 'Taco' }).click()
-  await expect(page.getByRole('button', { name: 'Middag', exact: true })).toHaveAttribute('aria-pressed', 'true')
+  await expectTab(page, 'Middag')
   const recipe = page.getByRole('dialog', { name: 'Taco' })
   await expect(recipe.getByRole('cell', { name: 'løk' })).toBeVisible()
   await recipe.getByRole('button', { name: '‹ Meny' }).click()
