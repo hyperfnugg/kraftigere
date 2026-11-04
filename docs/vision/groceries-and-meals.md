@@ -23,7 +23,7 @@ Three different things are easy to confuse here:
 - **Staple**: a Ware the Family has added by hand. It carries what comes from knowing it well: how often it's added, whether it's usually at home, its Substitutes.
 - **Ingredient**: what a Recipe needs ("melk, hel 500 g"). Its wording says how strict the need is.
 
-A Ware is on the List once: "egg" added by hand and the week's eggs are one Entry, "egg · store · 👨‍🍳 360 g (6 stk)", and the chef's hat (👨‍🍳 here) lists the dishes behind it. The Recipe's intent is kept: the soufflé's "melk, hel" is its own Ware, so it sits next to the fridge's "melk" as a separate line. Once the Staple "melk" points to an Oda Product that is whole milk, the two can become one pack.
+A Ware is on the List once: "egg" added by hand and the week's eggs are one Entry, "egg · store · 👨‍🍳 360 g (6 stk)", and the chef's hat (👨‍🍳 here) lists the dishes behind it. The Recipe's intent is kept: the soufflé's "melk, hel" is its own Ware, so it sits next to the fridge's "melk" as a separate line.
 
 ## Groceries
 
@@ -98,7 +98,7 @@ When the Guidelines change after a Menu exists, the Menu becomes **Outdated**. A
 - **Groceries is locked while an Oda Order lasts.** Home says "Odabestilling pågår" and changes nothing, Shop checks nothing off, and Iverksett on Middag waits.
 - **Avbryt asks first.** "Ta ut varene Kraft la i handlekurven?" with "Avbryt odabestillingen" and "Tilbake". It takes out exactly the packs Kraft added, so what was in the Basket before, or was added on oda.com, stays. "Tilbake" never touches the Basket.
 - **"Ikke tilgjengelig".** An Entry whose Oda Product is unavailable stays out of the Basket and unchecked, for buying in a store. Substitutes are tried first, and "ikke tilgjengelig" is only for when none is found. Both come with Substitutes.
-- **Pack counts appear only here.** "3 × Tine helmelk 1 l". The AI turns an Entry's amount, Note and dishes into packs of the Ware's Oda Product. For an Entry with no dishes Kraft asks the count, with a suggested amount.
+- **Pack counts appear only here.** "3 × Tine helmelk 1 l". The AI reads the Pack Size of the Ware's Oda Product once, and Kraft works out from it enough packs for the Entry's dishes. An Entry with no amounts starts at one pack. A Note doesn't count: the Family Member reads it and changes the count while choosing.
 - **Choosing Oda products.** Picking means back and forth ("did you mean this one?" "No, this one: <url>"). What's settled is remembered on the Ware as its Oda reference. When a Ware is out of stock, it falls back to its Substitutes, but only as far as its dishes' Ingredients allow.
 - **Prerequisites.** Staples, Wares and Confirm must exist first.
 - **Technical route: Oda's MCP server**, with a Cloud Function as the client. The Ware remembers its Oda product id with the name and pack text. See [ADR 0005](../adr/0005-oda-route.md).

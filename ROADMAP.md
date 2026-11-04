@@ -5,12 +5,12 @@ Where Kraft is heading. It changes often. Ideas are one line each, cheap to add 
 ## Now
 
 - [Dependency maintenance](plans/active/05-dependency-maintenance.md)
+- [Pack Counts](plans/active/26-pack-counts.md)
 
 ## Next
 
 Filling the Basket from Groceries ([ADR 0005](docs/adr/0005-oda-route.md)), on the `oda` branch, in this order. It runs against the real oda.com from `npm run dev`; nothing deploys until the last one.
 
-- Pack counts by AI from an Entry's amount, Note and dishes.
 - Choosing Oda Products with the AI, back and forth ("no, this one: <url>").
 - Substitutes when an Oda Product is unavailable, "ikke tilgjengelig" when none is found.
 - Oda in production: Blaze with the three spending limits, the production Oda client, App Check on the function, deploy, and merge `oda` into `main`.

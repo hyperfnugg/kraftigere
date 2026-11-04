@@ -140,6 +140,16 @@ The Family's shopping cart on oda.com, which Kraft fills and the Family Member o
 _UI_: "handlekurv"
 _Avoid_: Cart
 
+**Pack Count**:
+How many packs of a Ware's Oda Product an Entry puts in the Basket: always enough for its dishes, by their amounts and the Pack Size, and otherwise one. A Note doesn't change it, but the Family Member can. It belongs to one Oda Order and isn't remembered.
+_UI_: "3 ×"
+_Avoid_: Quantity, amount (that's what the dishes need)
+
+**Pack Size**:
+How much one pack of an Oda Product holds: its grams, and its pieces if it is sold by the piece. The AI reads it from what Oda says about the product, and the Ware remembers it with its Oda Product.
+_UI_: none
+_Avoid_: Unit, weight
+
 **Oda Link**:
 The Family's connection to its Oda account, set up once by one Family Member, which lets any Family Member fill the Basket. Each Family has its own.
 _UI_: "Koble til Oda"
