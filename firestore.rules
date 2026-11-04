@@ -63,12 +63,15 @@ service cloud.firestore {
       return name is string && name.size() >= 1 && name.size() <= 100;
     }
 
-    // The Oda Product a Ware points to: Oda's id, and its name and pack text as Oda gave them.
+    // The Oda Product a Ware points to: Oda's id, its name and pack text as Oda gave them, and
+    // its Pack Size once the AI has read it, in grams and, if sold by the piece, pieces.
     function isOdaProduct(oda) {
-      return oda is map && oda.keys().hasOnly(['id', 'name', 'packText']) && oda.keys().hasAll(['id', 'name', 'packText']) &&
+      return oda is map && oda.keys().hasOnly(['id', 'name', 'packText', 'packGrams', 'packPieces']) && oda.keys().hasAll(['id', 'name', 'packText']) &&
              oda.id is int && oda.id > 0 &&
              oda.name is string && oda.name.size() >= 1 && oda.name.size() <= 200 &&
-             oda.packText is string && oda.packText.size() <= 200;
+             oda.packText is string && oda.packText.size() <= 200 &&
+             oda.get('packGrams', 1) is number && oda.get('packGrams', 1) > 0 &&
+             oda.get('packPieces', 1) is int && oda.get('packPieces', 1) > 0;
     }
 
     // A Ware: anything the Family buys. Its id is its normalized name, so names are unique
