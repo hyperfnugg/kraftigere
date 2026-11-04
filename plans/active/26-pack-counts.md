@@ -32,8 +32,8 @@ Twenty-sixth milestone and the fourth Oda one, on the `oda` branch ([ADR 0005](.
 - [x] **Commit: Pack Counts planned, with the glossary, vision and ADR to match.** *(auto)*
 - [x] **Rules.** `packGrams` and `packPieces` in `isOdaProduct`, and the `OdaProduct` type. Rules tests.
 - [x] **Commit: Let a Ware's Oda Product hold its Pack Size.** *(manual)* (security rules; review first)
-- [ ] **Pack Count function.** In `src/amounts.ts`, with unit tests for the cases in Notes.
-- [ ] **Commit: Work out a Pack Count from dishes and a Pack Size.** *(auto)*
+- [x] **Pack Count function.** In `src/amounts.ts`, with unit tests for the cases in Notes.
+- [x] **Commit: Work out a Pack Count from dishes and a Pack Size.** *(auto)*
 - [ ] **Filling with counts.** `odaFill` and `fillOperations` take quantities, with unit tests for the operations and `src/oda.ts` to match.
 - [ ] **Pack Size from the AI.** The call and its answer checking in `src/ai.ts`, a stub for `npm run dev` without a debug token and for e2e, and `warmUp` on Odabestilling.
 - [ ] **Counts in the choosing.** `− 2 +`, the wait, the failure mark, saving the Pack Size at "Fyll handlekurven", and `2 ×` during the Oda Order.
