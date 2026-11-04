@@ -120,7 +120,7 @@ _Avoid_: Add, inbox
 
 **Meals**:
 The tab for what's for dinner: planning the Menus of this week and next, and cooking from their Recipes. Earlier weeks that have a Menu can be looked back at. A week runs Monday to Sunday and is the ISO week.
-_UI_: "Middag", with weeks labelled like "Uke 44 · 26. okt–1. nov"
+_UI_: "Middag", behind ⋮ in the tab bar, with weeks labelled like "Uke 44 · 26. okt–1. nov"
 _Avoid_: Week (the tab's old name), planner, calendar
 
 **Shop**:
@@ -132,7 +132,7 @@ _Avoid_: Store, buy
 
 **Oda Product**:
 Something Oda sells, such as "Tine Lettmelk 1% fett, 1 l". A Ware may point to one Oda Product, and an Oda Product belongs to at most one Ware. A Ware may instead be *never from Oda*, such as socks bought elsewhere, which keeps it out of every Oda Order.
-_UI_: "Oda-vare"; never from Oda is "Aldri fra Oda", and such Wares on the List are "varer utenfor Oda"
+_UI_: "Oda-produkt"; never from Oda is "Aldri fra Oda", and such Wares on the List are "varer utenfor Oda"
 _Avoid_: Article, item, product (without "Oda")
 
 **Basket**:
@@ -147,7 +147,7 @@ _Avoid_: Oda login, integration
 
 **Oda Order**:
 Filling the Basket with the Groceries Entries a Family Member chooses, and seeing it through, from when the Basket is filled until it is Ordered or Cancelled. A Family has at most one at a time, and while it lasts Groceries can't be changed. The order itself is placed in Oda, never by Kraft.
-_UI_: "odabestilling"; "Start odabestilling" opens the choosing, and "Fyll handlekurven" fills the Basket
+_UI_: "odabestilling"; its tab "Odabestilling", behind ⋮ with Middag, opens on the choosing, and "Fyll handlekurven" fills the Basket
 _Avoid_: Checkout, basket run, sync
 
 **In Basket**:
@@ -161,7 +161,7 @@ _UI_: "Bestilt"
 _Avoid_: Confirm (that is Iverksett), done, checked out
 
 **Cancelled**:
-The end of an Oda Order that won't be ordered, which empties the Basket and leaves its Entries unchecked.
+The end of an Oda Order that won't be ordered, which takes out of the Basket exactly the packs its In Basket Entries added, and leaves the Entries unchecked. Anything else in the Basket stays.
 _UI_: "Avbryt"
 _Avoid_: Abort, undo
 

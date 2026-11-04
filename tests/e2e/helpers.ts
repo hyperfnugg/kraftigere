@@ -64,9 +64,38 @@ export async function writeDoc(path: string, fields: object) {
   if (!res.ok) throw new Error(`write failed: ${path} ${res.status}`)
 }
 
-export async function openTab(page: Page, name: 'Hjem' | 'Middag' | 'Handle') {
-  await page.getByRole('button', { name, exact: true }).click()
-  await expect(page.getByRole('button', { name, exact: true })).toHaveAttribute('aria-pressed', 'true')
+type TabName = 'Hjem' | 'Middag' | 'Handle' | 'Odabestilling'
+// Behind ⋮, which carries the open one's name.
+const MORE: TabName[] = ['Middag', 'Odabestilling']
+
+export async function openTab(page: Page, name: TabName) {
+  if (MORE.includes(name)) {
+    await page.getByRole('button', { name: 'Mer' }).click()
+    await page.getByRole('menuitem', { name }).click()
+  } else {
+    await page.getByRole('button', { name, exact: true }).click()
+  }
+  await expectTab(page, name)
+}
+
+export async function expectTab(page: Page, name: TabName) {
+  if (MORE.includes(name)) await expect(page.getByRole('button', { name: 'Mer' })).toHaveText(new RegExp(`^${name}`))
+  else await expect(page.getByRole('button', { name, exact: true })).toHaveAttribute('aria-pressed', 'true')
+}
+
+// The fake Oda's Basket (tests/e2e/fake-oda.mjs), as quantities by product id.
+const FAKE_ODA = 'http://127.0.0.1:8866'
+export const fakeBasket = async (): Promise<Record<string, number>> => (await fetch(`${FAKE_ODA}/basket`)).json()
+export const resetFakeBasket = () => fetch(`${FAKE_ODA}/reset`, { method: 'POST' })
+// Changes the fake Basket as a Family Member would on oda.com.
+export const changeFakeBasket = (operations: { productId: number; quantity: number }[]) =>
+  fetch(`${FAKE_ODA}/basket`, { method: 'POST', body: JSON.stringify(operations) })
+
+// Links the fake Oda from Odabestilling, where the app comes back to.
+export async function linkOda(page: Page) {
+  await openTab(page, 'Odabestilling')
+  await page.getByRole('button', { name: 'Koble til Oda' }).click()
+  await expect(page.getByRole('link', { name: /^Oda: \d+ varer i handlekurven$/ })).toBeVisible()
 }
 
 // The week's dish names (the stub gives six days a dish, Thursday none).

@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto'
 import { describe, expect, test } from 'vitest'
-import { OdaAuthError, cartQuantities, fillOperations, hasForeign, odaClient, pkce, searchResults, summarizeCart } from '../../functions/src/oda'
+import { OdaAuthError, fillOperations, odaClient, pkce, removeOperations, resultsPerQuery, searchResults, summarizeCart } from '../../functions/src/oda'
 
 const BASE = 'https://oda.test'
 
@@ -177,6 +177,16 @@ describe('searchResults', () => {
     ])
   })
 
+  test('resultsPerQuery keeps the products of each query apart, in the order asked', () => {
+    const answer = {
+      result: [
+        { query: 'smør', hasMore: false, products: [product(125)] },
+        { query: 'melk', hasMore: true, products: [product(430), product(7)] },
+      ],
+    }
+    expect(resultsPerQuery(answer, ['melk', 'smør', 'sokker']).map((ps) => ps.map((p) => p.id))).toEqual([[430, 7], [125], []])
+  })
+
   test('keeps at most 20', () => {
     expect(searchResults({ products: Array.from({ length: 25 }, (_, i) => product(i + 1)) })).toHaveLength(20)
   })
@@ -192,31 +202,12 @@ describe('fillOperations', () => {
   })
 })
 
-describe('hasForeign', () => {
-  // Shaped like get_cart: lines added on their own, and lines grouped by recipe.
-  const cart = (...groups: { productId: number; quantity: number }[][]) => ({
-    groups: groups.map((lines, i) => ({
-      ...(i > 0 ? { id: i, title: 'Taco', groupType: 'recipes' } : {}),
-      items: lines.map(({ productId, quantity }) => ({ product: { id: productId, name: 'x' }, quantity, totalGrossAmount: '1.00' })),
-    })),
-    url: 'https://oda.com/no/cart/',
-  })
-
-  test('counts packs per product across groups', () => {
-    expect(cartQuantities(cart([{ productId: 430, quantity: 1 }], [{ productId: 430, quantity: 2 }]))).toEqual(new Map([[430, 3]]))
-  })
-
-  test('a Basket of only what the Oda Order added, or less, holds nothing foreign', () => {
-    const added = [{ productId: 430, quantity: 1 }, { productId: 7, quantity: 1 }]
-    expect(hasForeign(cart([{ productId: 430, quantity: 1 }, { productId: 7, quantity: 1 }]), added)).toBe(false)
-    expect(hasForeign(cart([{ productId: 430, quantity: 1 }]), added)).toBe(false)
-    expect(hasForeign(cart(), [])).toBe(false)
-  })
-
-  test('another product, or more packs of one, is foreign', () => {
-    const added = [{ productId: 430, quantity: 1 }]
-    expect(hasForeign(cart([{ productId: 430, quantity: 1 }, { productId: 9, quantity: 1 }]), added)).toBe(true)
-    expect(hasForeign(cart([{ productId: 430, quantity: 1 }], [{ productId: 430, quantity: 1 }]), added)).toBe(true)
-    expect(hasForeign(cart([{ productId: 9, quantity: 1 }]), [])).toBe(true)
+describe('removeOperations', () => {
+  test('takes out exactly the packs each Entry added', () => {
+    expect(removeOperations([{ productId: 430, quantity: 1 }, { productId: 7, quantity: 2 }])).toEqual([
+      { productId: 430, quantity: -1 },
+      { productId: 7, quantity: -2 },
+    ])
+    expect(removeOperations([])).toEqual([])
   })
 })
