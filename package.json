@@ -4,7 +4,8 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "firebase emulators:exec --project demo-kraftigere --only auth,firestore \"node scripts/seed.mjs && vite\"",
+    "dev": "tsc -b functions && ODA_LINK_FILE=$PWD/.oda-link.json firebase emulators:exec --project demo-kraftigere --only auth,firestore,functions \"tsc -b functions --watch --preserveWatchOutput & node scripts/seed.mjs && vite\"",
+    "postinstall": "npm ci --prefix functions",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "test:unit": "vitest run tests/unit",
@@ -14,6 +15,7 @@
     "perf": "playwright test --config playwright.perf.config.ts"
   },
   "dependencies": {
+    "downshift": "^9.4.0",
     "firebase": "^12.12.1",
     "react": "^19.3.1",
     "react-dom": "^19.3.1"

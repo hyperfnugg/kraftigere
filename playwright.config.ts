@@ -9,6 +9,8 @@ process.env.FIRESTORE_EMULATOR_HOST = env.VITE_FIRESTORE_EMULATOR_HOST
 process.env.FIREBASE_AUTH_EMULATOR_HOST = env.VITE_AUTH_EMULATOR_HOST
 
 const baseURL = 'http://localhost:5273/'
+// The fake oda.com (tests/e2e/fake-oda.mjs) that the test emulators' function talks to.
+const fakeOdaPort = 8866
 // A production-style build against the emulators, for service worker and manifest tests.
 export const previewURL = 'http://localhost:4273/'
 
@@ -29,13 +31,20 @@ export default defineConfig({
   ],
   webServer: [
     {
+      command: 'node tests/e2e/fake-oda.mjs',
+      port: fakeOdaPort,
+      reuseExistingServer: !process.env.CI,
+    },
+    {
       command:
-        'firebase emulators:exec --config firebase.test.json --project demo-kraftigere --only auth,firestore ' +
+        'tsc -b functions && ' +
+        'firebase emulators:exec --config firebase.test.json --project demo-kraftigere --only auth,firestore,functions ' +
         '"node scripts/seed.mjs && vite --mode e2e --port 5273 --strictPort"',
       url: baseURL,
       // e2e drives the AI stubs: mode e2e doesn't read .env.development.local, where a debug
       // token for real Gemini lives, and variables already set win over any other .env file.
-      env: { VITE_APPCHECK_DEBUG_TOKEN: '' },
+      // The function talks to the fake Oda, never oda.com.
+      env: { VITE_APPCHECK_DEBUG_TOKEN: '', ODA_BASE_URL: `http://127.0.0.1:${fakeOdaPort}` },
       reuseExistingServer: !process.env.CI,
       timeout: 120_000,
       // SIGINT lets the Firebase CLI stop its emulator processes.

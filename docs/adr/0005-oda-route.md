@@ -12,7 +12,7 @@ A Ware chosen for Oda holds Oda's numeric product id, the number in `https://oda
 
 - Tokens live only in the function's reach: a Firestore document the rules deny to every client, read and written by the Admin SDK. They never reach a device.
 - The function is callable only by signed-in Family Members on the allowlist, with App Check enforced on it. App Check already loads lazily for Gemini, so this adds nothing at launch.
-- The function exposes a few narrow operations (search, add to cart, read cart), not the MCP server. It never calls `clear_cart`, delivery slots, lists or orders. It only adds, so it never removes what the Family put in the cart themselves.
+- The function exposes a few narrow operations (search, add to cart, read cart, empty cart), not the MCP server. It empties the cart (`clear_cart`) only when an Oda Order is Cancelled, after a warning if the cart holds anything the Oda Order didn't put there. It never touches delivery slots, lists or orders.
 - Firestore and Auth stay unenforced for App Check, as ADR 0004 says. Ordering doesn't change that, since Kraft can't order.
 
 ## Considered Options
@@ -34,3 +34,7 @@ A Ware chosen for Oda holds Oda's numeric product id, the number in `https://oda
 - The Ware's shape gets an optional Oda product id, name and pack text. Rules and a migration follow ADR 0003, though no existing Ware needs one.
 - If the Oda link stops working (tokens revoked, refresh token expired), a Family Member links again. Refresh tokens rotate; their lifetime is unknown.
 - Kraft depends on Oda keeping the MCP server and its tools. The server version is in its answers (1.2.0 today).
+
+## Amendments
+
+- 2026-10-28: Cancelling an Oda Order empties the whole Basket, not only what Kraft added, so the function may call `clear_cart`. Two warnings guard it: one at "Start odabestilling" if the Basket isn't empty, and one at "Avbryt" if the Basket holds anything the Oda Order didn't put there. Before this, the function only added and never removed. See the vision's Oda section.

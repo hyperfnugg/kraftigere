@@ -30,6 +30,12 @@ dist-ssr
 /.playwright-mcp/
 /dist-e2e/
 
+# Built Cloud Functions
+/functions/lib/
+
+# The Oda Link of `npm run dev`, kept across restarts: real Oda tokens
+/.oda-link.json
+
 # Firebase CLI deploy cache
 .firebase/
 
