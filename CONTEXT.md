@@ -28,13 +28,9 @@ _UI_: "Vare"
 _Avoid_: Product, grocery, item, article
 
 **Staple**:
-A Ware the Family has added by hand, and so knows well. A Staple remembers how often it is added and whether it is usually at home, and later names its Substitutes. Autocomplete suggests Staples.
+A Ware the Family has added by hand, and so knows well. A Staple remembers how often it is added and whether it is usually at home. Autocomplete suggests Staples.
 _UI_: "Basisvare"
 _Avoid_: Favourite, regular, item
-
-**Substitute**:
-A Ware a Staple accepts when the Staple itself isn't available.
-_Avoid_: Alternative, replacement
 
 **Personal List**:
 A List that belongs to one Family Member and is visible only to them. Every List is either the Family's or Personal, never shared by only some Family Members.
@@ -161,17 +157,32 @@ _UI_: "odabestilling"; its tab "Odabestilling", behind ⋮ with Middag, opens on
 _Avoid_: Checkout, basket run, sync
 
 **In Basket**:
-The state of an Entry that an Oda Order has put in the Basket, as packs of its Ware's Oda Product. An Oda Order lasts as long as any Entry is In Basket. The Entry is locked until the Oda Order is Ordered or Cancelled.
+The state of an Entry that an Oda Order has put in the Basket, as packs of its Ware's Oda Product or of a Substitute. An Oda Order lasts as long as any Entry is In Basket or Left Out. The Entry is locked until the Oda Order is Ordered or Cancelled.
 _UI_: "i handlekurven"
 _Avoid_: Pending, reserved
 
+**Substitute**:
+An Oda Product put in the Basket for one Oda Order in place of a Ware's own, which isn't available. It may be another Ware's Oda Product. The Ware's own doesn't change, and nothing remembers the Substitute afterwards.
+_UI_: "erstatning"
+_Avoid_: Alternative, replacement
+
+**Off Sale**:
+An Oda Product Oda has stopped selling, as opposed to one that's unavailable for now. Kraft finds out when filling the Basket. The Ware then loses it, so what the Family Member chooses in its place becomes the Ware's new Oda Product rather than a Substitute.
+_UI_: "ikke lenger tilgjengelig"
+_Avoid_: Discontinued, deleted
+
+**Left Out**:
+The state of an Entry whose Oda Product wasn't available when the Oda Order filled the Basket, and which got nothing in its place. It stays unchecked, for buying in a store, and is locked like an In Basket Entry until the Oda Order ends.
+_UI_: "ikke tilgjengelig"
+_Avoid_: Skipped, missing
+
 **Ordered**:
-The end of an Oda Order once a Family Member has placed the order in Oda, which checks off every In Basket Entry.
+The end of an Oda Order once a Family Member has placed the order in Oda, which checks off every In Basket Entry. Left Out Entries stay unchecked.
 _UI_: "Bestilt"
 _Avoid_: Confirm (that is Iverksett), done, checked out
 
 **Cancelled**:
-The end of an Oda Order that won't be ordered, which takes out of the Basket exactly the packs its In Basket Entries added, and leaves the Entries unchecked. Anything else in the Basket stays.
+The end of an Oda Order that won't be ordered, which takes out of the Basket exactly the packs its In Basket Entries added, and leaves every Entry unchecked. Anything else in the Basket stays.
 _UI_: "Avbryt"
 _Avoid_: Abort, undo
 
