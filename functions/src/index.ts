@@ -6,13 +6,16 @@ import { logger, setGlobalOptions } from 'firebase-functions/v2'
 import { HttpsError, onCall, onRequest, type CallableRequest } from 'firebase-functions/v2/https'
 import {
   OdaAuthError,
+  addOperations,
   fillEntries,
   odaClient,
   pkce,
   removeOperations,
   resultsPerQuery,
   searchResults,
+  substituteEntries,
   summarizeCart,
+  unavailableProducts,
   type BasketLine,
   type Registration,
   type Tokens,
@@ -226,29 +229,34 @@ export const odaSuggest = onCall(async (req: CallableRequest<{ queries?: unknown
 // Fills the Basket with each Entry's Pack Count, which starts an Oda Order. The Entries are
 // claimed In Basket first, in a transaction that refuses if an Oda Order is already under
 // way, and released if Oda doesn't take them: a transaction can be retried, and a retried
-// manipulate_cart would add twice.
+// manipulate_cart would add twice. Oda takes unavailable products too, and only its answer says
+// so, so those packs come straight back out, to wait for a Substitute.
 export const odaFill = onCall(async (req: CallableRequest<{ entries?: unknown }>) => {
   await requireFamily(req)
   const chosen = fillEntries(req.data?.entries)
   if (!chosen) throw new HttpsError('invalid-argument', 'No Entries')
   const refs = chosen.map(({ id }) => db.collection('entries').doc(id))
-  const lines = await db.runTransaction(async (tx) => {
+  const { lines, wareRefs } = await db.runTransaction(async (tx) => {
     if (!(await tx.get(inBasket().limit(1))).empty) throw new HttpsError('failed-precondition', 'Odabestilling pågår')
     const entries = await tx.getAll(...refs)
     if (entries.some((e) => !e.exists || e.get('checked'))) throw new HttpsError('failed-precondition', 'An Entry is gone or checked off')
     const wares = await tx.getAll(...entries.map((e) => db.collection('wares').doc(e.get('ware'))))
-    const productIds = wares.map((w) => w.get('oda.id'))
-    if (wares.some((w) => w.get('neverOda')) || productIds.some((id) => typeof id !== 'number')) {
+    if (wares.some((w) => w.get('neverOda') || typeof w.get('oda.id') !== 'number')) {
       throw new HttpsError('failed-precondition', 'Alle varer må ha et Oda-produkt')
     }
     // Quantities are deltas, added to whatever the Basket holds.
-    const lines: BasketLine[] = productIds.map((productId, i) => ({ productId, quantity: chosen[i].quantity }))
+    const lines: BasketLine[] = wares.map((w, i) => ({
+      productId: w.get('oda.id'),
+      quantity: chosen[i].quantity,
+      name: w.get('oda.name'),
+      packText: w.get('oda.packText'),
+    }))
     entries.forEach((e, i) => tx.update(e.ref, { basket: lines[i] }))
-    return lines
+    return { lines, wareRefs: wares.map((w) => w.ref) }
   })
+  let cart: unknown
   try {
-    await callOda('manipulate_cart', { operations: lines })
-    return { linked: true }
+    cart = await callOda('manipulate_cart', { operations: addOperations(lines) })
   } catch (e) {
     const batch = db.batch()
     for (const ref of refs) batch.update(ref, { basket: FieldValue.delete() })
@@ -257,15 +265,73 @@ export const odaFill = onCall(async (req: CallableRequest<{ entries?: unknown }>
     logger.error('Oda manipulate_cart failed', e)
     throw new HttpsError('unavailable', 'Oda svarer ikke')
   }
+  const unavailable = unavailableProducts(cart, lines.map((l) => l.productId))
+  if (unavailable.size === 0) return { linked: true }
+  // If they can't come out they stay In Basket, and Oda says what to remove before paying.
+  try {
+    await callOda('manipulate_cart', { operations: removeOperations(lines.filter((l) => unavailable.has(l.productId))) })
+    const batch = db.batch()
+    lines.forEach((line, i) => {
+      const found = unavailable.get(line.productId)
+      if (!found) return
+      batch.update(refs[i], { basket: { ...line, quantity: 0, ...(found.gone && { gone: true }) } })
+      // An Off Sale product is gone for good, and its Pack Size with it.
+      if (found.gone) batch.update(wareRefs[i], { oda: FieldValue.delete() })
+    })
+    await batch.commit()
+  } catch (e) {
+    logger.error('Taking unavailable products out failed', e)
+  }
+  return { linked: true }
+})
+
+// Ends the step after filling: the Substitutes go in the Basket, and every other Entry waiting for
+// one is Left Out. Claimed first and released if Oda doesn't take them, as in odaFill.
+export const odaSubstitute = onCall(async (req: CallableRequest<{ entries?: unknown }>) => {
+  await requireFamily(req)
+  const picks = substituteEntries(req.data?.entries)
+  if (!picks) throw new HttpsError('invalid-argument', 'No Entries')
+  const { waiting, lines } = await db.runTransaction(async (tx) => {
+    const waiting = (await tx.get(inBasket())).docs.filter((d) => {
+      const line = d.get('basket') as BasketLine
+      return line.quantity === 0 && !line.left
+    })
+    if (picks.some((p) => !waiting.some((d) => d.id === p.id))) throw new HttpsError('failed-precondition', 'An Entry is no longer waiting')
+    const lines: BasketLine[] = []
+    for (const d of waiting) {
+      const pick = picks.find((p) => p.id === d.id)
+      if (pick) {
+        const { id: productId, name, packText } = pick.product
+        const line = { productId, quantity: pick.quantity, name, packText }
+        lines.push(line)
+        tx.update(d.ref, { basket: line })
+      } else tx.update(d.ref, { basket: { ...d.get('basket'), left: true } })
+    }
+    return { waiting, lines }
+  })
+  if (lines.length === 0) return { linked: true }
+  try {
+    await callOda('manipulate_cart', { operations: addOperations(lines) })
+    return { linked: true }
+  } catch (e) {
+    const batch = db.batch()
+    for (const d of waiting) batch.update(d.ref, { basket: d.get('basket') })
+    await batch.commit()
+    if (e instanceof OdaAuthError) return { linked: false }
+    logger.error('Oda manipulate_cart failed', e)
+    throw new HttpsError('unavailable', 'Oda svarer ikke')
+  }
 })
 
 // Ordered: the Family Member placed the order in Oda, so the In Basket Entries are checked off.
-// Oda's order history isn't checked.
+// Oda's order history isn't checked. Left Out Entries stay unchecked, for buying in a store.
 export const odaOrdered = onCall(async (req) => {
   await requireFamily(req)
   const batch = db.batch()
   for (const d of (await inBasket().get()).docs) {
-    batch.update(d.ref, { checked: true, checkedAt: FieldValue.serverTimestamp(), basket: FieldValue.delete() })
+    if ((d.get('basket') as BasketLine).quantity > 0) {
+      batch.update(d.ref, { checked: true, checkedAt: FieldValue.serverTimestamp(), basket: FieldValue.delete() })
+    } else batch.update(d.ref, { basket: FieldValue.delete() })
   }
   await batch.commit()
 })

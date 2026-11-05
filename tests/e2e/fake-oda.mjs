@@ -8,12 +8,29 @@ import { createServer } from 'node:http'
 const FAKE_ODA_PORT = 8866
 const base = `http://127.0.0.1:${FAKE_ODA_PORT}`
 
+// Off Sale: filling finds out, and product_search never shows it.
+const OFF_SALE = 61999
+
 // Quantities by product id.
 const START = { 430: 3, 7: 1 }
 let basket = { ...START }
 
+// As on oda.com, the Basket takes products that aren't available, and each line says so.
+const UNAVAILABLE = {
+  24681: { isAvailable: false, description: 'Midlertidig utsolgt', code: 'unavailable' },
+  [OFF_SALE]: { isAvailable: false, description: 'Ikke lenger tilgjengelig', code: 'not_for_sale' },
+}
+const AVAILABLE = { isAvailable: true, description: '', code: 'available' }
+
 const cart = () => ({
-  groups: [{ items: Object.entries(basket).map(([id, quantity]) => ({ product: { id: Number(id) }, quantity })) }],
+  groups: [
+    {
+      items: Object.entries(basket).map(([id, quantity]) => ({
+        product: { id: Number(id), availability: UNAVAILABLE[id] ?? AVAILABLE },
+        quantity,
+      })),
+    },
+  ],
   url: 'https://oda.com/no/cart/',
 })
 

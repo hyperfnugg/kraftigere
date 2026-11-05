@@ -171,8 +171,9 @@ export function resultsPerQuery(answer: unknown, queries: string[]): OdaProduct[
   return queries.map((query) => searchResults(groups.find((g) => g.query === query) ?? []))
 }
 
-// What one Entry put in the Basket: packs of its Ware's Oda Product.
-export type BasketLine = { productId: number; quantity: number }
+// What one Entry put in the Basket: packs of an Oda Product. No packs means the product wasn't
+// available: `gone` if it's Off Sale, and `left` once the Entry is Left Out.
+export type BasketLine = { productId: number; quantity: number; name?: string; packText?: string; gone?: boolean; left?: boolean }
 
 const MAX_ENTRIES = 200
 const MAX_PACKS = 20
@@ -187,8 +188,53 @@ export function fillEntries(raw: unknown): { id: string; quantity: number }[] | 
   return raw.map(({ id, quantity }) => ({ id, quantity }))
 }
 
+const MAX_NAME = 500
+
+// The Substitutes odaSubstitute was asked for, or null if they don't make sense. None is fine:
+// that's "Hopp over".
+export function substituteEntries(raw: unknown): { id: string; quantity: number; product: { id: number; name: string; packText: string } }[] | null {
+  if (!Array.isArray(raw) || raw.length > MAX_ENTRIES) return null
+  const text = (t: unknown) => typeof t === 'string' && t.length <= MAX_NAME
+  const valid = raw.every(
+    (e) =>
+      typeof e?.id === 'string' &&
+      /^[^/]{1,100}$/.test(e.id) &&
+      Number.isInteger(e.quantity) &&
+      e.quantity >= 1 &&
+      e.quantity <= MAX_PACKS &&
+      Number.isInteger(e.product?.id) &&
+      e.product.id > 0 &&
+      text(e.product.name) &&
+      text(e.product.packText),
+  )
+  if (!valid || new Set(raw.map((e) => e.id)).size !== raw.length) return null
+  return raw.map(({ id, quantity, product }) => ({ id, quantity, product: { id: product.id, name: product.name, packText: product.packText } }))
+}
+
+// Which of the products aren't available by a manipulate_cart answer, which is the full cart:
+// each one's id, and whether it's Off Sale. A product the cart doesn't hold counts too. An answer
+// with no groups says nothing.
+export function unavailableProducts(cart: unknown, productIds: number[]): Map<number, { gone: boolean }> {
+  const unavailable = new Map<number, { gone: boolean }>()
+  const groups = (cart as { groups?: unknown } | null)?.groups
+  if (!Array.isArray(groups)) return unavailable
+  type Line = { product?: { id?: unknown; availability?: { isAvailable?: unknown; code?: unknown } } }
+  const lines: Line[] = groups.flatMap((g) => g?.items ?? [])
+  for (const id of productIds) {
+    const line = lines.find((l) => l.product?.id === id)
+    if (!line) unavailable.set(id, { gone: false })
+    else if (line.product?.availability?.isAvailable === false) unavailable.set(id, { gone: line.product.availability.code === 'not_for_sale' })
+  }
+  return unavailable
+}
+
+// The manipulate_cart operations that put these packs in the Basket.
+export function addOperations(lines: BasketLine[]) {
+  return lines.map(({ productId, quantity }) => ({ productId, quantity }))
+}
+
 // The manipulate_cart operations that take out exactly what the In Basket Entries added.
 // Removals stop at zero, and anything else in the Basket stays.
-export function removeOperations(added: BasketLine[]): BasketLine[] {
-  return added.map(({ productId, quantity }) => ({ productId, quantity: -quantity }))
+export function removeOperations(added: BasketLine[]) {
+  return added.filter((l) => l.quantity > 0).map(({ productId, quantity }) => ({ productId, quantity: -quantity }))
 }
