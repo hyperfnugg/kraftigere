@@ -30,8 +30,9 @@ export type Entry = {
   checked: boolean
   note?: string
   dishes?: Dish[]
-  // Set while an Oda Order has the Entry In Basket, by the Oda functions only.
-  basket?: { productId: number; quantity: number }
+  // Set while an Oda Order has the Entry, by the Oda functions only. In Basket, it says what went
+  // in. With quantity 0 its product wasn't available: gone if that's for good, left once Left Out.
+  basket?: { productId: number; quantity: number; name: string; packText: string; gone?: boolean; left?: boolean }
   // Missing on Entries checked off before checkedAt existed.
   checkedAt?: Timestamp
   createdAt: Timestamp | null
