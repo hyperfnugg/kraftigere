@@ -1,6 +1,18 @@
 import { createHash } from 'node:crypto'
 import { describe, expect, test } from 'vitest'
-import { OdaAuthError, fillEntries, odaClient, pkce, removeOperations, resultsPerQuery, searchResults, summarizeCart } from '../../functions/src/oda'
+import {
+  OdaAuthError,
+  addOperations,
+  fillEntries,
+  odaClient,
+  pkce,
+  removeOperations,
+  resultsPerQuery,
+  searchResults,
+  substituteEntries,
+  summarizeCart,
+  unavailableProducts,
+} from '../../functions/src/oda'
 
 const BASE = 'https://oda.test'
 
@@ -218,5 +230,64 @@ describe('removeOperations', () => {
       { productId: 7, quantity: -2 },
     ])
     expect(removeOperations([])).toEqual([])
+  })
+})
+
+describe('unavailableProducts', () => {
+  const line = (id: number, availability: object) => ({ product: { id, availability }, quantity: 1 })
+  // As oda.com answered on 2026-11-04.
+  const offSale = { isAvailable: false, description: 'Ikke lenger tilgjengelig', code: 'not_for_sale' }
+  const available = { isAvailable: true, description: '', code: 'available' }
+
+  test('finds what is unavailable, and whether it is Off Sale', () => {
+    const cart = { groups: [{ items: [line(1, available), line(2, offSale)] }, { items: [line(3, { isAvailable: false, code: 'sold_out' })] }] }
+    expect([...unavailableProducts(cart, [1, 2, 3])]).toEqual([
+      [2, { gone: true }],
+      [3, { gone: false }],
+    ])
+  })
+
+  test('counts a product the cart does not hold', () => {
+    expect([...unavailableProducts({ groups: [] }, [1])]).toEqual([[1, { gone: false }]])
+  })
+
+  test('looks only at the products asked about', () => {
+    expect(unavailableProducts({ groups: [{ items: [line(1, available), line(2, offSale)] }] }, [1]).size).toBe(0)
+  })
+
+  test('reads nothing from an answer with no groups', () => {
+    expect(unavailableProducts({ url: 'x' }, [1]).size).toBe(0)
+    expect(unavailableProducts(null, [1]).size).toBe(0)
+  })
+})
+
+describe('substituteEntries', () => {
+  const product = { id: 901, name: 'Q Lettmelk', packText: '1 l' }
+
+  test('takes the fields it needs, and none is fine', () => {
+    expect(substituteEntries([])).toEqual([])
+    expect(substituteEntries([{ id: 'e1', quantity: 2, product: { ...product, price: 3 }, x: 1 }])).toEqual([{ id: 'e1', quantity: 2, product }])
+  })
+
+  test('refuses what makes no sense', () => {
+    expect(substituteEntries('e1')).toBeNull()
+    expect(substituteEntries([{ id: 'a/b', quantity: 1, product }])).toBeNull()
+    expect(substituteEntries([{ id: 'e1', quantity: 0, product }])).toBeNull()
+    expect(substituteEntries([{ id: 'e1', quantity: 21, product }])).toBeNull()
+    expect(substituteEntries([{ id: 'e1', quantity: 1 }])).toBeNull()
+    expect(substituteEntries([{ id: 'e1', quantity: 1, product: { ...product, id: 0 } }])).toBeNull()
+    expect(substituteEntries([{ id: 'e1', quantity: 1, product: { ...product, name: 5 } }])).toBeNull()
+    expect(substituteEntries([{ id: 'e1', quantity: 1, product: { ...product, packText: 'x'.repeat(501) } }])).toBeNull()
+    expect(substituteEntries([{ id: 'e1', quantity: 1, product }, { id: 'e1', quantity: 2, product }])).toBeNull()
+  })
+})
+
+describe('Basket operations', () => {
+  test('adding sends only the product and the packs', () => {
+    expect(addOperations([{ productId: 1, quantity: 2, name: 'x', packText: 'y' }])).toEqual([{ productId: 1, quantity: 2 }])
+  })
+
+  test('removing leaves out Entries with no packs', () => {
+    expect(removeOperations([{ productId: 1, quantity: 2, name: 'x' }, { productId: 2, quantity: 0, left: true }])).toEqual([{ productId: 1, quantity: -2 }])
   })
 })

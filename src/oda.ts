@@ -6,9 +6,11 @@ import { functions } from './firebase'
 
 export type Basket = { linked: false } | { linked: true; items: number; url: string }
 type Linked = { linked: boolean }
+type SubstituteEntry = { id: string; quantity: number; product: { id: number; name: string; packText: string } }
 
 const odaBasket = httpsCallable<void, Basket>(functions, 'odaBasket')
 const odaFill = httpsCallable<{ entries: { id: string; quantity: number }[] }, Linked>(functions, 'odaFill')
+const odaSubstitute = httpsCallable<{ entries: SubstituteEntry[] }, Linked>(functions, 'odaSubstitute')
 const odaOrdered = httpsCallable<void, void>(functions, 'odaOrdered')
 const odaCancel = httpsCallable<void, Linked>(functions, 'odaCancel')
 const odaLinkStart = httpsCallable<void, { url: string }>(functions, 'odaLinkStart')
@@ -47,6 +49,11 @@ export function parseOdaUrl(text: string) {
 // Fills the Basket with each Entry's Pack Count, which starts the Oda Order.
 export async function fillBasket(entries: { id: string; quantity: number }[]) {
   return (await odaFill({ entries })).data.linked
+}
+
+// Ends the step after filling: these go in the Basket, and any other Entry waiting is Left Out.
+export async function substituteBasket(entries: SubstituteEntry[]) {
+  return (await odaSubstitute({ entries })).data.linked
 }
 
 // Ordered: checks off the In Basket Entries.
