@@ -1,0 +1,87 @@
+# Oda in production
+
+**Status:** ready-for-agent · enhancement
+
+The Family fills the Basket from `kraftigere.web.app`, with spending limited, and `oda` is merged into `main`. Until now the Oda functions have only run in the emulator ([ADR 0005](../../docs/adr/0005-oda-route.md)). This means linking billing, which moves the Firebase project to Blaze and makes Gemini paid, so the billing work happens late and in one sitting. It does not add features.
+
+## Scope
+
+- The production Oda client, with `odaCallback` as the redirect URI.
+- App Check enforced on the Oda callables.
+- CI that builds functions and deploys them from `main`.
+- Billing on a Kraft-only account, with a soft budget, a Gemini spend cap and a tested kill switch.
+- Merging `oda` into `main`, and proving the whole flow with one real Oda Order.
+
+## Out of scope
+
+- Firestore backups (an idea in `ROADMAP.md`). This plan's local copy is a one-off for the kill switch test.
+- App Check on Firestore or Auth (ADR 0004).
+- A spend cap on Cloud Functions (ADR 0005, amendment of 2026-11-06).
+- Keeping `npm run dev` away from the real Basket. It shares the Basket with production through a separate Oda client. If a dev fill happens during a real Oda Order the packs mix, and Avbryt could take out packs dev added. Accepted.
+- A planned rollback of the merge. See "If production breaks" under Notes.
+
+## Prerequisites (user)
+
+- [Shared Oda Products](28-shared-oda-products.md) finished on `oda`.
+- A payment method for the billing account, and the Family's Oda login. The user signs in on oda.com and in the billing console. Claude never handles the password or card.
+
+## Steps
+
+- [ ] **Production Oda client.** `callbackUrl` in `functions/src/index.ts` returns `https://europe-west1-kraftigere.cloudfunctions.net/odaCallback` outside the emulator, built from the project and region rather than the request's host. The emulator's URL stays as it is.
+- [ ] **App Check on the callables.** Every `onCall` gets `enforceAppCheck`, off only when `FUNCTIONS_EMULATOR` is `'true'`. `odaCallback` stays unenforced, because oda.com's redirect can't carry a token, and its `state` check guards it.
+- [ ] **App Check on the client.** Split starting App Check out of `load()` in `src/ai.ts`, so Oda calls can start it without the AI SDK, and it starts only once. `src/oda.ts` awaits it before each callable, outside the emulators.
+  - The main chunk still has no reCAPTCHA, and neither Hjem nor Shop loads it. `useBasket` only runs in Odabestilling.
+- [ ] **Try it on the dev server**, iterating on feedback. Linking, filling and Avbryt still work in the emulator. Skipped in AFK mode. *(user)*
+- [ ] **Tests.** `npx tsc -b`, `npm run lint`, `npm run test:unit`, and the Oda e2e specs. A unit test for `callbackUrl`, if it can be pulled out without an abstraction made only for the test. Enforcement can't be tested against the emulator; production verification below covers it.
+- [ ] **Commit: Production Oda client and App Check on the callables.** *(manual)* — security control; review first.
+- [ ] **CI builds functions.** Both workflows run `npm ci --prefix functions`, because `tsc -b` builds `functions` and neither workflow installs its dependencies today. `deploy.yml` deploys `hosting,firestore:rules,functions`. Check how a deploy without `--force` behaves when a function has been removed from the source.
+- [ ] **Commit: Build and deploy functions in CI.** *(manual)* — CI change; review first.
+- [ ] **Kill switch.** A function triggered by the kill switch budget's Pub/Sub topic. It removes the project's billing account only if the message is from that budget and `costAmount` is above `budgetAmount`, since budgets also notify below the limit. Unit test the decision. It needs no App Check, and its topic isn't public.
+- [ ] **Scripts.** Both tried on the emulator first, per ADR 0003, and using the developer's own credentials.
+  - `scripts/dump-firestore.mjs`: copies every document to a JSON file at a path given as an argument. The copy holds family data, so it never goes in the repo.
+  - `scripts/clear-basket.mjs`: removes `basket` from every Entry. The rules let only the functions do that, so this frees In Basket Entries if the functions are off. It doesn't touch the Basket on oda.com.
+- [ ] **Commit: Kill switch and production scripts.** *(manual)* — turns billing off; review first.
+- [ ] **Rebase `oda` onto `main` and open the PR.** History stays linear, as decided in plan 23. Force-pushing `oda` is the user's call. The PR's `check` must pass before billing starts. *(user)*
+- [ ] **Reopen the billing account, for Kraft only, and link it.** `gcloud` showed the attached account closed and `billingEnabled` false on 2026-11-06. If it can't be reopened, create a new one. From here on, Gemini is pay-as-you-go, so do the next steps in the same sitting. *(user)*
+- [ ] **Enable the APIs.** Cloud Functions, Cloud Run, Cloud Build, Artifact Registry, Eventarc and Billing Budgets, plus whatever the first deploy asks for. Claude runs this once the user says go.
+- [ ] **Check prices and caps.** Record under Notes:
+  - Gemini's expected monthly cost at family scale for `gemini-3.5-flash-lite`.
+  - Whether a spend cap counts gross cost before free tiers. If it does and $10 would pause normal use, choose a new amount.
+  - What a flood could cost: `maxInstances: 2` applies per function, so about twenty instances across all of them. Lower it if the soft budget and kill switch would be too slow to catch that.
+- [ ] **Set the limits.** Use the same amounts in the account's currency if it isn't dollars. *(user)*
+  - Soft budget for the project: $20 a month, with emails at 50%, 90% and 100%.
+  - Gemini spend cap: $10 a month.
+  - Kill switch budget for the project: $200 a month, publishing to the kill switch's Pub/Sub topic.
+- [ ] **Widen the deploy service account.** `firebase-deploy` has `firebase.viewer`, `firebasehosting.admin` and `firebaserules.admin`. Add the smallest set of roles a functions deploy needs, including permission to act as the runtime service account. List them in ADR 0002. *(user)*
+- [ ] **Local copy of Firestore.** `scripts/dump-firestore.mjs`, to a path outside the repo. *(user)*
+- [ ] **Deploy the kill switch by hand,** from the rebased `oda`, with `--only functions:<name>`, since CI deploys only from `main`. Give its runtime service account permission to remove the project's billing, and nothing wider. *(user)*
+- [ ] **Test the kill switch for real.** Publish a message under the limit and see that nothing happens. Then publish a fake over-budget message, see billing removed, and relink by hand. Afterwards compare Firestore with the local copy, and confirm the budgets, the Gemini cap, App Check and the kill switch function are all still there. *(user)*
+- [ ] **Record what removing billing did.** Put the result in ADR 0005, including whether Google's warning that resources might be irretrievably deleted holds up. It couldn't be found in a search on 2026-11-06.
+- [ ] **Commit: What removing billing does.** *(auto)*
+- [ ] **Merge the PR.** CI deploys functions, rules and Hosting. If the functions deploy fails, fix CI forward. Oda is behind ⋮, so the rest of Kraft keeps working. *(user)*
+- [ ] **Link and try on production.** On `kraftigere.web.app`: sign in, tap "Koble til Oda", and start an Oda Order with one Entry. The right packs show on oda.com, and Avbryt takes out only those. Check the function logs for a missing Firestore index. *(user)*
+- [ ] **Check access.** A callable refuses a request with no App Check token, one with no sign-in, and one from an account not on the allowlist. `odaCallback` refuses a wrong `state`. The user signs in with the account not on the allowlist.
+- [ ] **Check launch.** On production, opening the app on Hjem doesn't load reCAPTCHA or call an Oda function.
+- [ ] **One real Oda Order.** Filled from Kraft, ordered on oda.com, and marked Bestilt. *(user)*
+- [ ] **Bring docs up to date.** `README.md`'s stack and sharing notes mention functions and the Oda Link. `ROADMAP.md` drops this plan from **Now**.
+- [ ] **Move plan to `plans/done/`.** `git mv plans/active/29-oda-in-production.md plans/done/29-oda-in-production.md`.
+- [ ] **Commit: complete Oda in production milestone.** *(auto)*
+
+## Done when
+
+- A Family Member signs in on `kraftigere.web.app` and "Koble til Oda" links the Family's account.
+- A trial Oda Order with one Entry fills correctly, and Avbryt takes out only its packs.
+- Callables refuse requests with no App Check token, no sign-in, or an account not on the allowlist.
+- One real Oda Order is placed and marked Bestilt.
+- Hjem still doesn't load reCAPTCHA when the app opens.
+- The soft budget, the Gemini cap and the kill switch are in place, and the kill switch has removed billing once for real, with billing relinked and the data compared.
+- `oda` is merged, and later functions deploy from CI.
+
+## Notes
+
+- 2026-11-06: Decided in a grilling session. "Paid Firestore" was this item: Blaze covers the whole project, and Firestore can't have its own cap.
+- 2026-11-06: Checked with `gcloud`: billing is off and the attached account is closed, so the project is on Spark. Plan 04 is out of date on this; ADRs 0004 and 0005 are right. Gemini's App Check is Enforced, and Firestore's and Auth's are Unenforced. Cloud Functions isn't enabled, and nothing is deployed. Budgets couldn't be read.
+- 2026-11-06: Link billing late. No money is at risk today, and caps and the kill switch need Blaze, so an unprotected window can't be avoided, only kept short.
+- 2026-11-06: The rules on `oda` only add to those on `main`, and existing Entries and Wares stay valid. No migration is needed.
+- 2026-11-06: Plan 27 finished, and plan 28 was already underway on `oda` while this was planned. The grilling said to ship before 28; since it's underway, it's now a prerequisite instead.
+- **If production breaks:** fix forward. Use Hosting rollback in the console for a broken app. If Oda has to be switched off, or the functions stop, run `scripts/clear-basket.mjs` so no In Basket Entry stays locked. Reverting the merge isn't planned.
