@@ -6,6 +6,7 @@ Where Kraft is heading. It changes often. Ideas are one line each, cheap to add 
 
 - [Dependency maintenance](plans/active/05-dependency-maintenance.md)
 - [Shared Oda Products](plans/active/28-shared-oda-products.md)
+- [Pack Counts on the Order Summary](plans/active/30-pack-counts-on-the-summary.md)
 - [Oda in production](plans/active/29-oda-in-production.md)
 
 ## Ideas
@@ -33,4 +34,3 @@ Where Kraft is heading. It changes often. Ideas are one line each, cheap to add 
 - Offering a merge in the choosing when a Ware gets an Oda Product another Ware has: "Slå sammen" or "Behold begge".
 - Tidying Wares: the AI proposes likely duplicates among all Wares and their Oda Products, each answered yes or no, with a no remembered.
 - Shop sorted by name, so "salt" and "salt, natriumklorid" sit together before leaving the shelf.
-- One Pack Count across Entries with the same Oda Product, adding up their dishes when all of them have amounts.
