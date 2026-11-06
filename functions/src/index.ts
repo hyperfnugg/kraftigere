@@ -279,6 +279,7 @@ export const odaFill = onCall(async (req: CallableRequest<{ entries?: unknown }>
       if (found.gone) batch.update(wareRefs[i], { oda: FieldValue.delete() })
     })
     await batch.commit()
+    return { linked: true, unavailable: refs.filter((_, i) => unavailable.has(lines[i].productId)).map((ref) => ref.id) }
   } catch (e) {
     logger.error('Taking unavailable products out failed', e)
   }
