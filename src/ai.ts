@@ -84,6 +84,8 @@ async function generateJson(
   const start = performance.now()
   const ms = () => Math.round(performance.now() - start)
   const result = await model.generateContentStream(prompt)
+  // A broken stream rejects this as well as the loop below, which is left before this is awaited.
+  result.response.catch(() => {})
   let first: number | undefined
   let usage
   for await (const chunk of result.stream) {
