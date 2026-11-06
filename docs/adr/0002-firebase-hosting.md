@@ -20,3 +20,7 @@ The app is served by Firebase Hosting at `https://kraftigere.web.app/`, from the
 - The provider condition names the repo, so renaming the repo again means updating it.
 - The service worker must never answer `/__/auth/*` with `index.html` (`navigateFallbackDenylist` in `vite.config.ts`), or same-domain sign-in breaks once the worker is installed.
 - Users see "Kraft"; the repo, package, Firebase project and domain are "kraftigere".
+
+## Amendments
+
+- 2026-11-06: From plan 29, `deploy.yml` also deploys functions, so that a merge can't ship an app expecting a function version that isn't live. The `firebase-deploy` service account gets the roles that needs, listed here when they're granted, and can no longer be described as limited to Hosting and Firestore rules. The provider condition doesn't change.
