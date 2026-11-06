@@ -18,3 +18,7 @@ Every Dependabot PR (npm and GitHub Actions, majors included) is merged and depl
 - A PR that fails the check stays open until a human (or, later, Claude in CI) fixes it. That includes security fixes that need a breaking major.
 - No update tooling can protect against a true zero-day (no fix exists yet). Dependabot alert emails are the backstop.
 - Merged updates deploy to Firebase Hosting and Firestore rules through the keyless deploy identity (ADR 0002). It only accepts runs on `main`, so a PR that changes a workflow can't deploy until it is merged.
+
+## Amendments
+
+- 2026-11-06: From plan 29, updates to `/functions` merge and deploy unattended too, so a malicious package could run in code that can read the Oda tokens (ADR 0005). Those tokens can change the Basket and delivery slot and read the delivery address and order history, but can't place an order. Accepted, to keep security fixes from waiting on a person: the cooldown still applies to ordinary updates.
