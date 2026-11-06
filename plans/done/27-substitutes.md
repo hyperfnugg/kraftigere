@@ -42,8 +42,8 @@ Twenty-seventh milestone and the fifth Oda one, on the `oda` branch ([ADR 0005](
 - [x] **Commit: Substitutes in the Oda Order.** *(manual)* (user-visible; review first)
 - [x] **Tests.** e2e against the fake Oda and the Gemini stub: nothing unavailable means no step; packs out and the step shown; the Family's own packs staying; a Substitute reaching the Basket with its count and In Basket line, and the Ware unchanged; another Ware's product allowed; "Hopp over" giving the read-only list; "Bestilt" and "Avbryt" with Left Out Entries and Substitutes; everything unavailable; a reload returning to the step; an Off Sale pick saved on the Ware; skipping one leaving the Ware in "Nye varer". Rules tests still pass unchanged. No test reaches oda.com or Gemini.
 - [x] **Commit: Test Substitutes.** *(auto)*
-- [ ] **Move plan to `plans/done/`.** `git mv plans/active/27-substitutes.md plans/done/27-substitutes.md`, and remove it from **Now** in `ROADMAP.md`.
-- [ ] **Commit: complete Substitutes milestone.** *(auto)*
+- [x] **Move plan to `plans/done/`.** `git mv plans/active/27-substitutes.md plans/done/27-substitutes.md`, and remove it from **Now** in `ROADMAP.md`.
+- [x] **Commit: complete Substitutes milestone.** *(auto)*
 
 ## Done when
 

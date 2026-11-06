@@ -5,7 +5,6 @@ Where Kraft is heading. It changes often. Ideas are one line each, cheap to add 
 ## Now
 
 - [Dependency maintenance](plans/active/05-dependency-maintenance.md)
-- [Substitutes](plans/active/27-substitutes.md)
 - [Shared Oda Products](plans/active/28-shared-oda-products.md)
 
 ## Next
