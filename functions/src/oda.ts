@@ -172,8 +172,9 @@ export function resultsPerQuery(answer: unknown, queries: string[]): OdaProduct[
 }
 
 // What one Entry put in the Basket: packs of an Oda Product. No packs means the product wasn't
-// available: `gone` if it's Off Sale, and `left` once the Entry is Left Out.
-export type BasketLine = { productId: number; quantity: number; name?: string; packText?: string; gone?: boolean; left?: boolean }
+// available: `gone` if it's Off Sale, and `left` once the Entry is Left Out. Or, if `shared`, that
+// another Entry's line holds the packs of the Oda Product that replaces theirs.
+export type BasketLine = { productId: number; quantity: number; name?: string; packText?: string; gone?: boolean; left?: boolean; shared?: boolean }
 
 const MAX_ENTRIES = 200
 const MAX_PACKS = 20
@@ -191,7 +192,7 @@ export function fillEntries(raw: unknown): { id: string; quantity: number }[] | 
 const MAX_NAME = 500
 
 // The Substitutes odaSubstitute was asked for, or null if they don't make sense. None is fine:
-// that's "Hopp over".
+// that's "Hopp over". An Entry may have no packs if another Entry with its Oda Product has them.
 export function substituteEntries(raw: unknown): { id: string; quantity: number; product: { id: number; name: string; packText: string } }[] | null {
   if (!Array.isArray(raw) || raw.length > MAX_ENTRIES) return null
   const text = (t: unknown) => typeof t === 'string' && t.length <= MAX_NAME
@@ -200,7 +201,7 @@ export function substituteEntries(raw: unknown): { id: string; quantity: number;
       typeof e?.id === 'string' &&
       /^[^/]{1,100}$/.test(e.id) &&
       Number.isInteger(e.quantity) &&
-      e.quantity >= 1 &&
+      e.quantity >= 0 &&
       e.quantity <= MAX_PACKS &&
       Number.isInteger(e.product?.id) &&
       e.product.id > 0 &&
@@ -208,6 +209,7 @@ export function substituteEntries(raw: unknown): { id: string; quantity: number;
       text(e.product.packText),
   )
   if (!valid || new Set(raw.map((e) => e.id)).size !== raw.length) return null
+  if (raw.some((e) => e.quantity === 0 && !raw.some((o) => o.product.id === e.product.id && o.quantity > 0))) return null
   return raw.map(({ id, quantity, product }) => ({ id, quantity, product: { id: product.id, name: product.name, packText: product.packText } }))
 }
 

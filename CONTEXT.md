@@ -137,7 +137,7 @@ _UI_: "handlekurv"
 _Avoid_: Cart
 
 **Pack Count**:
-How many packs of a Ware's Oda Product an Entry puts in the Basket: always enough for its dishes, by their amounts and the Pack Size, and otherwise one. A Note doesn't change it, but the Family Member can. It belongs to one Oda Order and isn't remembered.
+How many packs of a Ware's Oda Product an Entry puts in the Basket: always enough for its dishes, by their amounts and the Pack Size, and otherwise one. A Note doesn't change it, but the Family Member can. It belongs to one Oda Order and isn't remembered. What replaces an unavailable Oda Product has one Pack Count for all the Entries it meets, and the Order Summary adds up the rest.
 _UI_: "3 ×"
 _Avoid_: Quantity, amount (that's what the dishes need)
 
@@ -157,7 +157,7 @@ _UI_: "odabestilling"; its tab "Odabestilling", behind ⋮ with Middag, opens on
 _Avoid_: Checkout, basket run, sync
 
 **In Basket**:
-The state of an Entry that an Oda Order has put in the Basket, as packs of its Ware's Oda Product or of a Substitute. An Oda Order lasts as long as any Entry is In Basket or Left Out. The Entry is locked until the Oda Order is Ordered or Cancelled.
+The state of an Entry that an Oda Order has put in the Basket, as packs of its Ware's Oda Product or of a Substitute, which it may share with other In Basket Entries. An Oda Order lasts as long as any Entry is In Basket or Left Out. The Entry is locked until the Oda Order is Ordered or Cancelled.
 _UI_: "i handlekurven"
 _Avoid_: Pending, reserved
 
@@ -175,6 +175,11 @@ _Avoid_: Discontinued, deleted
 The state of an Entry whose Oda Product wasn't available when the Oda Order filled the Basket, and which got nothing in its place. It stays unchecked, for buying in a store, and is locked like an In Basket Entry until the Oda Order ends.
 _UI_: "ikke tilgjengelig"
 _Avoid_: Skipped, missing
+
+**Order Summary**:
+What an Oda Order put in the Basket, once any Substitutes are chosen: each Oda Product with its packs added up and the Entries it meets, then what was Left Out. From here the Family Member orders in Oda, then ends the Oda Order as Ordered or Cancelled.
+_UI_: "Oppsummering odabestilling"
+_Avoid_: Checkout, Basket view, step
 
 **Ordered**:
 The end of an Oda Order once a Family Member has placed the order in Oda, which checks off every In Basket Entry. Left Out Entries stay unchecked.

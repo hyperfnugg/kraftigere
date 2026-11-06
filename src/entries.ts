@@ -32,7 +32,8 @@ export type Entry = {
   dishes?: Dish[]
   // Set while an Oda Order has the Entry, by the Oda functions only. In Basket, it says what went
   // in. With quantity 0 its product wasn't available: gone if that's for good, left once Left Out.
-  basket?: { productId: number; quantity: number; name: string; packText: string; gone?: boolean; left?: boolean }
+  // Or, if shared, another Entry's line holds the packs of the Oda Product that replaces theirs.
+  basket?: { productId: number; quantity: number; name: string; packText: string; gone?: boolean; left?: boolean; shared?: boolean }
   // Missing on Entries checked off before checkedAt existed.
   checkedAt?: Timestamp
   createdAt: Timestamp | null

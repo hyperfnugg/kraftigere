@@ -269,8 +269,16 @@ describe('substituteEntries', () => {
     expect(substituteEntries([{ id: 'e1', quantity: 2, product: { ...product, price: 3 }, x: 1 }])).toEqual([{ id: 'e1', quantity: 2, product }])
   })
 
+  test('Entries sharing a product may leave its packs to another of them', () => {
+    const shared = [{ id: 'e1', quantity: 2, product }, { id: 'e2', quantity: 0, product }]
+    expect(substituteEntries(shared)).toEqual(shared)
+  })
+
   test('refuses what makes no sense', () => {
     expect(substituteEntries('e1')).toBeNull()
+    expect(substituteEntries([{ id: 'e1', quantity: 0, product }, { id: 'e2', quantity: 0, product }])).toBeNull()
+    expect(substituteEntries([{ id: 'e1', quantity: 1, product }, { id: 'e2', quantity: 0, product: { ...product, id: 902 } }])).toBeNull()
+    expect(substituteEntries([{ id: 'e1', quantity: -1, product }, { id: 'e2', quantity: 1, product }])).toBeNull()
     expect(substituteEntries([{ id: 'a/b', quantity: 1, product }])).toBeNull()
     expect(substituteEntries([{ id: 'e1', quantity: 0, product }])).toBeNull()
     expect(substituteEntries([{ id: 'e1', quantity: 21, product }])).toBeNull()
