@@ -17,7 +17,7 @@ Twenty-eighth milestone and the sixth Oda one, on the `oda` branch, to land befo
 ## Out of scope
 
 - Merging Wares, aliases, and offering a merge. See `ROADMAP.md`.
-- One Pack Count across Entries with the same Oda Product in the choosing. Each Entry rounds up on its own, so two Entries can buy two packs, and the Family Member can change the counts. [Plan 30](30-pack-counts-on-the-summary.md) moves all Pack Counts to the Order Summary, including the one this plan puts on the step after filling.
+- One Pack Count across Entries with the same Oda Product in the choosing. Each Entry rounds up on its own, so two Entries can buy two packs, and the Family Member can change the counts. [Plan 30](../active/30-pack-counts-on-the-summary.md) moves all Pack Counts to the Order Summary, including the one this plan puts on the step after filling.
 - Keeping Entries with the same Oda Product together in the choosing, which was tried and dropped, or in Shop.
 - Sharing a Pack Size between Wares. Each Ware keeps its own copy, read by the AI as today.
 - Removing an Off Sale product from Wares outside the Oda Order. They find out when they're next filled.
@@ -37,9 +37,9 @@ Twenty-eighth milestone and the sixth Oda one, on the `oda` branch, to land befo
 - [x] **Picking, suggestions and the choosing in the app.** `usedBy`, its `replacing === 'substitute'` exception and the "Brukt av" message go from the search, and the Ware's line says "også på" instead. The `taken` set goes from the suggestions. The Order Summary and the step after filling list by Oda Product, with `shared` Basket lines so Entries can share one pack of what replaces theirs.
 - [x] **Try it on the dev server**, iterating on feedback, with real Gemini. Pick "melk"'s product for "melk, hel", by search and by pasted link. See a suggestion land on a product another Ware has. See both Entries in the choosing, alphabetically. Fill, and see the real Basket hold both Pack Counts added up. Then "Avbryt", and see exactly those packs come out. Skipped in AFK mode. *(user)*
 - [x] **Tests.** `tests/e2e/oda-products.spec.ts`'s "brukt av" part becomes picking another Ware's product, by tap and by pasted link, with "også på" on the Ware's line and not in the results, in the choosing naming unticked suggestions too, and not naming a Ware once it's Checked. e2e against the fake Oda and the Gemini stub: a suggestion that another Ware has; filling two Entries with one product showing the Order Summary with one line with their packs added up and both Entries below it, and the Basket holding that many; two Entries with one unavailable product sharing one Substitute and one Pack Count in the step after filling, down to 1 pack, with Bestilt checking off both and Avbryt taking out exactly that; "Avbryt" taking out exactly those. Unit, rules and e2e pass, with no test reaching oda.com or Gemini. The fake Oda adds up repeated products by its own design, so the real behaviour rests on the trial above.
-- [ ] **Commit: Wares share Oda Products.** *(manual)* (user-visible; review first)
-- [ ] **Move plan to `plans/done/`.** `git mv plans/active/28-shared-oda-products.md plans/done/28-shared-oda-products.md`, and remove it from **Now** in `ROADMAP.md`.
-- [ ] **Commit: complete Shared Oda Products milestone.** *(auto)*
+- [x] **Commit: Wares share Oda Products.** *(manual)* (user-visible; review first)
+- [x] **Move plan to `plans/done/`.** `git mv plans/active/28-shared-oda-products.md plans/done/28-shared-oda-products.md`, and remove it from **Now** in `ROADMAP.md`.
+- [x] **Commit: complete Shared Oda Products milestone.** *(auto)*
 
 ## Done when
 
@@ -59,3 +59,4 @@ Twenty-eighth milestone and the sixth Oda one, on the `oda` branch, to land befo
 - 2026-11-06: Real Oda adds up repeated products, in additions and removals, so `addOperations` and `removeOperations` stay as they are. See `docs/research/oda-routes.md`.
 - 2026-11-06: Trying it on the dev server, keeping Entries with the same Oda Product together in the choosing didn't work, so the choosing stays alphabetical. "Også på" moved from the search results to the Ware's line.
 - 2026-11-06: Trying it moved the plan: the Order Summary got its name and layout, the step after filling followed, and its one Pack Count on the replacement is an interim that plan 30 removes.
+- 2026-11-06: Filling and "Avbryt" through the app were tested against the fake Oda, and repeated products in `manipulate_cart` on real Oda by script. Whether both were also tried together, through the app on the real Basket, wasn't confirmed when this closed.
