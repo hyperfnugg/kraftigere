@@ -27,3 +27,7 @@ Also:
 
 - No data migration and no rules change: the rules never looked at this. A Basket line gets an optional `shared` for an Entry whose packs another Entry's line holds, which only the Oda functions write and clients can't, so ADR 0003's rules have nothing to check.
 - An Off Sale product leaves only the Wares being filled. Other Wares with it find out when they're next filled.
+
+## Amendments
+
+- 2026-11-06: "Each Entry keeps its own line and Pack Count" and "Rounding up twice" no longer hold. A Pack Count belongs to an Oda Product on the Order Summary, where its Entries' dishes are added up before rounding, when all of them have amounts. Each Entry still has a Basket line, but its first Entry holds the packs and the others are `shared`. See plan 30.

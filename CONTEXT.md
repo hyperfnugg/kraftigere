@@ -137,12 +137,12 @@ _UI_: "handlekurv"
 _Avoid_: Cart
 
 **Pack Count**:
-How many packs of a Ware's Oda Product an Entry puts in the Basket: always enough for its dishes, by their amounts and the Pack Size, and otherwise one. A Note doesn't change it, but the Family Member can. It belongs to one Oda Order and isn't remembered. What replaces an unavailable Oda Product has one Pack Count for all the Entries it meets, and the Order Summary adds up the rest.
-_UI_: "3 ×"
+How many packs of one Oda Product an Oda Order holds in the Basket: at first enough for its Entries' dishes, and otherwise one, then whatever the Family Member sets on the Order Summary. A Note doesn't change it. It belongs to one Oda Order and isn't remembered.
+_UI_: "− 3 +"
 _Avoid_: Quantity, amount (that's what the dishes need)
 
 **Pack Size**:
-How much one pack of an Oda Product holds: its grams, and its pieces if it is sold by the piece. The AI reads it from what Oda says about the product, and the Ware remembers it with its Oda Product.
+How much one pack of an Oda Product holds: its grams, and its pieces if it is sold by the piece. The AI reads it from what Oda says about the product, on the Order Summary when an Entry's dishes have amounts, and a Ware whose own Oda Product it is remembers it. A Substitute's is used once.
 _UI_: none
 _Avoid_: Unit, weight
 
@@ -157,7 +157,7 @@ _UI_: "odabestilling"; its tab "Odabestilling", behind ⋮ with Middag, opens on
 _Avoid_: Checkout, basket run, sync
 
 **In Basket**:
-The state of an Entry that an Oda Order has put in the Basket, as packs of its Ware's Oda Product or of a Substitute, which it may share with other In Basket Entries. An Oda Order lasts as long as any Entry is In Basket or Left Out. The Entry is locked until the Oda Order is Ordered or Cancelled.
+The state of an Entry that an Oda Order has put in the Basket, as its Ware's Oda Product or a Substitute, sharing that product's Pack Count with any other In Basket Entries on it. An Oda Order lasts as long as any Entry is In Basket or Left Out. The Entry is locked until the Oda Order is Ordered or Cancelled.
 _UI_: "i handlekurven"
 _Avoid_: Pending, reserved
 
@@ -177,7 +177,7 @@ _UI_: "ikke tilgjengelig"
 _Avoid_: Skipped, missing
 
 **Order Summary**:
-What an Oda Order put in the Basket, once any Substitutes are chosen: each Oda Product with its packs added up and the Entries it meets, then what was Left Out. From here the Family Member orders in Oda, then ends the Oda Order as Ordered or Cancelled.
+What an Oda Order put in the Basket, once any Substitutes are chosen: each Oda Product with its Pack Count and the Entries it meets, then what was Left Out. Kraft works out the Pack Counts here, and changing one changes the Basket at once. From here the Family Member orders in Oda, then ends the Oda Order as Ordered or Cancelled.
 _UI_: "Oppsummering odabestilling"
 _Avoid_: Checkout, Basket view, step
 
@@ -187,7 +187,7 @@ _UI_: "Bestilt"
 _Avoid_: Confirm (that is Iverksett), done, checked out
 
 **Cancelled**:
-The end of an Oda Order that won't be ordered, which takes out of the Basket exactly the packs its In Basket Entries added, and leaves every Entry unchecked. Anything else in the Basket stays.
+The end of an Oda Order that won't be ordered, which takes out of the Basket exactly the packs Kraft holds there at that moment, and leaves every Entry unchecked. Anything else in the Basket stays.
 _UI_: "Avbryt"
 _Avoid_: Abort, undo
 

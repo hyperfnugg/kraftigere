@@ -22,12 +22,12 @@ Thirtieth milestone and the seventh Oda one, on the `oda` branch, to land before
 
 ## Steps
 
-- [ ] **Glossary, vision and ADRs.**
+- [x] **Glossary, vision and ADRs.**
   - `CONTEXT.md`: Pack Count becomes "How many packs of one Oda Product an Oda Order holds in the Basket: at first enough for its Entries' dishes, and otherwise one, then whatever the Family Member sets on the Order Summary." Pack Size, Cancelled, Order Summary and In Basket follow.
   - The vision's "Pack counts appear only here" and its choosing paragraph follow.
   - ADR 0005 gets an amendment: after filling, the function raises counts to what the dishes need, and when a Family Member changes a count on the Order Summary it also lowers them, only ever by packs Kraft put in. Besides Cancelled, that's the only time it removes packs, apart from taking unavailable ones back out while filling.
   - ADR 0006 gets an amendment: "each Entry keeps its own line and Pack Count" and "Rounding up twice" no longer hold.
-- [ ] **Commit: Pack Counts belong to the Order Summary, in the glossary, vision and ADRs.** *(auto)*
+- [x] **Commit: Pack Counts belong to the Order Summary, in the glossary, vision and ADRs.** *(auto)*
 - [ ] **Filling and Substitutes put in one pack.**
   - `odaFill` and `odaSubstitute` take no counts. In the transaction, the first Entry on each Oda Product gets one pack and the others `shared`. Oda is only sent lines with packs.
   - Each line is marked not yet counted, with an optional field that only the functions write. A line without it counts as counted. No rules change or migration.
