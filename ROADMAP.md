@@ -33,3 +33,4 @@ Where Kraft is heading. It changes often. Ideas are one line each, cheap to add 
 - Offering a merge in the choosing when a Ware gets an Oda Product another Ware has: "Slå sammen" or "Behold begge".
 - Tidying Wares: the AI proposes likely duplicates among all Wares and their Oda Products, each answered yes or no, with a no remembered.
 - Shop sorted by name, so "salt" and "salt, natriumklorid" sit together before leaving the shelf.
+- Taking one Oda Product out of an Oda Order on the Order Summary, deciding what becomes of its Entries.
