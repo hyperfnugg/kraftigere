@@ -19,7 +19,7 @@ Week ─▶ Menu ─▶ Meal ─▶ Recipe "Sufflé" ─▶ Step ─▶ Ingredie
 
 Three different things are easy to confuse here:
 
-- **Ware**: anything the Family buys, named how they say it, the thing first ("melk", "melk, hel"). Later an Oda Product belongs to exactly one Ware.
+- **Ware**: anything the Family buys, named how they say it, the thing first ("melk", "melk, hel").
 - **Staple**: a Ware the Family has added by hand. It carries what comes from knowing it well: how often it's added, whether it's usually at home.
 - **Ingredient**: what a Recipe needs ("melk, hel 500 g"). Its wording says how strict the need is.
 
@@ -37,7 +37,7 @@ Today's List becomes the Groceries List. Examples: "melk", "bleier", "epler", "s
 
 ### Later
 
-- **Aliases and merging.** "melk" and "mjølk" become one Ware, with frequencies combined. An Oda Product belongs to exactly one Ware, which helps find duplicates.
+- **Aliases and merging.** "melk" and "mjølk" become one Ware, with frequencies combined.
 - **More on Wares.** Oda reference, price, nutrition.
 - **Store-walk order in Shop.** This needs each Ware's place in a particular store, which is a design of its own.
 
