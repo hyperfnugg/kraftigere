@@ -5,6 +5,9 @@ import {
   addOperations,
   fillEntries,
   odaClient,
+  onePackEach,
+  packChanges,
+  packRequest,
   pkce,
   removeOperations,
   resultsPerQuery,
@@ -12,6 +15,9 @@ import {
   substituteEntries,
   summarizeCart,
   unavailableProducts,
+  undoChange,
+  waitingLine,
+  type BasketLine,
 } from '../../functions/src/oda'
 
 const BASE = 'https://oda.test'
@@ -205,21 +211,16 @@ describe('searchResults', () => {
 })
 
 describe('fillEntries', () => {
-  test('takes Entries with a Pack Count from 1 to 20, and nothing else on them', () => {
-    expect(fillEntries([{ id: 'a', quantity: 1 }, { id: 'b', quantity: 20, productId: 7 }])).toEqual([
-      { id: 'a', quantity: 1 },
-      { id: 'b', quantity: 20 },
-    ])
+  test('takes the ids of the Entries', () => {
+    expect(fillEntries(['a', 'b'])).toEqual(['a', 'b'])
   })
 
   test('refuses anything else', () => {
-    for (const quantity of [0, 21, 1.5, -1, '2', null, undefined]) expect(fillEntries([{ id: 'a', quantity }])).toBeNull()
-    for (const id of ['', 'a/b', 7, 'x'.repeat(101)]) expect(fillEntries([{ id, quantity: 1 }])).toBeNull()
-    expect(fillEntries([{ id: 'a', quantity: 1 }, { id: 'a', quantity: 2 }])).toBeNull()
+    for (const id of ['', 'a/b', 7, 'x'.repeat(101), null]) expect(fillEntries([id])).toBeNull()
+    expect(fillEntries(['a', 'a'])).toBeNull()
     expect(fillEntries([])).toBeNull()
     expect(fillEntries(undefined)).toBeNull()
-    expect(fillEntries([null])).toBeNull()
-    expect(fillEntries(Array.from({ length: 201 }, (_, i) => ({ id: `e${i}`, quantity: 1 })))).toBeNull()
+    expect(fillEntries(Array.from({ length: 201 }, (_, i) => `e${i}`))).toBeNull()
   })
 })
 
@@ -266,33 +267,139 @@ describe('substituteEntries', () => {
 
   test('takes the fields it needs, and none is fine', () => {
     expect(substituteEntries([])).toEqual([])
-    expect(substituteEntries([{ id: 'e1', quantity: 2, product: { ...product, price: 3 }, x: 1 }])).toEqual([{ id: 'e1', quantity: 2, product }])
-  })
-
-  test('Entries sharing a product may leave its packs to another of them', () => {
-    const shared = [{ id: 'e1', quantity: 2, product }, { id: 'e2', quantity: 0, product }]
-    expect(substituteEntries(shared)).toEqual(shared)
+    expect(substituteEntries([{ id: 'e1', quantity: 2, product: { ...product, price: 3 }, x: 1 }])).toEqual([{ id: 'e1', product }])
   })
 
   test('refuses what makes no sense', () => {
     expect(substituteEntries('e1')).toBeNull()
-    expect(substituteEntries([{ id: 'e1', quantity: 0, product }, { id: 'e2', quantity: 0, product }])).toBeNull()
-    expect(substituteEntries([{ id: 'e1', quantity: 1, product }, { id: 'e2', quantity: 0, product: { ...product, id: 902 } }])).toBeNull()
-    expect(substituteEntries([{ id: 'e1', quantity: -1, product }, { id: 'e2', quantity: 1, product }])).toBeNull()
-    expect(substituteEntries([{ id: 'a/b', quantity: 1, product }])).toBeNull()
-    expect(substituteEntries([{ id: 'e1', quantity: 0, product }])).toBeNull()
-    expect(substituteEntries([{ id: 'e1', quantity: 21, product }])).toBeNull()
-    expect(substituteEntries([{ id: 'e1', quantity: 1 }])).toBeNull()
-    expect(substituteEntries([{ id: 'e1', quantity: 1, product: { ...product, id: 0 } }])).toBeNull()
-    expect(substituteEntries([{ id: 'e1', quantity: 1, product: { ...product, name: 5 } }])).toBeNull()
-    expect(substituteEntries([{ id: 'e1', quantity: 1, product: { ...product, packText: 'x'.repeat(501) } }])).toBeNull()
-    expect(substituteEntries([{ id: 'e1', quantity: 1, product }, { id: 'e1', quantity: 2, product }])).toBeNull()
+    expect(substituteEntries([{ id: 'a/b', product }])).toBeNull()
+    expect(substituteEntries([{ id: 'e1' }])).toBeNull()
+    expect(substituteEntries([{ id: 'e1', product: { ...product, id: 0 } }])).toBeNull()
+    expect(substituteEntries([{ id: 'e1', product: { ...product, name: 5 } }])).toBeNull()
+    expect(substituteEntries([{ id: 'e1', product: { ...product, packText: 'x'.repeat(501) } }])).toBeNull()
+    expect(substituteEntries([{ id: 'e1', product }, { id: 'e1', product }])).toBeNull()
+  })
+})
+
+describe('onePackEach', () => {
+  test('the first Entry on each Oda Product holds one pack, the others share it, none counted', () => {
+    expect(onePackEach([{ productId: 1, name: 'a' }, { productId: 2 }, { productId: 1, name: 'a' }])).toEqual([
+      { productId: 1, name: 'a', quantity: 1, uncounted: true },
+      { productId: 2, quantity: 1, uncounted: true },
+      { productId: 1, name: 'a', quantity: 0, uncounted: true, shared: true },
+    ])
+  })
+})
+
+describe('waitingLine', () => {
+  test('an unavailable line, shared or not, waits for a Substitute', () => {
+    const line = { productId: 1, quantity: 0, name: 'a', packText: 'b', shared: true, uncounted: true }
+    expect(waitingLine(line, false)).toEqual({ productId: 1, quantity: 0, name: 'a', packText: 'b' })
+    expect(waitingLine({ ...line, quantity: 1, shared: false }, true)).toEqual({ productId: 1, quantity: 0, name: 'a', packText: 'b', gone: true })
+  })
+})
+
+describe('packRequest', () => {
+  test('takes counts by product, and whether they are starting counts', () => {
+    expect(packRequest({ products: [{ productId: 1, count: 25, x: 1 }] })).toEqual({ products: [{ productId: 1, count: 25 }], starting: false })
+    expect(packRequest({ products: [{ productId: 1, count: 1 }], starting: true })?.starting).toBe(true)
+  })
+
+  test('refuses anything else', () => {
+    for (const count of [0, -1, 1.5, '2', null]) expect(packRequest({ products: [{ productId: 1, count }] })).toBeNull()
+    for (const productId of [0, 1.5, '1', null]) expect(packRequest({ products: [{ productId, count: 1 }] })).toBeNull()
+    expect(packRequest({ products: [{ productId: 1, count: 1 }, { productId: 1, count: 2 }] })).toBeNull()
+    expect(packRequest({ products: [] })).toBeNull()
+    expect(packRequest({ products: [null] })).toBeNull()
+    expect(packRequest({})).toBeNull()
+    expect(packRequest(null)).toBeNull()
+  })
+})
+
+describe('packChanges', () => {
+  const entry = (id: string, line: Partial<BasketLine>) => ({ id, line: { productId: 1, quantity: 0, ...line } })
+  const uncounted = [entry('a', { quantity: 1, uncounted: true }), entry('b', { shared: true, uncounted: true })]
+
+  test('moves the count to the first Entry, the others shared, and clears the mark', () => {
+    expect(packChanges(uncounted, [{ productId: 1, count: 3 }], true)).toEqual({
+      writes: [entry('a', { quantity: 3 }), entry('b', { shared: true })],
+      changes: [{ productId: 1, quantity: 2, count: 3, marked: ['a', 'b'] }],
+    })
+  })
+
+  test('two lines holding one product become one, by the difference', () => {
+    const lines = [entry('b', { quantity: 1, uncounted: true }), entry('a', { quantity: 1, uncounted: true })]
+    expect(packChanges(lines, [{ productId: 1, count: 1 }], true)).toEqual({
+      writes: [entry('a', { quantity: 1 }), entry('b', { shared: true })],
+      changes: [{ productId: 1, quantity: -1, count: 1, marked: ['a', 'b'] }],
+    })
+  })
+
+  test('no difference clears the mark with no change to the Basket', () => {
+    expect(packChanges(uncounted, [{ productId: 1, count: 1 }], true)).toEqual({
+      writes: [entry('a', { quantity: 1 }), entry('b', { shared: true })],
+      changes: [],
+    })
+  })
+
+  test('starting counts leave alone a product already counted', () => {
+    const counted = [entry('a', { quantity: 4 })]
+    expect(packChanges(counted, [{ productId: 1, count: 2 }], true)).toEqual({ writes: [], changes: [] })
+  })
+
+  test('a set count changes a product already counted', () => {
+    expect(packChanges([entry('a', { quantity: 4 })], [{ productId: 1, count: 2 }], false)?.changes).toEqual([
+      { productId: 1, quantity: -2, count: 2, marked: [] },
+    ])
+  })
+
+  test('ignores Left Out lines, lines waiting, and products with no packs', () => {
+    const lines = [entry('a', { quantity: 2 }), entry('b', { left: true }), entry('c', {}), entry('d', { productId: 2, left: true }), entry('e', { productId: 3 })]
+    expect(packChanges(lines, [{ productId: 1, count: 2 }, { productId: 2, count: 3 }, { productId: 3, count: 3 }, { productId: 4, count: 3 }], false)).toEqual({
+      writes: [entry('a', { quantity: 2 })],
+      changes: [],
+    })
+  })
+
+  test('refuses only raising above the most allowed', () => {
+    expect(packChanges([entry('a', { quantity: 20 })], [{ productId: 1, count: 21 }], false)).toBeNull()
+    expect(packChanges([entry('a', { quantity: 25 })], [{ productId: 1, count: 26 }], false)).toBeNull()
+    expect(packChanges([entry('a', { quantity: 25 })], [{ productId: 1, count: 24 }], false)?.changes[0].quantity).toBe(-1)
+    expect(packChanges([entry('a', { quantity: 25 })], [{ productId: 1, count: 25 }], false)?.changes).toEqual([])
+  })
+})
+
+describe('undoChange', () => {
+  const entry = (id: string, line: Partial<BasketLine>) => ({ id, line: { productId: 1, quantity: 0, ...line } })
+  const change = { productId: 1, quantity: 2, count: 3, marked: ['a', 'b'] }
+
+  test('takes back the difference and restores the mark', () => {
+    expect(undoChange([entry('a', { quantity: 3 }), entry('b', { shared: true })], change)).toEqual([
+      entry('a', { quantity: 1, uncounted: true }),
+      entry('b', { shared: true, uncounted: true }),
+    ])
+  })
+
+  test('takes back only its own difference when another device has changed the count', () => {
+    expect(undoChange([entry('a', { quantity: 5 }), entry('b', { shared: true })], change)).toEqual([
+      entry('a', { quantity: 3 }),
+      entry('b', { shared: true }),
+    ])
+  })
+
+  test('never leaves less than one pack', () => {
+    expect(undoChange([entry('a', { quantity: 1 })], change)).toEqual([entry('a', { quantity: 1 })])
+  })
+
+  test('does nothing for a line that is gone', () => {
+    expect(undoChange([], change)).toEqual([])
+    expect(undoChange([entry('c', { productId: 2, quantity: 3 })], change)).toEqual([])
   })
 })
 
 describe('Basket operations', () => {
-  test('adding sends only the product and the packs', () => {
-    expect(addOperations([{ productId: 1, quantity: 2, name: 'x', packText: 'y' }])).toEqual([{ productId: 1, quantity: 2 }])
+  test('adding sends only the product and the packs, and only lines with packs', () => {
+    expect(addOperations([{ productId: 1, quantity: 2, name: 'x', packText: 'y' }, { productId: 1, quantity: 0, shared: true }])).toEqual([{ productId: 1, quantity: 2 }])
   })
 
   test('removing leaves out Entries with no packs', () => {

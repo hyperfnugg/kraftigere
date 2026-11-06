@@ -9,6 +9,9 @@ import {
   addOperations,
   fillEntries,
   odaClient,
+  onePackEach,
+  packChanges,
+  packRequest,
   pkce,
   removeOperations,
   resultsPerQuery,
@@ -16,6 +19,8 @@ import {
   substituteEntries,
   summarizeCart,
   unavailableProducts,
+  undoChange,
+  waitingLine,
   type BasketLine,
   type Registration,
   type Tokens,
@@ -226,8 +231,8 @@ export const odaSuggest = onCall(async (req: CallableRequest<{ queries?: unknown
   }
 })
 
-// Fills the Basket with each Entry's Pack Count, which starts an Oda Order. The Entries are
-// claimed In Basket first, in a transaction that refuses if an Oda Order is already under
+// Fills the Basket with one pack of each Oda Product, which starts an Oda Order. The Order Summary
+// sets the counts afterwards. The Entries are claimed In Basket first, in a transaction that refuses if an Oda Order is already under
 // way, and released if Oda doesn't take them: a transaction can be retried, and a retried
 // manipulate_cart would add twice. Oda takes unavailable products too, and only its answer says
 // so, so those packs come straight back out, to wait for a Substitute.
@@ -235,7 +240,7 @@ export const odaFill = onCall(async (req: CallableRequest<{ entries?: unknown }>
   await requireFamily(req)
   const chosen = fillEntries(req.data?.entries)
   if (!chosen) throw new HttpsError('invalid-argument', 'No Entries')
-  const refs = chosen.map(({ id }) => db.collection('entries').doc(id))
+  const refs = chosen.map((id) => db.collection('entries').doc(id))
   const { lines, wareRefs } = await db.runTransaction(async (tx) => {
     if (!(await tx.get(inBasket().limit(1))).empty) throw new HttpsError('failed-precondition', 'Odabestilling pågår')
     const entries = await tx.getAll(...refs)
@@ -245,12 +250,7 @@ export const odaFill = onCall(async (req: CallableRequest<{ entries?: unknown }>
       throw new HttpsError('failed-precondition', 'Alle varer må ha et Oda-produkt')
     }
     // Quantities are deltas, added to whatever the Basket holds.
-    const lines: BasketLine[] = wares.map((w, i) => ({
-      productId: w.get('oda.id'),
-      quantity: chosen[i].quantity,
-      name: w.get('oda.name'),
-      packText: w.get('oda.packText'),
-    }))
+    const lines = onePackEach(wares.map((w) => ({ productId: w.get('oda.id'), name: w.get('oda.name'), packText: w.get('oda.packText') })))
     entries.forEach((e, i) => tx.update(e.ref, { basket: lines[i] }))
     return { lines, wareRefs: wares.map((w) => w.ref) }
   })
@@ -274,7 +274,7 @@ export const odaFill = onCall(async (req: CallableRequest<{ entries?: unknown }>
     lines.forEach((line, i) => {
       const found = unavailable.get(line.productId)
       if (!found) return
-      batch.update(refs[i], { basket: { ...line, quantity: 0, ...(found.gone && { gone: true }) } })
+      batch.update(refs[i], { basket: waitingLine(line, found.gone) })
       // An Off Sale product is gone for good, and its Pack Size with it.
       if (found.gone) batch.update(wareRefs[i], { oda: FieldValue.delete() })
     })
@@ -298,16 +298,15 @@ export const odaSubstitute = onCall(async (req: CallableRequest<{ entries?: unkn
       return line.quantity === 0 && !line.left && !line.shared
     })
     if (picks.some((p) => !waiting.some((d) => d.id === p.id))) throw new HttpsError('failed-precondition', 'An Entry is no longer waiting')
-    const lines: BasketLine[] = []
-    for (const d of waiting) {
-      const pick = picks.find((p) => p.id === d.id)
-      if (pick) {
-        const { id: productId, name, packText } = pick.product
-        const line = { productId, quantity: pick.quantity, name, packText, ...(pick.quantity === 0 && { shared: true }) }
-        if (pick.quantity > 0) lines.push(line)
-        tx.update(d.ref, { basket: line })
-      } else tx.update(d.ref, { basket: { ...d.get('basket'), left: true } })
-    }
+    const picked = waiting.filter((d) => picks.some((p) => p.id === d.id))
+    const lines = onePackEach(
+      picked.map((d) => {
+        const { id: productId, name, packText } = picks.find((p) => p.id === d.id)!.product
+        return { productId, name, packText }
+      }),
+    )
+    picked.forEach((d, i) => tx.update(d.ref, { basket: lines[i] }))
+    for (const d of waiting) if (!picked.includes(d)) tx.update(d.ref, { basket: { ...d.get('basket'), left: true } })
     return { waiting, lines }
   })
   if (lines.length === 0) return { linked: true }
@@ -318,6 +317,40 @@ export const odaSubstitute = onCall(async (req: CallableRequest<{ entries?: unkn
     const batch = db.batch()
     for (const d of waiting) batch.update(d.ref, { basket: d.get('basket') })
     await batch.commit()
+    if (e instanceof OdaAuthError) return { linked: false }
+    logger.error('Oda manipulate_cart failed', e)
+    throw new HttpsError('unavailable', 'Oda svarer ikke')
+  }
+})
+
+// Sets Pack Counts on the Order Summary, by product: its starting counts, once, or one a Family
+// Member sets. It takes counts rather than differences, so two devices agree. The lines change
+// first and Oda after, as in odaFill, and if Oda doesn't take it only this call's differences come
+// back, never old values, which could lose another device's change or put a line back on an Entry
+// whose Oda Order has ended.
+export const odaSetPacks = onCall(async (req: CallableRequest<{ products?: unknown; starting?: unknown }>) => {
+  await requireFamily(req)
+  const request = packRequest(req.data)
+  if (!request) throw new HttpsError('invalid-argument', 'No Pack Counts')
+  const entryLines = (docs: FirebaseFirestore.QueryDocumentSnapshot[]) => docs.map((d) => ({ id: d.id, line: d.get('basket') as BasketLine }))
+  const write = (tx: FirebaseFirestore.Transaction, lines: { id: string; line: BasketLine }[]) => {
+    for (const { id, line } of lines) tx.update(db.collection('entries').doc(id), { basket: line })
+  }
+  const changes = await db.runTransaction(async (tx) => {
+    const plan = packChanges(entryLines((await tx.get(inBasket())).docs), request.products, request.starting)
+    if (!plan) throw new HttpsError('invalid-argument', 'Too many packs')
+    write(tx, plan.writes)
+    return plan.changes
+  })
+  if (changes.length === 0) return { linked: true }
+  try {
+    await callOda('manipulate_cart', { operations: changes.map(({ productId, quantity }) => ({ productId, quantity })) })
+    return { linked: true }
+  } catch (e) {
+    await db.runTransaction(async (tx) => {
+      const lines = entryLines((await tx.get(inBasket())).docs)
+      for (const change of changes) write(tx, undoChange(lines, change))
+    })
     if (e instanceof OdaAuthError) return { linked: false }
     logger.error('Oda manipulate_cart failed', e)
     throw new HttpsError('unavailable', 'Oda svarer ikke')
