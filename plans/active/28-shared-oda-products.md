@@ -26,9 +26,9 @@ Twenty-eighth milestone and the sixth Oda one, on the `oda` branch, to land befo
 
 ## Steps
 
-- [ ] **Glossary and vision.** `CONTEXT.md`: Ware and Oda Product say several Wares may share one, and Substitute loses "It may be another Ware's Oda Product". The vision's two "belongs to exactly one Ware" sentences go, including "which helps find duplicates".
-- [ ] **ADR 0006: Wares may share an Oda Product.** Why the rule goes, and the alternatives: keeping it, and forcing a merge whenever two Wares reach the same product. Accepted costs: noise at Iverksett, a trip back to the shelf when two Entries are the same thing, and rounding up twice.
-- [ ] **Commit: Let Wares share an Oda Product, in the glossary, vision and an ADR.** *(auto)*
+- [x] **Glossary and vision.** `CONTEXT.md`: Ware and Oda Product say several Wares may share one, and Substitute loses "It may be another Ware's Oda Product". The vision's two "belongs to exactly one Ware" sentences go, including "which helps find duplicates".
+- [x] **ADR 0006: Wares may share an Oda Product.** Why the rule goes, and the alternatives: keeping it, and forcing a merge whenever two Wares reach the same product. Accepted costs: noise at Iverksett, a trip back to the shelf when two Entries are the same thing, and rounding up twice.
+- [x] **Commit: Let Wares share an Oda Product, in the glossary, vision and an ADR.** *(auto)*
 - [ ] **Try the same product twice on real Oda.** One `manipulate_cart` with the same product in two additions, then two removals, on a product the Family's cart doesn't hold, and taken out again. What it did goes in `docs/research/oda-routes.md`. If it doesn't add them up, combine the lines in `addOperations` and `removeOperations`, with unit tests, and make the fake Oda behave the same way.
 - [ ] **Commit: What Oda does with the same product twice.** *(auto)*
 - [ ] **Picking, suggestions and the choosing in the app.** `usedBy` becomes a label only, and its `replacing === 'substitute'` exception and the "Brukt av" message go. The `taken` set goes from the suggestions. The choosing's sections keep the same product together.
