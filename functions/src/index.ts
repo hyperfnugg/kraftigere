@@ -295,7 +295,7 @@ export const odaSubstitute = onCall(async (req: CallableRequest<{ entries?: unkn
   const { waiting, lines } = await db.runTransaction(async (tx) => {
     const waiting = (await tx.get(inBasket())).docs.filter((d) => {
       const line = d.get('basket') as BasketLine
-      return line.quantity === 0 && !line.left
+      return line.quantity === 0 && !line.left && !line.shared
     })
     if (picks.some((p) => !waiting.some((d) => d.id === p.id))) throw new HttpsError('failed-precondition', 'An Entry is no longer waiting')
     const lines: BasketLine[] = []
@@ -303,8 +303,8 @@ export const odaSubstitute = onCall(async (req: CallableRequest<{ entries?: unkn
       const pick = picks.find((p) => p.id === d.id)
       if (pick) {
         const { id: productId, name, packText } = pick.product
-        const line = { productId, quantity: pick.quantity, name, packText }
-        lines.push(line)
+        const line = { productId, quantity: pick.quantity, name, packText, ...(pick.quantity === 0 && { shared: true }) }
+        if (pick.quantity > 0) lines.push(line)
         tx.update(d.ref, { basket: line })
       } else tx.update(d.ref, { basket: { ...d.get('basket'), left: true } })
     }
@@ -330,7 +330,8 @@ export const odaOrdered = onCall(async (req) => {
   await requireFamily(req)
   const batch = db.batch()
   for (const d of (await inBasket().get()).docs) {
-    if ((d.get('basket') as BasketLine).quantity > 0) {
+    const line = d.get('basket') as BasketLine
+    if (line.quantity > 0 || line.shared) {
       batch.update(d.ref, { checked: true, checkedAt: FieldValue.serverTimestamp(), basket: FieldValue.delete() })
     } else batch.update(d.ref, { basket: FieldValue.delete() })
   }

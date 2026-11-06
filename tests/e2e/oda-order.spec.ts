@@ -55,14 +55,16 @@ test('a Family Member chooses Entries and fills the Basket', async ({ page }) =>
   await start(page, ['Melk', 'Smør', 'Sokker', 'Ukjent'])
   await expect(page.getByRole('link', { name: 'Oda: 4 varer i handlekurven' })).toBeVisible()
 
-  // Wares without an Oda Product come first, each with the first free search hit suggested,
-  // unticked. Smør, bought before, is ticked.
+  // Wares without an Oda Product come first, each with the first available search hit suggested,
+  // unticked, and saying which others have it. Smør, bought before, is ticked.
   const fresh = page.locator('section').filter({ has: page.getByRole('heading', { name: 'Nye varer' }) })
   const known = page.locator('section').filter({ has: page.getByRole('heading', { name: 'Tidligere kjøpte varer' }) })
   const melk = page.getByRole('link', { name: 'Tine Lettmelk 1% fett · 1% fett, 1 l' })
   await expect(fresh.getByRole('checkbox')).toHaveCount(3)
-  await expect(melk).toHaveAttribute('href', 'https://oda.com/no/products/430/')
-  await expect(fresh.getByRole('link', { name: 'Tine Lettmelk 1% fett · 1% fett, 1,75 l' })).toBeVisible()
+  await expect(melk).toHaveCount(2)
+  await expect(melk.first()).toHaveAttribute('href', 'https://oda.com/no/products/430/')
+  await expect(fresh.getByText('også på «Sokker»')).toBeVisible()
+  await expect(fresh.getByText('også på «Melk»')).toBeVisible()
   await expect(fresh.getByRole('button', { name: 'Velg Oda-produkt' })).toBeVisible()
   await expect(tick(page, 'Melk')).not.toBeChecked()
   await expect(known.getByRole('link', { name: 'TINE Ekte smør · 250 g' })).toBeVisible()
@@ -96,6 +98,40 @@ test('a Family Member chooses Entries and fills the Basket', async ({ page }) =>
   await expect(melk).toBeVisible()
   await expect(page.getByRole('link', { name: 'TINE Ekte smør · 250 g' })).toBeVisible()
   await expect(page.getByRole('button', { name: /^(Fjern|Bytt) / })).toHaveCount(0)
+})
+
+test('the Order Summary adds up an Oda Product, which a suggestion can share with another Ware', async ({ page }) => {
+  await signIn(page, MEMBERS[0])
+  await linkOda(page)
+  await openTab(page, 'Hjem')
+  await addEntry(page, 'Melk')
+  await addEntry(page, 'Kefir')
+  await entry(page, 'Melk').getByText('Melk').click()
+  await page.getByRole('button', { name: 'Velg Oda-produkt' }).click()
+  await results(page).first().click()
+  await expect(page.getByRole('link', { name: 'Tine Lettmelk 1% fett · 1% fett, 1 l' })).toBeVisible()
+  await openTab(page, 'Odabestilling')
+
+  // Each keeps its own line, alphabetically in its section, and an unticked suggestion counts.
+  const product = page.getByRole('link', { name: 'Tine Lettmelk 1% fett · 1% fett, 1 l' })
+  await expect(product).toHaveCount(2)
+  await expect(tick(page, 'Kefir')).not.toBeChecked()
+  await expect(page.getByText('også på «Kefir»')).toBeVisible()
+  await expect(page.getByText('også på «Melk»')).toBeVisible()
+
+  await tick(page, 'Kefir').check()
+  await page.getByRole('button', { name: 'Fyll handlekurven' }).click()
+  await expect(page.getByRole('heading', { name: 'Oppsummering odabestilling' })).toBeVisible()
+  await expect(page.getByRole('link', { name: '2 × Tine Lettmelk 1% fett · 1% fett, 1 l' })).toBeVisible()
+  await expect(page.getByRole('listitem')).toHaveCount(1)
+  await expect(page.getByRole('listitem').getByText('Kefir', { exact: true })).toBeVisible()
+  await expect(page.getByRole('listitem').getByText('Melk', { exact: true })).toBeVisible()
+  expect(await fakeBasket()).toEqual({ 430: 5, 7: 1 })
+
+  await page.getByRole('button', { name: 'Avbryt' }).click()
+  await page.getByRole('button', { name: 'Avbryt odabestillingen' }).click()
+  await expect(page.getByRole('button', { name: 'Fyll handlekurven' })).toBeVisible()
+  expect(await fakeBasket()).toEqual({ 430: 3, 7: 1 })
 })
 
 test('the warning that an Oda Order is under way leads to it', async ({ page }) => {

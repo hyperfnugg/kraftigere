@@ -100,7 +100,8 @@ test('a Substitute goes in the Basket for this Oda Order, and the Ware keeps its
 
   await add(page).click()
   await expect(nextStep(page)).toBeVisible()
-  await expect(page.getByRole('link', { name: '6 × TINE Ekte smør · 250 g' })).toBeVisible()
+  // Added up with Smør, which has the same Oda Product.
+  await expect(page.getByRole('link', { name: '7 × TINE Ekte smør · 250 g' })).toBeVisible()
   await expect(leftOut(page)).toBeHidden()
   expect(await fakeBasket()).toEqual({ ...START, [SOLD_OUT.id]: 1, 125: 7 })
   expect((await odaOf('Ost')).id.integerValue).toBe(String(SOLD_OUT.id))
@@ -110,6 +111,38 @@ test('a Substitute goes in the Basket for this Oda Order, and the Ware keeps its
   // Avbryt takes out the Substitute too, and only what Kraft added.
   await cancel(page)
   expect(await fakeBasket()).toEqual({ ...START, [SOLD_OUT.id]: 1 })
+})
+
+// Two Entries on one unavailable Oda Product, sharing one pack of a Substitute.
+async function sharePack(page: Page) {
+  await put('Melk', SOLD_OUT)
+  await put('Kefir', SOLD_OUT)
+  await fillBasket(page)
+  await expect(page.getByRole('button', { name: 'Velg erstatning' })).toHaveCount(1)
+  await page.getByRole('button', { name: 'Velg erstatning' }).click()
+  await page.getByRole('option').filter({ hasText: 'TINE Ekte smør' }).click()
+  await expect(page.getByLabel('Antall pakker')).toHaveText('2')
+  await page.getByLabel('Færre pakker').click()
+  await add(page).click()
+  await expect(nextStep(page)).toBeVisible()
+  await expect(page.getByRole('link', { name: '1 × TINE Ekte smør · 250 g' })).toBeVisible()
+  await expect(page.getByRole('listitem').getByText('Kefir', { exact: true })).toBeVisible()
+  await expect(page.getByRole('listitem').getByText('Melk', { exact: true })).toBeVisible()
+  expect(await fakeBasket()).toEqual({ ...START, 125: 1 })
+}
+
+test('Entries on one unavailable product share one Substitute, and Bestilt checks off both', async ({ page }) => {
+  await sharePack(page)
+  await page.getByRole('button', { name: 'Bestilt' }).click()
+  await expect.poll(async () => (await readDoc('entries/kefir')).checked.booleanValue).toBe(true)
+  expect((await readDoc('entries/melk')).checked.booleanValue).toBe(true)
+})
+
+test('Entries sharing one pack of a Substitute are cancelled together', async ({ page }) => {
+  await sharePack(page)
+  await cancel(page)
+  expect(await fakeBasket()).toEqual(START)
+  expect((await readDoc('entries/kefir')).basket).toBeUndefined()
 })
 
 test('skipping leaves an Entry out, unchecked after Bestilt, and its Ware tries again next time', async ({ page }) => {
@@ -170,9 +203,9 @@ test('what replaces an Off Sale product becomes the Ware\'s own', async ({ page 
   expect(await fakeBasket()).toEqual({ ...START, 430: 4 })
   await expect.poll(() => odaOf('Brokkoli')).toBeUndefined()
 
-  // Being the Ware's own, it can't be another Ware's.
+  // Another Ware's Oda Product can become its own too.
   await row(page, 'Brokkoli').getByRole('button', { name: 'Velg nytt Oda-produkt' }).click()
-  await expect(page.getByRole('option').filter({ hasText: 'brukt av «Melk»' })).toHaveAttribute('aria-disabled', 'true')
+  await expect(page.getByRole('option').filter({ hasText: 'Tine Lettmelk 1% fett · 1% fett, 1 l' })).toHaveAttribute('aria-disabled', 'false')
   await page.getByRole('option').filter({ hasText: 'TINE Ekte smør' }).click()
   await expect(row(page, 'Brokkoli').getByLabel('Antall pakker')).toHaveText('2')
 
