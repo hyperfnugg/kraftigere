@@ -173,44 +173,130 @@ export function resultsPerQuery(answer: unknown, queries: string[]): OdaProduct[
 
 // What one Entry put in the Basket: packs of an Oda Product. No packs means the product wasn't
 // available: `gone` if it's Off Sale, and `left` once the Entry is Left Out. Or, if `shared`, that
-// another Entry's line holds the packs of the Oda Product that replaces theirs.
-export type BasketLine = { productId: number; quantity: number; name?: string; packText?: string; gone?: boolean; left?: boolean; shared?: boolean }
+// another Entry's line holds the packs of this Oda Product. `uncounted` means the Order Summary
+// hasn't yet set its starting Pack Count; a line without it counts as counted.
+export type BasketLine = {
+  productId: number
+  quantity: number
+  name?: string
+  packText?: string
+  gone?: boolean
+  left?: boolean
+  shared?: boolean
+  uncounted?: boolean
+}
 
 const MAX_ENTRIES = 200
 const MAX_PACKS = 20
 
-// The Entries and Pack Counts odaFill was asked for, or null if they don't make sense.
-export function fillEntries(raw: unknown): { id: string; quantity: number }[] | null {
+const validId = (id: unknown): id is string => typeof id === 'string' && /^[^/]{1,100}$/.test(id)
+
+// The Entries odaFill was asked for, or null if they don't make sense.
+export function fillEntries(raw: unknown): string[] | null {
   if (!Array.isArray(raw) || raw.length === 0 || raw.length > MAX_ENTRIES) return null
-  const valid = raw.every(
-    (e) => typeof e?.id === 'string' && /^[^/]{1,100}$/.test(e.id) && Number.isInteger(e.quantity) && e.quantity >= 1 && e.quantity <= MAX_PACKS,
-  )
-  if (!valid || new Set(raw.map((e) => e.id)).size !== raw.length) return null
-  return raw.map(({ id, quantity }) => ({ id, quantity }))
+  if (!raw.every(validId) || new Set(raw).size !== raw.length) return null
+  return raw
 }
 
 const MAX_NAME = 500
 
 // The Substitutes odaSubstitute was asked for, or null if they don't make sense. None is fine:
-// that's "Hopp over". An Entry may have no packs if another Entry with its Oda Product has them.
-export function substituteEntries(raw: unknown): { id: string; quantity: number; product: { id: number; name: string; packText: string } }[] | null {
+// that's "Hopp over".
+export function substituteEntries(raw: unknown): { id: string; product: { id: number; name: string; packText: string } }[] | null {
   if (!Array.isArray(raw) || raw.length > MAX_ENTRIES) return null
   const text = (t: unknown) => typeof t === 'string' && t.length <= MAX_NAME
   const valid = raw.every(
-    (e) =>
-      typeof e?.id === 'string' &&
-      /^[^/]{1,100}$/.test(e.id) &&
-      Number.isInteger(e.quantity) &&
-      e.quantity >= 0 &&
-      e.quantity <= MAX_PACKS &&
-      Number.isInteger(e.product?.id) &&
-      e.product.id > 0 &&
-      text(e.product.name) &&
-      text(e.product.packText),
+    (e) => validId(e?.id) && Number.isInteger(e.product?.id) && e.product.id > 0 && text(e.product.name) && text(e.product.packText),
   )
   if (!valid || new Set(raw.map((e) => e.id)).size !== raw.length) return null
-  if (raw.some((e) => e.quantity === 0 && !raw.some((o) => o.product.id === e.product.id && o.quantity > 0))) return null
-  return raw.map(({ id, quantity, product }) => ({ id, quantity, product: { id: product.id, name: product.name, packText: product.packText } }))
+  return raw.map(({ id, product }) => ({ id, product: { id: product.id, name: product.name, packText: product.packText } }))
+}
+
+// The lines for these Entries' products, in order: one pack of each Oda Product, held by its first
+// Entry, with the others shared. None is counted yet.
+export function onePackEach(products: { productId: number; name?: string; packText?: string }[]): BasketLine[] {
+  const seen = new Set<number>()
+  return products.map((product) => {
+    const first = !seen.has(product.productId)
+    seen.add(product.productId)
+    return { ...product, quantity: first ? 1 : 0, uncounted: true, ...(!first && { shared: true }) }
+  })
+}
+
+// The line of an Entry whose product turned out unavailable, waiting for a Substitute. It holds and
+// shares nothing, so it reaches the step after filling and "Bestilt" doesn't check it off.
+export function waitingLine({ productId, name, packText }: BasketLine, gone: boolean): BasketLine {
+  return { productId, quantity: 0, name, packText, ...(gone && { gone: true }) }
+}
+
+export type PackCount = { productId: number; count: number }
+
+// What odaSetPacks was asked for, or null if it doesn't make sense. Above the most allowed is only
+// refused when raising, by packChanges, which knows what the lines hold.
+export function packRequest(raw: unknown): { products: PackCount[]; starting: boolean } | null {
+  const { products, starting } = (raw ?? {}) as { products?: unknown; starting?: unknown }
+  if (!Array.isArray(products) || products.length === 0 || products.length > MAX_ENTRIES) return null
+  const valid = products.every((p) => Number.isInteger(p?.productId) && p.productId > 0 && Number.isInteger(p.count) && p.count >= 1)
+  if (!valid || new Set(products.map((p) => p.productId)).size !== products.length) return null
+  return { products: products.map(({ productId, count }) => ({ productId, count })), starting: starting === true }
+}
+
+type EntryLine = { id: string; line: BasketLine }
+
+// A change odaSetPacks made to the Basket, with what it takes to undo it.
+export type PackChange = { productId: number; quantity: number; count: number; marked: string[] }
+
+// The lines of an Oda Product that have a part in its Pack Count: not Left Out or waiting for a
+// Substitute. By id, so that every call agrees on which is first.
+const countedLines = (lines: EntryLine[], productId: number) =>
+  lines
+    .filter(({ line }) => line.productId === productId && !line.left && (line.quantity > 0 || line.shared))
+    .sort((a, b) => (a.id < b.id ? -1 : 1))
+
+const packsIn = (lines: EntryLine[]) => lines.reduce((sum, { line }) => sum + line.quantity, 0)
+
+// The count on the first line, the others shared, none marked as not yet counted.
+function moveCount(lines: EntryLine[], count: number): EntryLine[] {
+  return lines.map(({ id, line }, i) => {
+    const moved: BasketLine = { ...line, quantity: i === 0 ? count : 0 }
+    delete moved.shared
+    delete moved.uncounted
+    return { id, line: i === 0 ? moved : { ...moved, shared: true } }
+  })
+}
+
+// What setting these Pack Counts takes: the lines to write, and the changes to make in the Basket,
+// as differences from what the lines hold. Products the Oda Order has no packs of are ignored, and
+// starting counts only touch products not yet counted, so they never overwrite a count someone has
+// set. Null if a count would go up above the most allowed. Lowering is always allowed, as lines
+// that came together can hold more than that.
+export function packChanges(lines: EntryLine[], wanted: PackCount[], starting: boolean) {
+  const writes: EntryLine[] = []
+  const changes: PackChange[] = []
+  for (const { productId, count } of wanted) {
+    const held = countedLines(lines, productId)
+    const total = packsIn(held)
+    if (total === 0 || (starting && !held.some(({ line }) => line.uncounted))) continue
+    if (count > total && count > MAX_PACKS) return null
+    writes.push(...moveCount(held, count))
+    if (count !== total) {
+      const marked = held.filter(({ line }) => line.uncounted).map(({ id }) => id)
+      changes.push({ productId, quantity: count - total, count, marked })
+    }
+  }
+  return { writes, changes }
+}
+
+// The lines to write when Oda didn't take a change: only its difference comes back, as another
+// device may have changed the count since, and a line that's gone stays gone. The mark comes back
+// too, unless someone else's count has taken this one's place.
+export function undoChange(lines: EntryLine[], { productId, quantity, count, marked }: PackChange): EntryLine[] {
+  const held = countedLines(lines, productId)
+  const total = packsIn(held)
+  if (total === 0) return []
+  const restored = moveCount(held, Math.max(1, total - quantity))
+  if (total !== count) return restored
+  return restored.map(({ id, line }) => ({ id, line: marked.includes(id) ? { ...line, uncounted: true } : line }))
 }
 
 // Which of the products aren't available by a manipulate_cart answer, which is the full cart:
@@ -232,7 +318,7 @@ export function unavailableProducts(cart: unknown, productIds: number[]): Map<nu
 
 // The manipulate_cart operations that put these packs in the Basket.
 export function addOperations(lines: BasketLine[]) {
-  return lines.map(({ productId, quantity }) => ({ productId, quantity }))
+  return lines.filter((l) => l.quantity > 0).map(({ productId, quantity }) => ({ productId, quantity }))
 }
 
 // The manipulate_cart operations that take out exactly what the In Basket Entries added.

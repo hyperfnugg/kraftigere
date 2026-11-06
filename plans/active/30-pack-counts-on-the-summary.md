@@ -28,18 +28,18 @@ Thirtieth milestone and the seventh Oda one, on the `oda` branch, to land before
   - ADR 0005 gets an amendment: after filling, the function raises counts to what the dishes need, and when a Family Member changes a count on the Order Summary it also lowers them, only ever by packs Kraft put in. Besides Cancelled, that's the only time it removes packs, apart from taking unavailable ones back out while filling.
   - ADR 0006 gets an amendment: "each Entry keeps its own line and Pack Count" and "Rounding up twice" no longer hold.
 - [x] **Commit: Pack Counts belong to the Order Summary, in the glossary, vision and ADRs.** *(auto)*
-- [ ] **Filling and Substitutes put in one pack.**
+- [x] **Filling and Substitutes put in one pack.**
   - `odaFill` and `odaSubstitute` take no counts. In the transaction, the first Entry on each Oda Product gets one pack and the others `shared`. Oda is only sent lines with packs.
   - Each line is marked not yet counted, with an optional field that only the functions write. A line without it counts as counted. No rules change or migration.
   - `odaFill` removes `shared` when a product turns out unavailable. Today's `{ ...line, quantity: 0 }` would keep it, so the Entry would skip the step after filling and "Bestilt" would check it off.
   - Unit tests.
-- [ ] **A function that sets Pack Counts.** `odaSetPacks` takes a list of Oda Products and counts, for products the Oda Order has packs of, ignoring Left Out lines and lines waiting for a Substitute.
+- [x] **A function that sets Pack Counts.** `odaSetPacks` takes a list of Oda Products and counts, for products the Oda Order has packs of, ignoring Left Out lines and lines waiting for a Substitute.
   - **Two uses.** The starting counts are one call, flagged as starting, which applies only to products still not yet counted, so a second device can't overwrite a count someone has set. A stepper press is the same call without the flag.
   - **The transaction.** It works out each difference from what the lines hold, moves the count to the first Entry with the others `shared`, since a Substitute can leave two lines holding one product, and clears the mark. No differences means no call to Oda. It then calls `manipulate_cart` once. It takes counts rather than differences, so two devices agree.
   - **Limits.** Counts start at 1. Only raising is refused above the most allowed (20), as merged lines can be above it and lowering must always work.
   - **If Oda doesn't take it.** A transaction takes back only this call's differences and restores the mark, and does nothing for a line that's gone. It never restores old values: that would lose another device's change, or put `basket` back on an Entry whose Oda Order has ended.
   - Unit tests for working out the operations.
-- [ ] **Commit: Setting Pack Counts in the Basket.** *(manual)* (touches the real Basket; review first)
+- [x] **Commit: Setting Pack Counts in the Basket.** *(manual)* (touches the real Basket; review first)
 - [ ] **Starting counts in `amounts.ts`.** A pure function for one Oda Product's starting count from its Entries' dishes and a Pack Size. When every Entry has amounts they're added up before rounding, so 300 g and 400 g in packs of 1 kg is one pack. Otherwise each Entry adds its own, and one without amounts counts as one. Unit tests.
 - [ ] **The choosing and the step after filling lose their counts.** The steppers go, along with the hand counts, `usePackCounts`, the waiting on "Regner ut antall pakker …" and the Pack Size reading.
 - [ ] **The Order Summary counts.** While any product isn't yet counted, each device that opens it does the following once:

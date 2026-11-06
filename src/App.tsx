@@ -1177,7 +1177,7 @@ function Choosing({
       })
       if (links.length > 0) await setOdaProducts(links)
       // Filled, the Oda Order begins and takes the choosing's place.
-      const filled = await fillBasket(chosen.map((r) => ({ id: r.entry.id, quantity: packs(r)?.count ?? 1 })))
+      const filled = await fillBasket(chosen.map((r) => r.entry.id))
       if (!filled.linked) setError('Koble til Oda på nytt')
       else setUnavailable(filled.unavailable ?? [])
     } catch {
@@ -1378,14 +1378,12 @@ function SubstituteStep({ entries, onDishes }: { entries: Entry[]; onDishes: (en
         return r.entry.basket?.gone && r.ware ? [[r.ware.id, { ...toOdaProduct(p), ...(size && size !== 'failed' ? size : undefined) }]] : []
       })
       if (links.length > 0) await setOdaProducts(links)
-      // The first Entry of each holds the packs, as a line per Entry is what Bestilt and Avbryt read.
       const filled = await substituteBasket(
         chosen.length === 0
           ? []
           : products.flatMap((needs) => {
               const pick = picks[needs[0].line.productId]
-              const count = packsFor(needs)?.count ?? 1
-              return pick ? needs.map(({ entry }, i) => ({ id: entry.id, quantity: i === 0 ? count : 0, product: toOdaProduct(pick) })) : []
+              return pick ? needs.map(({ entry }) => ({ id: entry.id, product: toOdaProduct(pick) })) : []
             }),
       )
       if (!filled) setError('Koble til Oda på nytt')

@@ -6,10 +6,10 @@ import { functions } from './firebase'
 
 export type Basket = { linked: false } | { linked: true; items: number; url: string }
 type Linked = { linked: boolean }
-type SubstituteEntry = { id: string; quantity: number; product: { id: number; name: string; packText: string } }
+type SubstituteEntry = { id: string; product: { id: number; name: string; packText: string } }
 
 const odaBasket = httpsCallable<void, Basket>(functions, 'odaBasket')
-const odaFill = httpsCallable<{ entries: { id: string; quantity: number }[] }, Linked & { unavailable?: string[] }>(functions, 'odaFill')
+const odaFill = httpsCallable<{ entries: string[] }, Linked & { unavailable?: string[] }>(functions, 'odaFill')
 const odaSubstitute = httpsCallable<{ entries: SubstituteEntry[] }, Linked>(functions, 'odaSubstitute')
 const odaOrdered = httpsCallable<void, void>(functions, 'odaOrdered')
 const odaCancel = httpsCallable<void, Linked>(functions, 'odaCancel')
@@ -46,9 +46,9 @@ export function parseOdaUrl(text: string) {
   return m ? { id: Number(m[1]), words: (m[2] ?? '').replaceAll('-', ' ') } : null
 }
 
-// Fills the Basket with each Entry's Pack Count, which starts the Oda Order. Says which Entries
+// Fills the Basket with one pack of each Oda Product, which starts the Oda Order. Says which Entries
 // turned out unavailable.
-export async function fillBasket(entries: { id: string; quantity: number }[]) {
+export async function fillBasket(entries: string[]) {
   return (await odaFill({ entries })).data
 }
 
