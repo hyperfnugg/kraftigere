@@ -6,12 +6,12 @@ Where Kraft is heading. It changes often. Ideas are one line each, cheap to add 
 
 - [Dependency maintenance](plans/active/05-dependency-maintenance.md)
 - [Substitutes](plans/active/27-substitutes.md)
+- [Shared Oda Products](plans/active/28-shared-oda-products.md)
 
 ## Next
 
 Filling the Basket from Groceries ([ADR 0005](docs/adr/0005-oda-route.md)), on the `oda` branch. It runs against the real oda.com from `npm run dev`; nothing deploys until this one.
 
-- Wares may share an Oda Product: "brukt av" becomes a label, suggestions stop skipping a product another Ware has, Entries with one product sit together in the choosing, and a product repeated in one `manipulate_cart` is tried on real Oda. Before `oda` merges.
 - Oda in production: Blaze with the three spending limits, the production Oda client, App Check on the function, deploy, and merge `oda` into `main`.
 
 ## Ideas
