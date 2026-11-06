@@ -23,7 +23,7 @@ _UI_: "Dagligvarer"
 _Avoid_: Food list
 
 **Ware**:
-Anything the Family buys, named the way they say it, such as "melk", "løk, gul" or "vinterjakke". It need not be groceries and may be bought only once. A Ware has a name unique within the Family and lasts beyond any one Entry. It is the Family's own idea of the thing, not a shop's product, though an Oda Product may belong to exactly one Ware.
+Anything the Family buys, named the way they say it, such as "melk", "løk, gul" or "vinterjakke". It need not be groceries and may be bought only once. A Ware has a name unique within the Family and lasts beyond any one Entry. It is the Family's own idea of the thing, not a shop's product, so several Wares may share one Oda Product.
 _UI_: "Vare"
 _Avoid_: Product, grocery, item, article
 
@@ -127,7 +127,7 @@ _Avoid_: Store, buy
 ### Oda
 
 **Oda Product**:
-Something Oda sells, such as "Tine Lettmelk 1% fett, 1 l". A Ware may point to one Oda Product, and an Oda Product belongs to at most one Ware. A Ware may instead be *never from Oda*, such as socks bought elsewhere, which keeps it out of every Oda Order.
+Something Oda sells, such as "Tine Lettmelk 1% fett, 1 l". A Ware may point to one Oda Product, and several Wares may share one, since "melk" and "melk, hel" can rightly be the same carton. A Ware may instead be *never from Oda*, such as socks bought elsewhere, which keeps it out of every Oda Order.
 _UI_: "Oda-produkt"; never from Oda is "Aldri fra Oda", and such Wares on the List are "varer utenfor Oda"
 _Avoid_: Article, item, product (without "Oda")
 
@@ -162,7 +162,7 @@ _UI_: "i handlekurven"
 _Avoid_: Pending, reserved
 
 **Substitute**:
-An Oda Product put in the Basket for one Oda Order in place of a Ware's own, which isn't available. It may be another Ware's Oda Product. The Ware's own doesn't change, and nothing remembers the Substitute afterwards.
+An Oda Product put in the Basket for one Oda Order in place of a Ware's own, which isn't available. The Ware's own doesn't change, and nothing remembers the Substitute afterwards.
 _UI_: "erstatning"
 _Avoid_: Alternative, replacement
 
