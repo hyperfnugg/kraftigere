@@ -6,12 +6,7 @@ Where Kraft is heading. It changes often. Ideas are one line each, cheap to add 
 
 - [Dependency maintenance](plans/active/05-dependency-maintenance.md)
 - [Shared Oda Products](plans/active/28-shared-oda-products.md)
-
-## Next
-
-Filling the Basket from Groceries ([ADR 0005](docs/adr/0005-oda-route.md)), on the `oda` branch. It runs against the real oda.com from `npm run dev`; nothing deploys until this one.
-
-- Oda in production: Blaze with the three spending limits, the production Oda client, App Check on the function, deploy, and merge `oda` into `main`.
+- [Oda in production](plans/active/29-oda-in-production.md)
 
 ## Ideas
 
@@ -27,6 +22,7 @@ Filling the Basket from Groceries ([ADR 0005](docs/adr/0005-oda-route.md)), on t
 - To-do Lists.
 - List Kinds that share behaviour (a hierarchy of kinds).
 - Calendar integration.
+- Firestore backups, now that Blaze makes them possible (ADR 0004).
 
 ### Duplicate Wares
 
