@@ -98,6 +98,17 @@ test('a Family Member chooses Entries and fills the Basket', async ({ page }) =>
   await expect(page.getByRole('button', { name: /^(Fjern|Bytt) / })).toHaveCount(0)
 })
 
+test('the warning that an Oda Order is under way leads to it', async ({ page }) => {
+  await fill(page)
+  const next = page.getByText('Neste steg er ditt: bestill i')
+  for (const tab of ['Hjem', 'Handle'] as const) {
+    await openTab(page, tab)
+    await expect(next).toBeHidden()
+    await page.getByRole('button', { name: 'Odabestilling pågår' }).click()
+    await expect(next).toBeVisible()
+  }
+})
+
 test('Groceries is locked on every device until Bestilt checks the Entries off', async ({ page, browser }) => {
   await fill(page)
 

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useCombobox } from 'downshift'
 import { type User } from 'firebase/auth'
-import { MealsTab } from './Meals'
+import { MealsTab, OdaOrderLink } from './Meals'
 import { readPackSizes, warmUp } from './ai'
 import { MAX_PACKS, type PackSize, formatAmount, packCount } from './amounts'
 import { signInWithGoogle, signOut, useOnline, useUser } from './firebase'
@@ -14,6 +14,7 @@ import {
   orderedOda,
   parseOdaUrl,
   searchOda,
+  substituteBasket,
   suggestOda,
   useBasket,
   type OdaResult,
@@ -164,9 +165,9 @@ function List({ user }: { user: User }) {
       </header>
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-        {tab === 'Home' && <Home entries={entries} ordering={ordering} onDishes={setDishesOf} />}
-        {tab === 'Meals' && <MealsTab openAt={recipeLink} ordering={ordering} />}
-        {tab === 'Shop' && <Shop entries={entries} ordering={ordering} onDishes={setDishesOf} />}
+        {tab === 'Home' && <Home entries={entries} ordering={ordering} onOdaOrder={() => setTab('Oda')} onDishes={setDishesOf} />}
+        {tab === 'Meals' && <MealsTab openAt={recipeLink} ordering={ordering} onOdaOrder={() => setTab('Oda')} />}
+        {tab === 'Shop' && <Shop entries={entries} ordering={ordering} onOdaOrder={() => setTab('Oda')} onDishes={setDishesOf} />}
         {tab === 'Oda' && <OdaTab entries={entries} ordering={ordering} onDishes={setDishesOf} />}
       </div>
       {dishesOf && <Dishes entry={dishesOf} onOpen={openRecipe} onClose={() => setDishesOf(null)} />}
@@ -366,7 +367,17 @@ function Dishes({ entry, onOpen, onClose }: { entry: Entry; onOpen: (dish: Dish)
 // "Quick, before I forget": adding and editing Groceries, newest first. Entries are never
 // checked off here. Removing takes two taps, to avoid misclicks. Nothing changes while an
 // Oda Order lasts.
-function Home({ entries, ordering, onDishes }: { entries: Entry[]; ordering: boolean; onDishes: (entry: Entry) => void }) {
+function Home({
+  entries,
+  ordering,
+  onOdaOrder,
+  onDishes,
+}: {
+  entries: Entry[]
+  ordering: boolean
+  onOdaOrder: () => void
+  onDishes: (entry: Entry) => void
+}) {
   const wares = useWares()
   const [text, setText] = useState('')
   const [open, setOpen] = useState<{ entryId: string; note: string } | null>(null)
@@ -403,7 +414,9 @@ function Home({ entries, ordering, onDishes }: { entries: Entry[]; ordering: boo
   return (
     <>
       {ordering ? (
-        <div style={{ color: '#8a5a00' }}>Odabestilling pågår</div>
+        <div style={{ color: '#8a5a00' }}>
+          <OdaOrderLink onClick={onOdaOrder} />
+        </div>
       ) : (
         <form onSubmit={onAdd} style={{ display: 'flex', gap: '0.5rem' }}>
           <input
@@ -550,17 +563,21 @@ function ClearButton({ label, onClick }: { label: string; onClick: () => void })
 // The last row marks the Ware never from Oda.
 type OdaRow = OdaResult | 'more' | 'never'
 
-// onPick takes the pick instead of saving it on the Ware.
+// onPick takes the pick instead of saving it on the Ware. Choosing what replaces an unavailable
+// product (replacing), nothing unavailable can be picked and the Ware can't become never from Oda.
+// A Substitute (with replacing 'substitute') may be another Ware's Oda Product.
 function OdaSearch({
   ware,
   wares,
   onClose,
   onPick,
+  replacing,
 }: {
   ware: Ware
   wares: Ware[]
   onClose: () => void
   onPick?: (p: OdaResult) => void
+  replacing?: 'substitute' | 'gone'
 }) {
   const [query, setQuery] = useState(ware.name)
   // 'idle' while the text is too short to search.
@@ -571,7 +588,8 @@ function OdaSearch({
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined)
 
   // An Oda Product belongs to at most one Ware.
-  const usedBy = (id: number) => wares.find((w) => w.id !== ware.id && w.oda?.id === id)
+  const usedBy = (id: number) => (replacing === 'substitute' ? undefined : wares.find((w) => w.id !== ware.id && w.oda?.id === id))
+  const unpickable = (p: OdaResult) => !!usedBy(p.id) || (!!replacing && !p.available)
 
   function pick(p: OdaResult) {
     if (onPick) onPick(p)
@@ -599,6 +617,7 @@ function OdaSearch({
       const other = hit && usedBy(hit.id)
       if (!hit) setMessage('Fant ikke produktet fra lenken')
       else if (other) setMessage(`Brukt av «${other.name}»`)
+      else if (unpickable(hit)) setMessage('Produktet er ikke tilgjengelig')
       else pick(hit)
     } catch {
       if (n === latest.current) setSearch('error')
@@ -635,7 +654,7 @@ function OdaSearch({
   // Rows only for a finished search.
   const rows: OdaRow[] =
     typeof search === 'object' && search.linked
-      ? [...(all ? products : products.slice(0, 5)), ...(!all && products.length > 5 ? ['more' as const] : []), 'never']
+      ? [...(all ? products : products.slice(0, 5)), ...(!all && products.length > 5 ? ['more' as const] : []), ...(replacing ? [] : ['never' as const])]
       : []
 
   const { isOpen, highlightedIndex, getInputProps, getMenuProps, getItemProps } = useCombobox<OdaRow>({
@@ -644,7 +663,7 @@ function OdaSearch({
     selectedItem: null,
     initialIsOpen: true,
     itemToString: (row) => (typeof row === 'object' && row ? row.name : ''),
-    isItemDisabled: (row) => typeof row === 'object' && !!usedBy(row.id),
+    isItemDisabled: (row) => typeof row === 'object' && unpickable(row),
     onInputValueChange: ({ inputValue, type }) => {
       if (type !== useCombobox.stateChangeTypes.InputChange) return
       setQuery(inputValue)
@@ -714,15 +733,16 @@ function OdaSearch({
           {listed &&
             rows.map((row, index) => {
               const other = typeof row === 'object' && usedBy(row.id)
+              const off = typeof row === 'object' && unpickable(row)
               return (
                 <li
                   key={typeof row === 'object' ? row.id : row}
                   {...getItemProps({ item: row, index })}
                   style={{
                     padding: '0.375rem 0.5rem',
-                    cursor: other ? 'default' : 'pointer',
+                    cursor: off ? 'default' : 'pointer',
                     background: highlightedIndex === index ? '#eee' : 'transparent',
-                    color: other ? '#888' : '#222',
+                    color: off ? '#888' : '#222',
                   }}
                 >
                   {row === 'more' ? (
@@ -787,13 +807,27 @@ function Ask({ text, go, onGo, onBack }: { text: string; go: string; onGo: () =>
 
 // "I'm in the store": unchecked first, big text, one tap to check off. Read-only while an Oda
 // Order lasts.
-function Shop({ entries, ordering, onDishes }: { entries: Entry[]; ordering: boolean; onDishes: (entry: Entry) => void }) {
+function Shop({
+  entries,
+  ordering,
+  onOdaOrder,
+  onDishes,
+}: {
+  entries: Entry[]
+  ordering: boolean
+  onOdaOrder: () => void
+  onDishes: (entry: Entry) => void
+}) {
   const unchecked = entries.filter((e) => !e.checked)
   const checked = entries.filter((e) => e.checked)
 
   return (
     <>
-      {ordering && <div style={{ color: '#8a5a00' }}>Odabestilling pågår</div>}
+      {ordering && (
+        <div style={{ color: '#8a5a00' }}>
+          <OdaOrderLink onClick={onOdaOrder} />
+        </div>
+      )}
       <ul style={{ ...listStyle, gap: '0.75rem' }}>
         {[...unchecked, ...checked].map((entry) => (
           <li key={entry.id} style={{ fontSize: '1.375rem', opacity: entry.checked ? 0.4 : 1 }}>
@@ -828,35 +862,54 @@ function Shop({ entries, ordering, onDishes }: { entries: Entry[]; ordering: boo
 // Oda Link. The choosing is kept only on this device; the Oda Order replaces it on every device.
 function OdaTab({ entries, ordering, onDishes }: { entries: Entry[]; ordering: boolean; onDishes: (entry: Entry) => void }) {
   const basket = useBasket()
-  const wares = useWares()
   const [linking, setLinking] = useState(false)
+  // The choosing stays until filling is over, and the Entries found unavailable have arrived, so
+  // the Oda Order doesn't show for a moment before the step, and a failed fill loses nothing.
+  const [filling, setFilling] = useState(false)
+  const [unavailable, setUnavailable] = useState<string[]>([])
+  const settling = entries.some((e) => unavailable.includes(e.id) && e.basket && e.basket.quantity > 0)
+  // Only until they've arrived: a Substitute gives the same Entries packs again.
+  if (unavailable.length > 0 && !settling) setUnavailable([])
   useEffect(warmUp, [])
 
-  if (ordering) {
+  if (ordering && !filling && !settling) {
+    const waiting = entries.filter((e) => e.basket?.quantity === 0 && !e.basket.left)
+    if (waiting.length > 0) return <SubstituteStep entries={waiting} onDishes={onDishes} />
+    const leftOut = entries.filter((e) => e.basket?.left)
     return (
       <>
         <OdaOrder />
         <ul style={{ ...listStyle, gap: '0.75rem' }}>
-          {entries
-            .filter((e) => e.basket)
-            .map((entry) => {
-              const oda = wares.find((w) => w.id === entry.ware)?.oda
-              return (
-                <li key={entry.id} style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', fontSize: '1.375rem' }}>
-                  <span>
-                    {entry.text}
-                    <Details entry={entry} onDishes={onDishes} />
-                  </span>
-                  {oda && (
-                    <a href={odaProductUrl(oda.id)} target="_blank" rel="noreferrer" style={{ fontSize: '0.875rem', color: '#555' }}>
-                      {entry.basket?.quantity} × {oda.name}
-                      {oda.packText && ` · ${oda.packText}`}
+          {entries.flatMap((entry) =>
+            entry.basket && entry.basket.quantity > 0
+              ? [
+                  <li key={entry.id} style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', fontSize: '1.375rem' }}>
+                    <span>
+                      {entry.text}
+                      <Details entry={entry} onDishes={onDishes} />
+                    </span>
+                    <a href={odaProductUrl(entry.basket.productId)} target="_blank" rel="noreferrer" style={{ fontSize: '0.875rem', color: '#555' }}>
+                      {entry.basket.quantity} × {entry.basket.name}
+                      {entry.basket.packText && ` · ${entry.basket.packText}`}
                     </a>
-                  )}
-                </li>
-              )
-            })}
+                  </li>,
+                ]
+              : [],
+          )}
         </ul>
+        {leftOut.length > 0 && (
+          <section style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            <h3 style={{ fontSize: '1rem', margin: 0, color: '#555' }}>Ikke tilgjengelig</h3>
+            <ul style={{ ...listStyle, gap: '0.75rem' }}>
+              {leftOut.map((entry) => (
+                <li key={entry.id} style={{ fontSize: '1.125rem', color: '#555' }}>
+                  {entry.text}
+                  <Details entry={entry} onDishes={onDishes} />
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
       </>
     )
   }
@@ -891,9 +944,62 @@ function OdaTab({ entries, ordering, onDishes }: { entries: Entry[]; ordering: b
           </a>
         )}
       </div>
-      <Choosing entries={entries.filter((e) => !e.checked)} onDishes={onDishes} />
+      {(filling || settling) && <FillingBasket />}
+      <Choosing
+        entries={entries.filter((e) => !e.checked)}
+        setFilling={setFilling}
+        setUnavailable={setUnavailable}
+        onDishes={onDishes}
+      />
     </>
   )
+}
+
+type PackRow = { entry: Entry; ware: Ware | undefined }
+
+// Each Entry's Pack Count comes from its dishes and its Oda Product's Pack Size, which the AI
+// reads once, in one request, for the products that need it, when ready. A count set by hand lasts
+// as long as its Oda Product does.
+function usePackCounts(rows: PackRow[], productOf: (r: PackRow) => OdaProduct | undefined, ready: boolean) {
+  // Set by hand, by Entry id, for the Oda Product they were set on.
+  const [handCounts, setHandCounts] = useState<Record<string, { product: number; count: number }>>({})
+  // Read by the AI here, by Oda Product id, not yet saved.
+  const [sizes, setSizes] = useState<Record<number, PackSize | 'failed'>>({})
+  const asked = useRef(new Set<number>())
+  const hasAmounts = (e: Entry) => (e.dishes ?? []).some((d) => d.grams !== null || d.pieces !== null)
+  const packs = (r: PackRow) => {
+    const product = productOf(r)
+    if (!product) return null
+    const hand = handCounts[r.entry.id]
+    if (hand?.product === product.id) return { count: hand.count }
+    if (!hasAmounts(r.entry)) return { count: 1 }
+    const size = product.packGrams ? product : sizes[product.id]
+    if (!size) return { count: 1, waiting: true }
+    if (size === 'failed') return { count: 1, failed: true }
+    return { count: packCount(r.entry.dishes ?? [], size) }
+  }
+  const unsized = rows.flatMap((r) => {
+    const product = productOf(r)
+    return product && hasAmounts(r.entry) && !product.packGrams ? [product] : []
+  })
+
+  // Once ready, then again for anything that comes to need a Pack Size. Leaving the tab and coming
+  // back asks again for what failed.
+  useEffect(() => {
+    if (!ready) return
+    const want = [...new Map(unsized.filter((p) => !asked.current.has(p.id)).map((p) => [p.id, p])).values()]
+    if (want.length === 0) return
+    for (const p of want) asked.current.add(p.id)
+    readPackSizes(want)
+      .catch((e) => {
+        console.warn('Fikk ikke lest pakningsstørrelser:', e)
+        return want.map(() => null)
+      })
+      .then((answers) => setSizes((s) => ({ ...s, ...Object.fromEntries(want.map((p, i) => [p.id, answers[i] ?? 'failed'])) })))
+  }, [ready, unsized])
+
+  const setHandCount = (r: PackRow, count: number) => setHandCounts((h) => ({ ...h, [r.entry.id]: { product: productOf(r)!.id, count } }))
+  return { packs, setHandCount, sizes }
 }
 
 // Choosing which unchecked Entries to order from Oda: "Nye varer" first, whose Wares have no Oda
@@ -903,24 +1009,25 @@ function OdaTab({ entries, ordering, onDishes }: { entries: Entry[]; ordering: b
 // start ticked. Picks made here are saved on their Wares only when the Basket is filled, and
 // only for ticked Entries. Wares never from Oda wait, folded, at the bottom.
 //
-// Each Entry's Pack Count comes from its dishes and its Oda Product's Pack Size, which the AI
-// reads once, in one request, for the products that need it. A count set by hand lasts as long as
-// its Oda Product does.
-function Choosing({ entries, onDishes }: { entries: Entry[]; onDishes: (entry: Entry) => void }) {
+function Choosing({
+  entries,
+  setFilling,
+  setUnavailable,
+  onDishes,
+}: {
+  entries: Entry[]
+  setFilling: (filling: boolean) => void
+  setUnavailable: (ids: string[]) => void
+  onDishes: (entry: Entry) => void
+}) {
   const wares = useWares()
   const [ticks, setTicks] = useState<Record<string, boolean>>({})
   // Suggested or picked here, by Ware id, not yet saved.
   const [picks, setPicks] = useState<Record<string, OdaResult>>({})
   const [suggesting, setSuggesting] = useState(true)
   const suggested = useRef(false)
-  // Set by hand, by Entry id, for the Oda Product they were set on.
-  const [handCounts, setHandCounts] = useState<Record<string, { product: number; count: number }>>({})
-  // Read by the AI here, by Oda Product id, not yet saved.
-  const [sizes, setSizes] = useState<Record<number, PackSize | 'failed'>>({})
-  const asked = useRef(new Set<number>())
   const [unfolded, setUnfolded] = useState(false)
   const [tried, setTried] = useState(false)
-  const [filling, setFilling] = useState(false)
   const [error, setError] = useState('')
 
   const rows = entries
@@ -937,36 +1044,8 @@ function Choosing({ entries, onDishes }: { entries: Entry[]; onDishes: (entry: E
   const chosen = inside.filter(ticked)
   const lacking = new Set(chosen.filter((r) => !r.ware?.oda && !pickOf(r)).map((r) => r.entry.id))
   const productOf = (r: (typeof rows)[number]): OdaProduct | undefined => r.ware?.oda ?? pickOf(r)
-  const hasAmounts = (e: Entry) => (e.dishes ?? []).some((d) => d.grams !== null || d.pieces !== null)
-  const needsSize = (r: (typeof rows)[number]) => {
-    const product = productOf(r)
-    return product && hasAmounts(r.entry) && !product.packGrams ? [product] : []
-  }
-  const packs = (r: (typeof rows)[number]) => {
-    const product = productOf(r)
-    if (!product) return null
-    const hand = handCounts[r.entry.id]
-    if (hand?.product === product.id) return { count: hand.count }
-    if (!hasAmounts(r.entry)) return { count: 1 }
-    const size = product.packGrams ? product : sizes[product.id]
-    if (!size) return { count: 1, waiting: true }
-    if (size === 'failed') return { count: 1, failed: true }
-    return { count: packCount(r.entry.dishes ?? [], size) }
-  }
+  const { packs, setHandCount, sizes } = usePackCounts(inside, productOf, !suggesting)
   const counting = chosen.some((r) => packs(r)?.waiting)
-  const unsized = inside.flatMap(needsSize)
-
-  // Once the suggestions are in, then again for anything that comes to need a Pack Size. Leaving
-  // the tab and coming back asks again for what failed.
-  useEffect(() => {
-    if (suggesting) return
-    const want = [...new Map(unsized.filter((p) => !asked.current.has(p.id)).map((p) => [p.id, p])).values()]
-    if (want.length === 0) return
-    for (const p of want) asked.current.add(p.id)
-    readPackSizes(want)
-      .catch(() => want.map(() => null))
-      .then((answers) => setSizes((s) => ({ ...s, ...Object.fromEntries(want.map((p, i) => [p.id, answers[i] ?? 'failed'])) })))
-  }, [suggesting, unsized])
 
   // Once, as soon as the Wares and Entries have loaded. Back from linking Oda, the app opens here
   // and either can come first.
@@ -1000,7 +1079,7 @@ function Choosing({ entries, onDishes }: { entries: Entry[]; onDishes: (entry: E
     const marked = tried && lacking.has(r.entry.id)
     const pack = packs(r)
     const setCount = (count: number) => {
-      setHandCounts({ ...handCounts, [r.entry.id]: { product: productOf(r)!.id, count } })
+      setHandCount(r, count)
       setTicks({ ...ticks, [r.entry.id]: true })
     }
     return (
@@ -1073,7 +1152,8 @@ function Choosing({ entries, onDishes }: { entries: Entry[]; onDishes: (entry: E
       if (links.length > 0) await setOdaProducts(links)
       // Filled, the Oda Order begins and takes the choosing's place.
       const filled = await fillBasket(chosen.map((r) => ({ id: r.entry.id, quantity: packs(r)?.count ?? 1 })))
-      if (!filled) setError('Koble til Oda på nytt')
+      if (!filled.linked) setError('Koble til Oda på nytt')
+      else setUnavailable(filled.unavailable ?? [])
     } catch {
       setError('Fikk ikke fylt handlekurven')
     } finally {
@@ -1122,12 +1202,33 @@ function Choosing({ entries, onDishes }: { entries: Entry[]; onDishes: (entry: E
       {tried && lacking.size > 0 && <div style={{ color: '#b00020' }}>Alle varer må ha et Oda-produkt</div>}
       {error && <div style={{ color: '#8a5a00' }}>{error}</div>}
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-        <button onClick={fill} disabled={chosen.length === 0 || filling || counting} style={buttonStyle}>
+        <button onClick={fill} disabled={chosen.length === 0 || counting} style={buttonStyle}>
           Fyll handlekurven
         </button>
         {counting && <span style={{ fontSize: '0.875rem', color: '#555' }}>Regner ut antall pakker …</span>}
       </div>
     </>
+  )
+}
+
+// Covers the whole screen, tabs too, while Oda works on the Basket, which can take several seconds.
+function FillingBasket() {
+  return (
+    <div
+      role="status"
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 3,
+        background: 'white',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: '1.125rem',
+      }}
+    >
+      Fyller handlekurven …
+    </div>
   )
 }
 
@@ -1200,6 +1301,135 @@ function PickLine({
   return (
     <button onClick={() => setSearching(true)} style={smallButtonStyle}>
       Velg Oda-produkt
+    </button>
+  )
+}
+
+// After filling, what wasn't available: each Ware on its line, with a search for what to put in
+// the Basket instead. For a temporarily unavailable product that's a Substitute, for this Oda Order
+// only. For an Off Sale one it becomes the Ware's Oda Product, saved first with any Pack Size read
+// here. What gets nothing is Left Out. Picks last until a button is pressed.
+function SubstituteStep({ entries, onDishes }: { entries: Entry[]; onDishes: (entry: Entry) => void }) {
+  const wares = useWares()
+  // By Entry id.
+  const [picks, setPicks] = useState<Record<string, OdaResult>>({})
+  const [busy, setBusy] = useState<'adding' | 'skipping' | null>(null)
+  const [error, setError] = useState('')
+  const rows = entries.map((entry) => ({ entry, ware: wares.find((w) => w.id === entry.ware) }))
+  const productOf = (r: PackRow) => picks[r.entry.id]
+  const { packs, setHandCount, sizes } = usePackCounts(rows, productOf, true)
+  const picked = rows.filter((r) => productOf(r))
+  const counting = picked.some((r) => packs(r)?.waiting)
+
+  async function finish(chosen: typeof rows) {
+    setBusy(chosen.length > 0 ? 'adding' : 'skipping')
+    setError('')
+    try {
+      const links = chosen.flatMap((r): [string, OdaProduct][] => {
+        const p = productOf(r)
+        const size = sizes[p.id]
+        return r.entry.basket?.gone && r.ware ? [[r.ware.id, { ...toOdaProduct(p), ...(size && size !== 'failed' ? size : undefined) }]] : []
+      })
+      if (links.length > 0) await setOdaProducts(links)
+      const filled = await substituteBasket(
+        chosen.map((r) => ({ id: r.entry.id, quantity: packs(r)?.count ?? 1, product: toOdaProduct(productOf(r)) })),
+      )
+      if (!filled) setError('Koble til Oda på nytt')
+    } catch {
+      setError('Oda svarer ikke')
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  return (
+    <>
+      {busy === 'adding' && <FillingBasket />}
+      <div>Dette er ikke tilgjengelig på Oda. Velg noe annet å bestille, eller hopp over.</div>
+      <ul style={{ ...listStyle, gap: '0.75rem' }}>
+        {rows.map((r) => {
+          const pack = packs(r)
+          const { basket } = r.entry
+          return (
+            <li key={r.entry.id} style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', fontSize: '1.125rem' }}>
+              <span>
+                {r.entry.text}
+                <Details entry={r.entry} onDishes={onDishes} />
+              </span>
+              <div style={{ fontSize: '0.875rem', color: '#555' }}>
+                {basket?.name}
+                {basket?.packText && ` · ${basket.packText}`} · {basket?.gone ? 'ikke lenger tilgjengelig' : 'ikke tilgjengelig'}
+              </div>
+              {r.ware && (
+                <ReplaceLine
+                  ware={r.ware}
+                  wares={wares}
+                  replacing={basket?.gone ? 'gone' : 'substitute'}
+                  pick={picks[r.entry.id]}
+                  onPick={(p) => setPicks((all) => ({ ...all, [r.entry.id]: p }))}
+                  onClear={() =>
+                    setPicks((all) => Object.fromEntries(Object.entries(all).filter(([id]) => id !== r.entry.id)))
+                  }
+                />
+              )}
+              {pack && <PackStepper {...pack} onChange={(count) => setHandCount(r, count)} />}
+            </li>
+          )
+        })}
+      </ul>
+      {error && <div style={{ color: '#8a5a00' }}>{error}</div>}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <button onClick={() => finish(picked)} disabled={picked.length === 0 || !!busy || counting} style={buttonStyle}>
+          Legg i handlekurven
+        </button>
+        <button onClick={() => finish([])} disabled={!!busy} style={buttonStyle}>
+          Hopp over
+        </button>
+        {counting && <span style={{ fontSize: '0.875rem', color: '#555' }}>Regner ut antall pakker …</span>}
+      </div>
+    </>
+  )
+}
+
+// What replaces an unavailable product: its search, or what's picked, which × takes away again.
+function ReplaceLine({
+  ware,
+  wares,
+  replacing,
+  pick,
+  onPick,
+  onClear,
+}: {
+  ware: Ware
+  wares: Ware[]
+  replacing: 'substitute' | 'gone'
+  pick?: OdaResult
+  onPick: (p: OdaResult) => void
+  onClear: () => void
+}) {
+  const [searching, setSearching] = useState(false)
+  const lineStyle = { fontSize: '0.875rem', color: '#555' }
+  if (searching) {
+    return (
+      <div style={lineStyle}>
+        <OdaSearch ware={ware} wares={wares} replacing={replacing} onPick={onPick} onClose={() => setSearching(false)} />
+      </div>
+    )
+  }
+  if (pick) {
+    return (
+      <div style={{ ...lineStyle, display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+        <a href={odaProductUrl(pick.id)} target="_blank" rel="noreferrer" style={{ color: 'inherit' }}>
+          {pick.name}
+          {pick.packText && ` · ${pick.packText}`}
+        </a>
+        <ClearButton label={replacing === 'gone' ? 'Fjern Oda-produkt' : 'Fjern erstatning'} onClick={onClear} />
+      </div>
+    )
+  }
+  return (
+    <button onClick={() => setSearching(true)} style={{ ...smallButtonStyle, alignSelf: 'flex-start' }}>
+      {replacing === 'gone' ? 'Velg nytt Oda-produkt' : 'Velg erstatning'}
     </button>
   )
 }

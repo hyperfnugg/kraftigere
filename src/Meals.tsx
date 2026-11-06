@@ -91,8 +91,28 @@ export function SavedText({
 
 // "What's for dinner": planning the week's Menu from Guidelines and Day Notes, and cooking
 // from its Recipes. A dish tapped on the List opens with its Recipe.
+// Says an Oda Order is under way, and goes to it.
+export function OdaOrderLink({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{ font: 'inherit', color: 'inherit', padding: 0, border: 'none', background: 'none', textDecoration: 'underline', cursor: 'pointer' }}
+    >
+      Odabestilling pågår
+    </button>
+  )
+}
+
 // ordering: an Oda Order lasts, so Iverksett waits.
-export function MealsTab({ openAt, ordering }: { openAt: { week: string; recipe: string } | null; ordering: boolean }) {
+export function MealsTab({
+  openAt,
+  ordering,
+  onOdaOrder,
+}: {
+  openAt: { week: string; recipe: string } | null
+  ordering: boolean
+  onOdaOrder: () => void
+}) {
   const [weekId, setWeekId] = useState(() => openAt?.week ?? isoWeekId(new Date()))
   const menuWeeks = useMenuWeeks()
   const [guidelinesOpen, setGuidelinesOpen] = useState(false)
@@ -164,6 +184,7 @@ export function MealsTab({ openAt, ordering }: { openAt: { week: string; recipe:
           job={job}
           openAt={openAt?.week === weekId ? openAt.recipe : undefined}
           ordering={ordering}
+          onOdaOrder={onOdaOrder}
         />
       )}
     </>
@@ -392,6 +413,7 @@ function MenuSection({
   job,
   openAt,
   ordering,
+  onOdaOrder,
 }: {
   weekId: string
   week: Week
@@ -400,6 +422,7 @@ function MenuSection({
   job: Job
   openAt?: string
   ordering: boolean
+  onOdaOrder: () => void
 }) {
   const { busy, error, run, pending } = job
   const [openRecipe, setOpenRecipe] = useState<{ day: Day; course: number } | null>(() => {
@@ -595,7 +618,11 @@ function MenuSection({
             <button onClick={() => setConfirming(true)} disabled={!!busy || !ready || ordering} style={buttonStyle}>
               Iverksett
             </button>
-            {ordering && <span style={{ alignSelf: 'center', color: '#555' }}>Odabestilling pågår</span>}
+            {ordering && (
+              <span style={{ alignSelf: 'center', color: '#555' }}>
+                <OdaOrderLink onClick={onOdaOrder} />
+              </span>
+            )}
           </div>
         )
       )}
