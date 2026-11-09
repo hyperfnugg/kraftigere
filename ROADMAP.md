@@ -5,10 +5,10 @@ Where Kraft is heading. It changes often. Ideas are one line each, cheap to add 
 ## Now
 
 - [Dependency maintenance](plans/active/05-dependency-maintenance.md)
-- [Oda in production](plans/active/29-oda-in-production.md)
 
 ## Ideas
 
+- **Next.** Gemini behind the allowlist: today the browser calls it through Firebase AI Logic, which only checks App Check, so anyone who opens the site can spend on it. Move the calls into a callable that runs `requireFamily`, like the Oda functions.
 - Style guide: one short page on how the app looks. Icons are plain black text glyphs on a transparent background (⌂ for Hjem, ↻ for a new dish), sized up a little, not emoji or boxed buttons.
 - Rescaling a Recipe's amounts when its servings change.
 - Timers from the times in a Recipe's steps.
@@ -22,6 +22,7 @@ Where Kraft is heading. It changes often. Ideas are one line each, cheap to add 
 - List Kinds that share behaviour (a hierarchy of kinds).
 - Calendar integration.
 - Firestore backups, now that Blaze makes them possible (ADR 0004).
+- A test that every Oda callable refuses an account not on the allowlist (`requireFamily`), so a new callable can't forget it.
 
 ### Duplicate Wares
 

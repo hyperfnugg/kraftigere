@@ -60,15 +60,15 @@ The Family fills the Basket from `kraftigere.web.app`, with spending limited, an
 - [x] **Deploy the other functions by hand,** from the rebased `oda`, before the merge: `npx firebase deploy --only functions --project kraftigere`. Creating a function makes firebase-tools set its Cloud Run invoker binding (public for HTTP functions), which needs `run.services.setIamPolicy`, and `cloudfunctions.developer` doesn't have it. Updates don't set the binding (firebase-tools 15.34.1, `release/fabricator.js`), so with every function already created, CI only updates. Nothing in `main`'s app calls them yet. *(user)*
 - [x] **Test the kill switch for real.** Publish a message under the limit and see that nothing happens. Then publish a fake over-budget message, see billing removed, and relink by hand. Afterwards compare Firestore with the local copy, and confirm the budgets, the Gemini cap, App Check and the kill switch function are all still there. *(user)*
 - [x] **Record what removing billing did.** Put the result in ADR 0005, including whether Google's warning that resources might be irretrievably deleted holds up. It couldn't be found in a search on 2026-11-06.
-- [ ] **Commit: What removing billing does.** *(auto)*
-- [ ] **Merge the PR.** CI deploys functions, rules and Hosting. If the functions deploy fails, fix CI forward. Oda is behind ⋮, so the rest of Kraft keeps working. *(user)*
-- [ ] **Link and try on production.** On `kraftigere.web.app`: sign in, tap "Koble til Oda", and start an Oda Order with one Entry. The right packs show on oda.com, and Avbryt takes out only those. Check the function logs for a missing Firestore index. *(user)*
-- [ ] **Check access.** A callable refuses a request with no App Check token, one with no sign-in, and one from an account not on the allowlist. `odaCallback` refuses a wrong `state`. The user signs in with the account not on the allowlist.
-- [ ] **Check launch.** On production, opening the app on Hjem doesn't load reCAPTCHA or call an Oda function.
-- [ ] **One real Oda Order.** Filled from Kraft, ordered on oda.com, and marked Bestilt. *(user)*
-- [ ] **Bring docs up to date.** `README.md`'s stack and sharing notes mention functions and the Oda Link. `ROADMAP.md` drops this plan from **Now**.
-- [ ] **Move plan to `plans/done/`.** `git mv plans/active/29-oda-in-production.md plans/done/29-oda-in-production.md`.
-- [ ] **Commit: complete Oda in production milestone.** *(auto)*
+- [x] **Commit: What removing billing does.** *(auto)*
+- [x] **Merge the PR.** CI deploys functions, rules and Hosting. If the functions deploy fails, fix CI forward. Oda is behind ⋮, so the rest of Kraft keeps working. *(user)*
+- [x] **Link and try on production.** On `kraftigere.web.app`: sign in, tap "Koble til Oda", and start an Oda Order with one Entry. The right packs show on oda.com, and Avbryt takes out only those. Check the function logs for a missing Firestore index. *(user)*
+- [x] **Check access.** A callable refuses a request with no App Check token, one with no sign-in, and one from an account not on the allowlist. `odaCallback` refuses a wrong `state`. The user signs in with the account not on the allowlist.
+- [x] **Check launch.** On production, opening the app on Hjem doesn't load reCAPTCHA or call an Oda function.
+- [x] **One real Oda Order.** Filled from Kraft, ordered on oda.com, and marked Bestilt. *(user)*
+- [x] **Bring docs up to date.** `README.md`'s stack and sharing notes mention functions and the Oda Link. `ROADMAP.md` drops this plan from **Now**.
+- [x] **Move plan to `plans/done/`.** `git mv plans/done/29-oda-in-production.md plans/done/29-oda-in-production.md`.
+- [x] **Commit: complete Oda in production milestone.** *(auto)*
 
 ## Done when
 
@@ -95,4 +95,7 @@ The Family fills the Basket from `kraftigere.web.app`, with spending limited, an
   - **Flood.** Ten HTTP functions × `maxInstances: 2` gives 20 instances. Kept busy, each costs about $2 a day in CPU and memory, about $40 a day in all, plus $0.40 per million requests. Callables reject requests without App Check before the code runs, but they're still billed requests. `odaCallback` is public and reads one Firestore document per request. A sustained flood could reach roughly $100 a day. Budget notifications can lag by hours, so the $200 kill switch might act at $300–400.
 - 2026-11-09: The limits are set in NOK: `kraft-soft` at 200 NOK (50%, 90%, 100%) and `kraft-kill-switch` at 2,000 NOK, publishing to `kill-switch`. Both cover the whole billing account, which holds only Kraft. `maxInstances` stays at 2.
 - 2026-11-09: The first `killSwitch` deploy succeeded, but Pub/Sub got 403s: when the trigger runs as a custom service account, firebase-tools doesn't grant `kill-switch` `roles/run.invoker` on the `killswitch` Cloud Run service. It was granted by hand, on that service only, and took about two minutes to take effect. Queued messages were then delivered, and an under-limit one returned 200 and left billing on. Record this in ADR 0005 with the billing result.
+- 2026-11-09: On production, linking, filling one Entry, raising packs and Avbryt all returned 200, with no index errors or warnings in the logs. Without an App Check token a callable gave 401, and `odaCallback` with a wrong `state` gave 400. Signed out, launch fetched only the app's own files. The user checked Hjem signed in.
+- 2026-11-09: An account not on the allowlist doesn't get into the app at all, so it never reached a callable on production, and no test covers `requireFamily`'s refusal. That check is still what protects the functions: any Google account can sign in, and any visitor gets an App Check token, so a direct call reaches it.
+- 2026-11-09: CI's first functions deploy failed until `firebase-deploy` could act as `kraftigere@appspot.gserviceaccount.com`, which firebase-tools checks on every functions deploy. After that it was green. One real Oda Order was placed and marked Bestilt. Follow-ups are in `ROADMAP.md`: Gemini behind the allowlist (next), and a test of `requireFamily`'s refusal.
 - **If production breaks:** fix forward. Use Hosting rollback in the console for a broken app. If Oda has to be switched off, or the functions stop, run `scripts/clear-basket.mjs` so no In Basket Entry stays locked. Reverting the merge isn't planned.
