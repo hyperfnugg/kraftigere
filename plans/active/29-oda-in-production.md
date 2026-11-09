@@ -41,19 +41,19 @@ The Family fills the Basket from `kraftigere.web.app`, with spending limited, an
   - `scripts/dump-firestore.mjs`: copies every document to a JSON file at a path given as an argument. The copy holds family data, so it never goes in the repo.
   - `scripts/clear-basket.mjs`: removes `basket` from every Entry. The rules let only the functions do that, so this frees In Basket Entries if the functions are off. It doesn't touch the Basket on oda.com.
 - [x] **Commit: Kill switch and production scripts.** *(manual)* — turns billing off; review first.
-- [ ] **Rebase `oda` onto `main` and open the PR.** History stays linear, as decided in plan 23. Force-pushing `oda` is the user's call. The PR's `check` must pass before billing starts. *(user)*
-- [ ] **Reopen the billing account, for Kraft only, and link it.** `gcloud` showed the attached account closed and `billingEnabled` false on 2026-11-06. If it can't be reopened, create a new one. From here on, Gemini is pay-as-you-go, so do the next steps in the same sitting. *(user)*
-- [ ] **Enable the APIs.** Cloud Functions, Cloud Run, Cloud Build, Artifact Registry, Eventarc and Billing Budgets, plus whatever the first deploy asks for. Claude runs this once the user says go.
-- [ ] **Check prices and caps.** Record under Notes:
+- [x] **Rebase `oda` onto `main` and open the PR.** History stays linear, as decided in plan 23. Force-pushing `oda` is the user's call. The PR's `check` must pass before billing starts. *(user)*
+- [x] **Reopen the billing account, for Kraft only, and link it.** `gcloud` showed the attached account closed and `billingEnabled` false on 2026-11-06. If it can't be reopened, create a new one. From here on, Gemini is pay-as-you-go, so do the next steps in the same sitting. *(user)*
+- [x] **Enable the APIs.** Cloud Functions, Cloud Run, Cloud Build, Artifact Registry, Eventarc and Billing Budgets, plus whatever the first deploy asks for. Claude runs this once the user says go.
+- [x] **Check prices and caps.** Record under Notes:
   - Gemini's expected monthly cost at family scale for `gemini-3.5-flash-lite`.
   - Whether a spend cap counts gross cost before free tiers. If it does and $10 would pause normal use, choose a new amount.
   - What a flood could cost: `maxInstances: 2` applies per function, so about twenty instances across all of them. Lower it if the soft budget and kill switch would be too slow to catch that.
-- [ ] **Set the limits.** Use the same amounts in the account's currency if it isn't dollars. *(user)*
+- [x] **Set the limits.** Use the same amounts in the account's currency if it isn't dollars. *(user)*
   - Soft budget for the project: $20 a month, with emails at 50%, 90% and 100%.
   - Gemini spend cap: $10 a month.
   - Kill switch budget for the project: $200 a month, publishing to a new Pub/Sub topic named `kill-switch`, created while connecting it.
-- [ ] **The kill switch budget's id.** Put `KILL_SWITCH_BUDGET_ID=<id>` in `functions/.env.kraftigere`. It isn't secret, and it has to be committed, because every deploy, from CI too, sets the function's environment from it. Without it the kill switch never acts, and logs an error on each message.
-- [ ] **Commit: The kill switch budget's id.** *(auto)*
+- [x] **The kill switch budget's id.** Put `KILL_SWITCH_BUDGET_ID=<id>` in `functions/.env.kraftigere`. It isn't secret, and it has to be committed, because every deploy, from CI too, sets the function's environment from it. Without it the kill switch never acts, and logs an error on each message.
+- [x] **Commit: The kill switch budget's id.** *(auto)*
 - [ ] **Widen the deploy service account.** `firebase-deploy` has `firebase.viewer`, `firebasehosting.admin` and `firebaserules.admin`. Add the smallest set of roles a functions deploy needs, including permission to act as the runtime service accounts (the default one and `kill-switch`), and to read Artifact Registry's cleanup policy, which every functions deploy checks. List them in ADR 0002. *(user)*
 - [ ] **Local copy of Firestore.** `scripts/dump-firestore.mjs`, to a path outside the repo. *(user)*
 - [ ] **Deploy the kill switch by hand,** from the rebased `oda`, with `--only functions:<name>`, since CI deploys only from `main`. First create the `kill-switch` service account, and give it Project Billing Manager on the project only, which lets it unlink billing, and nothing wider. Accept the cleanup policy for container images that the deploy asks for: without one, every non-interactive deploy from CI fails after deploying, since it can't set the policy without `--force`. *(user)*
@@ -86,4 +86,11 @@ The Family fills the Basket from `kraftigere.web.app`, with spending limited, an
 - 2026-11-06: Link billing late. No money is at risk today, and caps and the kill switch need Blaze, so an unprotected window can't be avoided, only kept short.
 - 2026-11-06: The rules on `oda` only add to those on `main`, and existing Entries and Wares stay valid. No migration is needed.
 - 2026-11-06: Plan 27 finished, and plan 28 was already underway on `oda` while this was planned. The grilling said to ship before 28; since it's underway, it's now a prerequisite instead.
+- 2026-11-09: Billing is on a new account, "Kraft" (`016724-E3FFE0-1EA2BD`, NOK), with `kraftigere` as its only project. The old account stayed closed. The APIs are enabled.
+- 2026-11-09, prices and caps (from aistudio.google.com/docs/pricing and /docs/billing):
+  - **Gemini cost.** `gemini-3.5-flash-lite` on the paid tier is $0.30 per 1M input tokens and $2.50 per 1M output tokens, thinking included. A linked project has no free tier, so every call is paid. A week's planning is 10–20 calls, each capped at 4,000–12,000 output tokens. The worst case is about 1M output tokens a month, roughly $2.50; normal use is likely under $1.
+  - **Spend cap.** Set per project in AI Studio, under Spend → Monthly spend cap. It's experimental, can be overshot by about 10 minutes of billing lag, and the docs don't say whether it's gross or net. Without a free tier that difference doesn't matter: $10 is about four times the worst case.
+  - **Prepay.** New billing accounts default to Prepay: Gemini answers only while the prepaid balance in AI Studio is positive (minimum $5), and returns 402 otherwise. The balance is a hard cap of its own. Tier 1 also caps the account at $250 a month.
+  - **Flood.** Ten HTTP functions × `maxInstances: 2` gives 20 instances. Kept busy, each costs about $2 a day in CPU and memory, about $40 a day in all, plus $0.40 per million requests. Callables reject requests without App Check before the code runs, but they're still billed requests. `odaCallback` is public and reads one Firestore document per request. A sustained flood could reach roughly $100 a day. Budget notifications can lag by hours, so the $200 kill switch might act at $300–400.
+- 2026-11-09: The limits are set in NOK: `kraft-soft` at 200 NOK (50%, 90%, 100%) and `kraft-kill-switch` at 2,000 NOK, publishing to `kill-switch`. Both cover the whole billing account, which holds only Kraft. `maxInstances` stays at 2.
 - **If production breaks:** fix forward. Use Hosting rollback in the console for a broken app. If Oda has to be switched off, or the functions stop, run `scripts/clear-basket.mjs` so no In Basket Entry stays locked. Reverting the merge isn't planned.
