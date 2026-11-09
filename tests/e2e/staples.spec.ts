@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { MEMBERS, addEntry, entry, openTab, readDoc, reset, seed, signIn, writeDoc } from './helpers'
+import { MEMBERS, addEntry, chip, entry, openTab, readDoc, reset, seed, signIn, writeDoc } from './helpers'
 
 test.beforeEach(async () => {
   await reset()
@@ -9,24 +9,14 @@ test.beforeEach(async () => {
 // A Ware as the REST API takes it, added by hand `count` times. 0 is one only Iverksett made.
 const ware = (name: string, count: number) => ({ name: { stringValue: name }, addCount: { integerValue: String(count) } })
 
-test('adding a Ware that is waiting, in any spelling, opens its Note instead of adding it again', async ({ page }) => {
+test('a Ware that is waiting, in any spelling, has no chip to add it again, and the filter finds it', async ({ page }) => {
   await signIn(page, MEMBERS[0])
   await addEntry(page, 'Melk')
-  const note = page.getByRole('textbox', { name: 'Notat' })
+  await addEntry(page, 'Ost')
 
-  await page.getByPlaceholder('Hva trenger vi?').fill('melk ')
-  await page.getByRole('button', { name: 'Legg til', exact: true }).click()
-  await expect(note).toBeFocused()
-  await note.fill('mye')
-  await note.press('Enter')
-  await expect(entry(page, 'Melk')).toHaveText('Melk · mye')
-
-  // Tapping a suggestion does the same.
-  await page.getByPlaceholder('Hva trenger vi?').fill('me')
-  await page.getByRole('button', { name: 'Melk', exact: true }).click()
-  await expect(note).toHaveValue('mye')
-  await expect(page.getByPlaceholder('Hva trenger vi?')).toHaveValue('')
-  await expect(entry(page, 'Melk')).toHaveCount(1)
+  await page.getByPlaceholder('Hva trenger vi?').fill(' melk. ')
+  await expect(page.getByRole('option')).toHaveCount(0)
+  await expect(page.getByRole('listitem')).toHaveText(['Melk'])
 
   const melk = await readDoc('wares/melk')
   expect(melk.name.stringValue).toBe('Melk')
@@ -60,7 +50,7 @@ test('typing suggests Staples starting with the text first, then by how often th
   await signIn(page, MEMBERS[0])
   await page.getByPlaceholder('Hva trenger vi?').fill('eg')
   // eggplant came only from Iverksett, so it's no Staple.
-  const suggestions = page.getByRole('button', { name: /^(eggs|egg noodles|nutmeg|eggplant)$/ })
+  const suggestions = page.getByRole('option', { name: /^(eggs|egg noodles|nutmeg|eggplant)$/ })
   await expect(suggestions).toHaveText(['eggs', 'egg noodles', 'nutmeg'])
 })
 
@@ -73,12 +63,12 @@ test('with the field empty, the most added Staples not already waiting show', as
     await writeDoc(`wares/${id}`, ware(id, count))
   }
   await signIn(page, MEMBERS[0])
-  const suggestions = page.getByRole('button', { name: /^(milk|eggs|bread)$/ })
+  const suggestions = page.getByRole('option', { name: /^(milk|eggs|bread)$/ })
   await expect(suggestions).toHaveText(['milk', 'eggs', 'bread'])
 
   // Tapping one puts it on the List, so it leaves the suggestions until checked off.
   // (eggs is then added 3 times, still behind milk's 4.)
-  await page.getByRole('button', { name: 'eggs', exact: true }).click()
+  await chip(page, 'eggs').click()
   await expect(entry(page, 'eggs')).toBeVisible()
   await expect(suggestions).toHaveText(['milk', 'bread'])
 

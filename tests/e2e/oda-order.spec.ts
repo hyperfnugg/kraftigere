@@ -24,7 +24,8 @@ test.beforeEach(async () => {
 // Against the fake Oda (tests/e2e/fake-oda.mjs): its Basket starts as 3 × 430 and 1 × 7, and its
 // search finds the same 7 products for every name but "ukjent".
 const tick = (page: Page, name: string) => page.getByRole('checkbox', { name, exact: true })
-const results = (page: Page) => page.getByRole('option')
+// The Oda search's results, not Hjem's chips.
+const results = (page: Page) => page.locator('[role=listbox]:not([aria-label="Forslag"])').getByRole('option')
 const nextStep = (page: Page) => page.getByText('Neste steg er ditt: bestill i')
 
 // Adds the Entries on Home, giving Smør its Oda Product there, then links Oda.

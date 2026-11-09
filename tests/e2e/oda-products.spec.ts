@@ -13,7 +13,8 @@ async function linkOdaHome(page: Page) {
   await openTab(page, 'Hjem')
 }
 
-const results = (page: Page) => page.getByRole('option')
+// The Oda search's results, not Hjem's chips.
+const results = (page: Page) => page.locator('[role=listbox]:not([aria-label="Forslag"])').getByRole('option')
 
 test("a Family Member picks a Ware's Oda Product on Home", async ({ page }) => {
   await signIn(page, MEMBERS[0])
@@ -105,4 +106,23 @@ test('a Ware set never from Oda on Home, and cleared again', async ({ page }) =>
   await page.getByRole('button', { name: 'Fjern Aldri fra Oda' }).click()
   await expect(page.getByRole('button', { name: 'Velg Oda-produkt' })).toBeVisible()
   expect((await readDoc('wares/sokker')).neverOda).toBeUndefined()
+})
+
+test("Esc in an open Ware's Oda search closes the search before the Ware", async ({ page }) => {
+  await signIn(page, MEMBERS[0])
+  await linkOdaHome(page)
+  await addEntry(page, 'Melk')
+  await entry(page, 'Melk').getByText('Melk').click()
+  await page.getByRole('button', { name: 'Velg Oda-produkt' }).click()
+  const search = page.getByRole('combobox', { name: 'Søk på Oda' })
+  await expect(results(page)).toHaveCount(7)
+
+  // The results first, then the search, then the Ware.
+  await search.press('Escape')
+  await expect(results(page)).toHaveCount(0)
+  await search.press('Escape')
+  await expect(search).toHaveCount(0)
+  await expect(page.getByRole('textbox', { name: 'Notat' })).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(page.getByRole('textbox', { name: 'Notat' })).toHaveCount(0)
 })

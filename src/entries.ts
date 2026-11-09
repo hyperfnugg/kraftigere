@@ -54,6 +54,12 @@ export function wareName(text: string) {
   return text.trim().replace(/\s+/g, ' ')
 }
 
+// What's typed, without stray punctuation and spaces at the ends ("melk.", " brød,"), which
+// are typos rather than part of a name. Inside the name, and % or brackets at the ends, stay.
+export function typedName(text: string) {
+  return wareName(text).replace(/^[\s.,;:!?…\-–—_*'"`´]+|[\s.,;:!?…\-–—_*'"`´]+$/g, '')
+}
+
 // A Ware's id is its normalized name, so "Melk" and "melk " are the same Ware.
 // Ids can't contain "/" or be "." or "..", or look like __reserved__.
 export function wareId(name: string) {
@@ -120,17 +126,15 @@ export function useWares() {
   return wares
 }
 
-// Up to 5 Staples for what's typed: names starting with it first, then names containing
-// it, each ordered by how often they're added. With nothing typed, the most added Staples
-// that aren't already waiting on the List.
+// Up to 5 Staples that aren't already waiting on the List, for what's typed: names starting
+// with it first, then names containing it, each ordered by how often they're added. With
+// nothing typed, the most added.
 export function suggest(wares: Ware[], text: string, entries: Entry[]) {
-  const staples = wares.filter(isStaple)
+  const waiting = new Set(entries.filter((e) => !e.checked).map((e) => e.ware))
+  const staples = wares.filter((w) => isStaple(w) && !waiting.has(w.id))
   const byCount = (a: Ware, b: Ware) => b.addCount - a.addCount
   const t = wareId(text)
-  if (!t) {
-    const waiting = new Set(entries.filter((e) => !e.checked).map((e) => e.ware))
-    return staples.filter((s) => !waiting.has(s.id)).sort(byCount).slice(0, 5)
-  }
+  if (!t) return staples.sort(byCount).slice(0, 5)
   const starting = staples.filter((s) => s.id.startsWith(t)).sort(byCount)
   const containing = staples.filter((s) => !s.id.startsWith(t) && s.id.includes(t)).sort(byCount)
   return [...starting, ...containing].slice(0, 5)

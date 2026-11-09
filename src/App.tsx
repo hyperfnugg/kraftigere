@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { useEffect, useId, useLayoutEffect, useRef, useState, type FormEvent, type KeyboardEvent as ReactKeyboardEvent } from 'react'
 import { useCombobox } from 'downshift'
 import { type User } from 'firebase/auth'
 import { MealsTab, OdaOrderLink } from './Meals'
@@ -23,6 +23,7 @@ import {
 } from './oda'
 import {
   addEntry,
+  isStaple,
   removeEntries,
   removeEntry,
   setNeverOda,
@@ -31,12 +32,12 @@ import {
   setOdaProducts,
   suggest,
   toggleEntry,
+  typedName,
   useAccess,
   useEntries,
   useRemoveCheckedAfterShopping,
   useWares,
   wareId,
-  wareName,
   type Dish,
   type Entry,
   type OdaProduct,
@@ -290,12 +291,33 @@ function ChefsHat() {
 function Details({ entry, onDishes }: { entry: Entry; onDishes: (entry: Entry) => void }) {
   return (
     <>
-      {entry.note && <span style={{ color: '#666' }}> · {entry.note}</span>}
+      <Note entry={entry} />
+      <DishesLink entry={entry} onDishes={onDishes} />
+    </>
+  )
+}
+
+function Note({ entry }: { entry: Entry }) {
+  return entry.note && <span style={{ color: '#666' }}> · {entry.note}</span>
+}
+
+function DishesLink({
+  entry,
+  onDishes,
+  tabIndex,
+}: {
+  entry: Entry
+  onDishes: (entry: Entry) => void
+  tabIndex?: number
+}) {
+  return (
+    <>
       {entry.dishes && (
         <>
           <span style={{ color: '#666' }}> · </span>
           <button
             aria-label="Fra middag"
+            tabIndex={tabIndex}
             onClick={(e) => {
               // Not the line's own tap: opening it on Hjem, checking it off on Handle.
               e.preventDefault()
@@ -365,7 +387,7 @@ function Dishes({ entry, onOpen, onClose }: { entry: Entry; onOpen: (dish: Dish)
   )
 }
 
-// "Quick, before I forget": adding and editing Groceries, newest first. Entries are never
+// "Quick, before I forget": adding and editing Groceries, alphabetically. Entries are never
 // checked off here. Removing takes two taps, to avoid misclicks. Nothing changes while an
 // Oda Order lasts.
 function Home({
@@ -383,22 +405,135 @@ function Home({
   const [text, setText] = useState('')
   const [open, setOpen] = useState<{ entryId: string; note: string } | null>(null)
 
-  const newestFirst = entries.toReversed()
+  // What's typed in the field narrows the List, matched like the Suggestions, until it's
+  // cleared: by adding, Esc or ✕.
+  const typed = typedName(text)
+  const filter = ordering ? '' : wareId(typed)
+  const addField = useRef<HTMLInputElement>(null)
+  const alphabetical = entries
+    .filter((e) => e.ware.includes(filter))
+    .toSorted((a, b) => a.text.localeCompare(b.text, 'nb'))
 
-  const suggestions = suggest(wares, text, entries)
+  // "+" to add what's typed as it is, unless it's already suggested or waiting on the List,
+  // then the Staples suggested for it. Adding takes picking one of these. "+" goes first, so
+  // it's never scrolled out of the row.
+  const typedWare = wares.find((w) => w.id === wareId(typed))
+  const choices = suggest(wares, typed, entries).map((w) => ({ id: w.id, name: w.name, label: w.name }))
+  // With nothing typed, "+" opens the most added Staples to pick several at once.
+  if (!typed) choices.unshift({ id: '+', name: '', label: '+' })
+  else if (
+    !choices.some((c) => c.id === wareId(typed)) &&
+    !entries.some((e) => e.ware === wareId(typed) && !e.checked)
+  ) {
+    const name = typedWare?.name ?? typed
+    choices.unshift({ id: '+', name, label: `+ ${name}` })
+  }
+  const [picking, setPicking] = useState(false)
 
-  // Typed text that matches a Ware adds that Ware under its own name. A Ware already
-  // waiting opens its Entry for the Note instead.
+  function choose(c: { name: string }) {
+    if (c.name) add(c.name)
+    else {
+      setActive(-1)
+      setPicking(true)
+    }
+  }
+  // The choice picked with Up and Down, while focus stays in the field. -1 is none.
+  const [active, setActive] = useState(-1)
+  const highlighted = choices[active]
+  const listId = useId()
+
+  // Only the choices that fit whole in one row show. The rest wrap onto a second row, which
+  // is cut off, and are measured out of the keyboard's reach.
+  const chipRow = useRef<HTMLDivElement>(null)
+  const [fit, setFit] = useState({ count: Infinity, height: 0 })
+  const shown = Math.min(fit.count, choices.length)
+  useLayoutEffect(() => {
+    const row = chipRow.current
+    if (!row) return
+    function measure() {
+      const chips = [...row!.children] as HTMLElement[]
+      if (!chips[0]) return
+      const count = chips.filter((c) => c.offsetTop === chips[0].offsetTop).length
+      const height = chips[0].offsetHeight
+      setFit((f) => (f.count === count && f.height === height ? f : { count, height }))
+    }
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(row)
+    return () => observer.disconnect()
+  })
+
+  function onAddKeyDown(e: ReactKeyboardEvent<HTMLInputElement>) {
+    if (e.key === 'ArrowDown' && shown > 0) {
+      e.preventDefault()
+      setActive(Math.min(active + 1, shown - 1))
+    } else if (e.key === 'ArrowUp' && active >= 0) {
+      e.preventDefault()
+      setActive(active - 1)
+    } else if (e.key === 'Escape' && highlighted) {
+      e.nativeEvent.stopPropagation()
+      setActive(-1)
+    } else if (e.key === 'Escape' && text) {
+      e.nativeEvent.stopPropagation()
+      setText('')
+    }
+  }
+
+  // A Ware already waiting opens its Entry for the Note instead.
   function add(name: string) {
     const waiting = addEntry(name, entries)
     if (waiting) setOpen({ entryId: waiting.id, note: waiting.note ?? '' })
     setText('')
+    setActive(-1)
   }
 
-  function onAdd(e: FormEvent) {
+  // Enter adds only a highlighted choice. Otherwise it goes to the List, keeping the
+  // filter, which on a phone also puts the keyboard away.
+  function onEnter(e: FormEvent) {
     e.preventDefault()
-    const t = wareName(text)
-    if (t) add(wares.find((w) => w.id === wareId(t))?.name ?? t)
+    if (highlighted) choose(highlighted)
+    else if (currentId) focusRow(currentId)
+    else addField.current?.blur()
+  }
+
+  // The List is one Tab stop: the row last focused, or the first. Arrows move between rows,
+  // and typing goes back to the field.
+  const [current, setCurrent] = useState<string | null>(null)
+  const currentId = alphabetical.some((e) => e.id === current) ? current : (alphabetical[0]?.id ?? null)
+  const rows = useRef(new Map<string, HTMLButtonElement>())
+
+  // Right goes to a row's chef's hat and Left back. Moving between rows stays on the hats,
+  // landing on the name of a row without one.
+  const onHats = useRef(false)
+  const hatOf = (row?: HTMLElement) =>
+    row?.parentElement?.querySelector<HTMLButtonElement>('[aria-label="Fra middag"]')
+
+  function focusRow(id: string, hat = false) {
+    setCurrent(id)
+    onHats.current = hat
+    const row = rows.current.get(id)
+    ;((hat && hatOf(row)) || row)?.focus()
+  }
+
+  function onRowKeyDown(e: ReactKeyboardEvent<HTMLElement>, i: number) {
+    const to = { ArrowDown: i + 1, ArrowUp: i - 1, Home: 0, End: alphabetical.length - 1 }[e.key]
+    const hat = hatOf(rows.current.get(alphabetical[i].id))
+    if (e.key === 'ArrowRight' && hat) {
+      e.preventDefault()
+      focusRow(alphabetical[i].id, true)
+    } else if (e.key === 'ArrowLeft') {
+      e.preventDefault()
+      focusRow(alphabetical[i].id)
+    } else if (to !== undefined) {
+      e.preventDefault()
+      const row = alphabetical[Math.max(0, Math.min(to, alphabetical.length - 1))]
+      if (row) focusRow(row.id, onHats.current)
+    } else if (!ordering && e.key.length === 1 && e.key !== ' ' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      e.preventDefault()
+      setText(text + e.key)
+      setActive(-1)
+      addField.current?.focus()
+    }
   }
 
   function saveNote() {
@@ -412,52 +547,175 @@ function Home({
     else setOpen({ entryId: entry.id, note: entry.note ?? '' })
   }
 
+  // A tap outside the open Entry, or Esc, closes it, keeping the Note. Esc goes back to its row.
+  const openRef = useRef<HTMLLIElement>(null)
+  useEffect(() => {
+    if (!open) return
+    // On click, not pointerdown: closing moves the rows below, so the tap would miss its row.
+    // A tap on another row has opened that one by now, and it stays open.
+    function close() {
+      saveNote()
+      setOpen((o) => (o?.entryId === open?.entryId ? null : o))
+    }
+    // The path is taken as the click happened: the button tapped may be gone by now.
+    function onClick(e: MouseEvent) {
+      if (!openRef.current || !e.composedPath().includes(openRef.current)) close()
+    }
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key !== 'Escape' || !open) return
+      close()
+      focusRow(open.entryId)
+    }
+    document.addEventListener('click', onClick)
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.removeEventListener('click', onClick)
+      document.removeEventListener('keydown', onKeyDown)
+    }
+  })
+
   return (
     <>
-      {ordering ? (
-        <div style={{ color: '#8a5a00' }}>
-          <OdaOrderLink onClick={onOdaOrder} />
-        </div>
-      ) : (
-        <form onSubmit={onAdd} style={{ display: 'flex', gap: '0.5rem' }}>
-          <input
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            maxLength={100}
-            placeholder="Hva trenger vi?"
-            style={{ flex: 1, fontSize: '1rem', padding: '0.5rem' }}
-          />
-          <button type="submit" style={buttonStyle}>
-            Legg til
-          </button>
-        </form>
-      )}
+      {/* Stays at the top while the List scrolls, to filter or add from anywhere in it. */}
+      <div
+        style={{
+          position: 'sticky',
+          top: 0,
+          zIndex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '1rem',
+          padding: '0.5rem 0',
+          margin: '-0.5rem 0',
+          background: 'white',
+          borderBottom: '1px solid #ddd',
+        }}
+      >
+        {ordering ? (
+          <div style={{ color: '#8a5a00' }}>
+            <OdaOrderLink onClick={onOdaOrder} />
+          </div>
+        ) : (
+          <form onSubmit={onEnter} style={{ display: 'flex', gap: '0.5rem' }}>
+            <div style={{ flex: 1, position: 'relative', display: 'flex' }}>
+              <input
+                ref={addField}
+                value={text}
+                onChange={(e) => {
+                  setText(e.target.value)
+                  setActive(-1)
+                }}
+                onKeyDown={onAddKeyDown}
+                role="combobox"
+                aria-expanded={choices.length > 0}
+                enterKeyHint="done"
+                aria-controls={listId}
+                aria-autocomplete="list"
+                aria-activedescendant={highlighted ? `${listId}-${active}` : undefined}
+                maxLength={100}
+                placeholder="Hva trenger vi?"
+                aria-label="Hva trenger vi?"
+                style={{ flex: 1, minWidth: 0, fontSize: '1rem', padding: '0.5rem', paddingRight: '2rem' }}
+              />
+              {text && (
+                <button
+                  type="button"
+                  aria-label="Tøm"
+                  title="Tøm"
+                  onClick={() => {
+                    setText('')
+                    setActive(-1)
+                    addField.current?.focus()
+                  }}
+                  style={{
+                    position: 'absolute',
+                    right: 0,
+                    top: 0,
+                    bottom: 0,
+                    width: '2rem',
+                    font: 'inherit',
+                    fontSize: '1.25rem',
+                    lineHeight: 1,
+                    color: '#666',
+                    padding: 0,
+                    border: 'none',
+                    background: 'none',
+                    cursor: 'pointer',
+                  }}
+                >
+                  ×
+                </button>
+              )}
+            </div>
+          </form>
+        )}
 
-      {!ordering && suggestions.length > 0 && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '-0.5rem' }}>
-          {suggestions.map((s) => (
-            <button
-              key={s.id}
-              onClick={() => add(s.name)}
-              style={smallButtonStyle}
-            >
-              {s.name}
-            </button>
-          ))}
-        </div>
-      )}
+        {!ordering && choices.length > 0 && (
+          <div
+            ref={chipRow}
+            id={listId}
+            role="listbox"
+            aria-orientation="horizontal"
+            aria-label="Forslag"
+            // The padding keeps the highlight's outline from being clipped.
+            style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: '0.5rem',
+              overflow: 'hidden',
+              height: fit.height || undefined,
+              padding: 3,
+              margin: 'calc(-0.5rem - 3px) -3px -3px',
+            }}
+          >
+            {choices.map((s, i) => (
+              <button
+                key={s.id}
+                id={`${listId}-${i}`}
+                role="option"
+                aria-selected={i === active}
+                aria-hidden={i >= shown || undefined}
+                tabIndex={-1}
+                onClick={() => choose(s)}
+                style={{
+                  ...smallButtonStyle,
+                  flexShrink: 0,
+                  whiteSpace: 'nowrap',
+                  // A long typed name is cut short rather than pushing past the row.
+                  maxWidth: '100%',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  // "+" makes a new Ware rather than picking a Staple, so it looks apart.
+                  ...(s.id === '+' && {
+                    background: '#e3f1e3',
+                    border: '1px solid #8fb58f',
+                    borderRadius: '0.25rem',
+                    color: '#1f4d1f',
+                  }),
+                  ...(i === active && { outline: '2px solid #000', outlineOffset: 1 }),
+                }}
+              >
+                {s.label}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
 
       <ul style={listStyle}>
-        {newestFirst.map((entry) => {
+        {alphabetical.map((entry, i) => {
           const isOpen = !ordering && open?.entryId === entry.id
+          const tabIndex = entry.id === currentId ? 0 : -1
           return (
             <li
               key={entry.id}
+              ref={isOpen ? openRef : undefined}
               style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', fontSize: '1.125rem' }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                 <span
                   onClick={() => !ordering && toggleOpen(entry)}
+                  onKeyDown={(e) => onRowKeyDown(e, i)}
                   style={{
                     flex: 1,
                     cursor: ordering ? 'default' : 'pointer',
@@ -465,9 +723,45 @@ function Home({
                     textDecoration: entry.checked ? 'line-through' : 'none',
                   }}
                 >
-                  {entry.text}
-                  <Details entry={entry} onDishes={onDishes} />
+                  <button
+                    ref={(el) => {
+                      if (el) rows.current.set(entry.id, el)
+                      else rows.current.delete(entry.id)
+                    }}
+                    type="button"
+                    tabIndex={tabIndex}
+                    aria-expanded={ordering ? undefined : isOpen}
+                    onFocus={() => setCurrent(entry.id)}
+                    style={{
+                      font: 'inherit',
+                      color: 'inherit',
+                      textDecoration: 'inherit',
+                      textAlign: 'left',
+                      padding: 0,
+                      border: 'none',
+                      background: 'none',
+                      cursor: 'inherit',
+                    }}
+                  >
+                    {entry.text}
+                    <Note entry={entry} />
+                  </button>
+                  <DishesLink entry={entry} onDishes={onDishes} tabIndex={tabIndex} />
                 </span>
+                {isOpen && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        removeEntry(entry.id)
+                        setOpen(null)
+                        const next = alphabetical[i + 1] ?? alphabetical[i - 1]
+                        if (next) focusRow(next.id)
+                      }}
+                      style={smallButtonStyle}
+                    >
+                      Fjern
+                    </button>
+                )}
               </div>
               {isOpen && (
                 <form
@@ -475,6 +769,7 @@ function Home({
                     e.preventDefault()
                     saveNote()
                     setOpen(null)
+                    focusRow(entry.id)
                   }}
                   style={{ display: 'flex', gap: '0.5rem' }}
                 >
@@ -490,16 +785,6 @@ function Home({
                     aria-label="Notat"
                     style={{ flex: 1, minWidth: 0, fontSize: '1rem', padding: '0.25rem' }}
                   />
-                  <button
-                    type="button"
-                    onClick={() => {
-                      removeEntry(entry.id)
-                      setOpen(null)
-                    }}
-                    style={smallButtonStyle}
-                  >
-                    Fjern
-                  </button>
                 </form>
               )}
               {isOpen && <OdaProductLine ware={wares.find((w) => w.id === entry.ware)} />}
@@ -507,7 +792,118 @@ function Home({
           )
         })}
       </ul>
+
+      {picking && (
+        <StaplePicker
+          wares={wares}
+          entries={entries}
+          onClose={(names) => {
+            for (const name of names) addEntry(name, entries)
+            setPicking(false)
+            addField.current?.focus()
+          }}
+        />
+      )}
     </>
+  )
+}
+
+// The 30 most added Staples not already waiting, most added first, to tick several and add
+// them all when the list closes, however it's closed.
+function StaplePicker({
+  wares,
+  entries,
+  onClose,
+}: {
+  wares: Ware[]
+  entries: Entry[]
+  onClose: (names: string[]) => void
+}) {
+  const [staples] = useState(() => {
+    const waiting = new Set(entries.filter((e) => !e.checked).map((e) => e.ware))
+    return wares
+      .filter((w) => isStaple(w) && !waiting.has(w.id))
+      .toSorted((a, b) => b.addCount - a.addCount)
+      .slice(0, 30)
+  })
+  const [picked, setPicked] = useState<Set<string>>(new Set())
+  const close = () => onClose(staples.filter((w) => picked.has(w.id)).map((w) => w.name))
+
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') close()
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  })
+
+  function toggle(id: string) {
+    const next = new Set(picked)
+    if (next.has(id)) next.delete(id)
+    else next.add(id)
+    setPicked(next)
+  }
+
+  return (
+    <div
+      onClick={close}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 3,
+        background: 'rgba(0, 0, 0, 0.3)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
+      <div
+        role="dialog"
+        aria-label="Legg til fra basisvarer"
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          background: 'white',
+          padding: '1rem',
+          width: 'min(100% - 2rem, 24rem)',
+          // dvh: the phone's visible height, without its address bar.
+          maxHeight: 'calc(100dvh - 4rem)',
+          boxSizing: 'border-box',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '0.75rem',
+          fontFamily: 'system-ui, sans-serif',
+        }}
+      >
+        <strong style={{ fontSize: '1.125rem' }}>Legg til</strong>
+        {staples.length === 0 ? (
+          <div style={{ color: '#666' }}>Alle basisvarene står allerede på lista</div>
+        ) : (
+          // Only the list scrolls, keeping the title and button in view. minHeight lets it
+          // shrink below its content.
+          <ul style={{ ...listStyle, overflowY: 'auto', minHeight: 0, gap: 0 }}>
+            {staples.map((w, i) => (
+              <li key={w.id}>
+                <label
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.375rem 0', fontSize: '1.125rem', cursor: 'pointer' }}
+                >
+                  <input
+                    type="checkbox"
+                    autoFocus={i === 0}
+                    checked={picked.has(w.id)}
+                    onChange={() => toggle(w.id)}
+                    style={{ width: '1.125rem', height: '1.125rem' }}
+                  />
+                  {w.name}
+                </label>
+              </li>
+            ))}
+          </ul>
+        )}
+        <button onClick={close} style={buttonStyle}>
+          {picked.size > 0 ? `Legg til ${picked.size}` : 'Lukk'}
+        </button>
+      </div>
+    </div>
   )
 }
 
@@ -690,6 +1086,8 @@ function OdaSearch({
       onBlur={(e) => {
         if (!e.currentTarget.contains(e.relatedTarget)) onClose()
       }}
+      // Esc is the search's own, so it doesn't also close the Entry around it.
+      onKeyDown={(e) => e.key === 'Escape' && e.nativeEvent.stopPropagation()}
       style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}
     >
       <div style={{ display: 'flex', flexDirection: 'column' }}>

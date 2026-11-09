@@ -21,13 +21,19 @@ export async function completeGooglePopup(page: Page, email: string) {
 
 export async function signIn(page: Page, email: string) {
   await completeGooglePopup(page, email)
-  await expect(page.getByRole('button', { name: 'Logg ut' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Mer' })).toBeVisible()
 }
 
+// Adding is picking a chip: the Staple of that name if one is suggested, or "+" with the text.
 export async function addEntry(page: Page, text: string) {
   await page.getByPlaceholder('Hva trenger vi?').fill(text)
-  await page.getByRole('button', { name: 'Legg til', exact: true }).click()
+  await chip(page, text).click()
   await expect(entry(page, text)).toBeVisible()
+}
+
+export function chip(page: Page, text: string) {
+  const name = text.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  return page.getByRole('option', { name: new RegExp(`^(\\+ )?${name}$`, 'i') })
 }
 
 export function entry(page: Page, text: string) {
