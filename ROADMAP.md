@@ -5,10 +5,10 @@ Where Kraft is heading. It changes often. Ideas are one line each, cheap to add 
 ## Now
 
 - [Dependency maintenance](plans/active/05-dependency-maintenance.md)
+- [Gemini behind the allowlist](plans/active/31-gemini-behind-the-allowlist.md)
 
 ## Ideas
 
-- **Next.** Gemini behind the allowlist: today the browser calls it through Firebase AI Logic, which only checks App Check, so anyone who opens the site can spend on it. Move the calls into a callable that runs `requireFamily`, like the Oda functions.
 - Style guide: one short page on how the app looks. Icons are plain black text glyphs on a transparent background (⌂ for Hjem, ↻ for a new dish), sized up a little, not emoji or boxed buttons.
 - Rescaling a Recipe's amounts when its servings change.
 - Timers from the times in a Recipe's steps.
