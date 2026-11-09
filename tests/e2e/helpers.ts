@@ -87,6 +87,8 @@ export async function expectTab(page: Page, name: TabName) {
 const FAKE_ODA = 'http://127.0.0.1:8866'
 export const fakeBasket = async (): Promise<Record<string, number>> => (await fetch(`${FAKE_ODA}/basket`)).json()
 export const resetFakeBasket = () => fetch(`${FAKE_ODA}/reset`, { method: 'POST' })
+// Makes manipulate_cart on the fake Oda fail, or work again. resetFakeBasket also makes it work.
+export const failFakeOda = (failing: boolean) => fetch(`${FAKE_ODA}/fail`, { method: 'POST', body: JSON.stringify(failing) })
 // Changes the fake Basket as a Family Member would on oda.com.
 export const changeFakeBasket = (operations: { productId: number; quantity: number }[]) =>
   fetch(`${FAKE_ODA}/basket`, { method: 'POST', body: JSON.stringify(operations) })

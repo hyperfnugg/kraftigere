@@ -3,7 +3,7 @@ import { useCombobox } from 'downshift'
 import { type User } from 'firebase/auth'
 import { MealsTab, OdaOrderLink } from './Meals'
 import { readPackSizes, warmUp } from './ai'
-import { MAX_PACKS, type PackSize, formatAmount, packCount } from './amounts'
+import { MAX_PACKS, type PackSize, formatAmount, hasAmounts, startingPacks } from './amounts'
 import { signInWithGoogle, signOut, useOnline, useUser } from './firebase'
 import {
   cancelOda,
@@ -14,6 +14,7 @@ import {
   orderedOda,
   parseOdaUrl,
   searchOda,
+  setPacks,
   substituteBasket,
   suggestOda,
   useBasket,
@@ -501,7 +502,7 @@ function Home({
                   </button>
                 </form>
               )}
-              {isOpen && <OdaProductLine ware={wares.find((w) => w.id === entry.ware)} wares={wares} entries={entries} />}
+              {isOpen && <OdaProductLine ware={wares.find((w) => w.id === entry.ware)} />}
             </li>
           )
         })}
@@ -512,7 +513,7 @@ function Home({
 
 // The Ware's Oda Product, opening on oda.com, or "Aldri fra Oda". Changing it is removing it
 // and choosing again, searching Oda in its place.
-function OdaProductLine({ ware, wares, entries, picks }: { ware?: Ware; wares: Ware[]; entries: Entry[]; picks?: Picks }) {
+function OdaProductLine({ ware }: { ware?: Ware }) {
   const [searching, setSearching] = useState(false)
   if (!ware) return null
 
@@ -529,7 +530,6 @@ function OdaProductLine({ ware, wares, entries, picks }: { ware?: Ware; wares: W
             {ware.oda.name}
             {ware.oda.packText && ` · ${ware.oda.packText}`}
           </a>
-          <AlsoOn ware={ware} wares={wares} entries={entries} picks={picks} productId={ware.oda.id} />
           <ClearButton label="Fjern Oda-produkt" onClick={() => setOdaProduct(ware.id, null)} />
         </div>
       ) : searching ? (
@@ -545,29 +545,6 @@ function OdaProductLine({ ware, wares, entries, picks }: { ware?: Ware; wares: W
 
 // Suggested or picked in the choosing, by Ware id, not yet saved.
 type Picks = Record<string, OdaResult>
-
-// The other Wares waiting on the List with this Oda Product, saved or in the choosing's picks,
-// ticked or not. They may share it, but it's worth knowing, as they may be the same thing. A Ware
-// whose Entry is Checked or Removed is no longer in the way.
-function AlsoOn({
-  ware,
-  wares,
-  entries,
-  picks,
-  productId,
-}: {
-  ware: Ware
-  wares: Ware[]
-  entries: Entry[]
-  picks?: Picks
-  productId: number
-}) {
-  const productOf = (w: Ware) => w.oda?.id ?? (w.neverOda ? undefined : picks?.[w.id]?.id)
-  const waiting = (w: Ware) => entries.some((e) => e.ware === w.id && !e.checked)
-  const others = wares.filter((w) => w.id !== ware.id && productOf(w) === productId && waiting(w))
-  if (others.length === 0) return null
-  return <span style={{ color: '#8a5a00' }}>også på {others.map((w) => `«${w.name}»`).join(', ')}</span>
-}
 
 const toOdaProduct = (p: OdaProduct) => ({ id: p.id, name: p.name, packText: p.packText })
 
@@ -885,10 +862,9 @@ function byProduct(entries: Entry[]) {
     .sort((a, b) => a[0].line.name.localeCompare(b[0].line.name, 'nb'))
 }
 
-// Odabestilling: the choosing, or while an Oda Order lasts, the Order Summary, read-only: what's
-// next, then each Oda Product with its packs added up and the In Basket Entries it's for below it,
-// both alphabetically. "Koble til Oda" when the Family has no working
-// Oda Link. The choosing is kept only on this device; the Oda Order replaces it on every device.
+// Odabestilling: the choosing, or while an Oda Order lasts, the step after filling or the Order
+// Summary. "Koble til Oda" when the Family has no working Oda Link. The choosing is kept only on
+// this device; the Oda Order replaces it on every device.
 function OdaTab({ entries, ordering, onDishes }: { entries: Entry[]; ordering: boolean; onDishes: (entry: Entry) => void }) {
   const basket = useBasket()
   const [linking, setLinking] = useState(false)
@@ -896,54 +872,29 @@ function OdaTab({ entries, ordering, onDishes }: { entries: Entry[]; ordering: b
   // the Oda Order doesn't show for a moment before the step, and a failed fill loses nothing.
   const [filling, setFilling] = useState(false)
   const [unavailable, setUnavailable] = useState<string[]>([])
+  const [adding, setAdding] = useState<{ entries: Entry[]; outcome?: 'done' | 'failed' } | null>(null)
   const settling = entries.some((e) => unavailable.includes(e.id) && e.basket && e.basket.quantity > 0)
   // Only until they've arrived: a Substitute gives the same Entries packs again.
   if (unavailable.length > 0 && !settling) setUnavailable([])
   useEffect(warmUp, [])
 
+  const waiting = entries.filter((e) => e.basket?.quantity === 0 && !e.basket.left && !e.basket.shared)
+  // Through the call and until its outcome has arrived, as odaSubstitute changes the lines before
+  // Oda answers and changes them back if it refuses.
+  if (adding?.outcome && (!ordering || (adding.outcome === 'done') === (waiting.length === 0))) setAdding(null)
+
   if (ordering && !filling && !settling) {
-    const waiting = entries.filter((e) => e.basket?.quantity === 0 && !e.basket.left && !e.basket.shared)
-    if (waiting.length > 0) return <SubstituteStep entries={waiting} onDishes={onDishes} />
-    const leftOut = entries.filter((e) => e.basket?.left)
-    const products = byProduct(entries.filter((e) => e.basket && (e.basket.quantity > 0 || e.basket.shared)))
-    return (
-      <>
-        <h2 style={{ fontSize: '1.375rem', margin: 0 }}>Oppsummering odabestilling</h2>
-        <OdaOrder />
-        <ul style={{ ...listStyle, gap: '0.75rem' }}>
-          {products.map((needs) => {
-            const { productId, name, packText } = needs[0].line
-            return (
-              <li key={productId} style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                <a href={odaProductUrl(productId)} target="_blank" rel="noreferrer" style={{ fontSize: '1.125rem', color: 'inherit' }}>
-                  {needs.reduce((sum, b) => sum + b.line.quantity, 0)} × {name}
-                  {packText && ` · ${packText}`}
-                </a>
-                {needs.map(({ entry }) => (
-                  <div key={entry.id} style={{ fontSize: '0.875rem', color: '#555' }}>
-                    {entry.text}
-                    <Details entry={entry} onDishes={onDishes} />
-                  </div>
-                ))}
-              </li>
-            )
-          })}
-        </ul>
-        {leftOut.length > 0 && (
-          <section style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            <h3 style={{ fontSize: '1rem', margin: 0, color: '#555' }}>Ikke tilgjengelig</h3>
-            <ul style={{ ...listStyle, gap: '0.75rem' }}>
-              {leftOut.map((entry) => (
-                <li key={entry.id} style={{ fontSize: '1.125rem', color: '#555' }}>
-                  {entry.text}
-                  <Details entry={entry} onDishes={onDishes} />
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
-      </>
-    )
+    if (adding || waiting.length > 0) {
+      return (
+        <SubstituteStep
+          entries={adding?.entries ?? waiting}
+          onDishes={onDishes}
+          onStart={() => setAdding({ entries: waiting })}
+          onEnd={(outcome) => setAdding((a) => a && { ...a, outcome })}
+        />
+      )
+    }
+    return <OrderSummary entries={entries} onDishes={onDishes} />
   }
   if (basket && basket !== 'error' && !basket.linked) {
     return (
@@ -987,53 +938,6 @@ function OdaTab({ entries, ordering, onDishes }: { entries: Entry[]; ordering: b
   )
 }
 
-type PackRow = { entry: Entry; ware: Ware | undefined }
-
-// Each Entry's Pack Count comes from its dishes and its Oda Product's Pack Size, which the AI
-// reads once, in one request, for the products that need it, when ready. A count set by hand lasts
-// as long as its Oda Product does.
-function usePackCounts(rows: PackRow[], productOf: (r: PackRow) => OdaProduct | undefined, ready: boolean) {
-  // Set by hand, by Entry id, for the Oda Product they were set on.
-  const [handCounts, setHandCounts] = useState<Record<string, { product: number; count: number }>>({})
-  // Read by the AI here, by Oda Product id, not yet saved.
-  const [sizes, setSizes] = useState<Record<number, PackSize | 'failed'>>({})
-  const asked = useRef(new Set<number>())
-  const hasAmounts = (e: Entry) => (e.dishes ?? []).some((d) => d.grams !== null || d.pieces !== null)
-  const packs = (r: PackRow) => {
-    const product = productOf(r)
-    if (!product) return null
-    const hand = handCounts[r.entry.id]
-    if (hand?.product === product.id) return { count: hand.count }
-    if (!hasAmounts(r.entry)) return { count: 1 }
-    const size = product.packGrams ? product : sizes[product.id]
-    if (!size) return { count: 1, waiting: true }
-    if (size === 'failed') return { count: 1, failed: true }
-    return { count: packCount(r.entry.dishes ?? [], size) }
-  }
-  const unsized = rows.flatMap((r) => {
-    const product = productOf(r)
-    return product && hasAmounts(r.entry) && !product.packGrams ? [product] : []
-  })
-
-  // Once ready, then again for anything that comes to need a Pack Size. Leaving the tab and coming
-  // back asks again for what failed.
-  useEffect(() => {
-    if (!ready) return
-    const want = [...new Map(unsized.filter((p) => !asked.current.has(p.id)).map((p) => [p.id, p])).values()]
-    if (want.length === 0) return
-    for (const p of want) asked.current.add(p.id)
-    readPackSizes(want)
-      .catch((e) => {
-        console.warn('Fikk ikke lest pakningsstørrelser:', e)
-        return want.map(() => null)
-      })
-      .then((answers) => setSizes((s) => ({ ...s, ...Object.fromEntries(want.map((p, i) => [p.id, answers[i] ?? 'failed'])) })))
-  }, [ready, unsized])
-
-  const setHandCount = (r: PackRow, count: number) => setHandCounts((h) => ({ ...h, [r.entry.id]: { product: productOf(r)!.id, count } }))
-  return { packs, setHandCount, sizes }
-}
-
 // Choosing which unchecked Entries to order from Oda: "Nye varer" first, whose Wares have no Oda
 // Product yet, then "Tidligere kjøpte varer", each alphabetically. A Ware without an Oda Product
 // gets one suggested when the choosing opens: the first search hit for its name, preferring one
@@ -1073,9 +977,6 @@ function Choosing({
   const ticked = (r: (typeof rows)[number]) => ticks[r.entry.id] ?? !!r.ware?.oda
   const chosen = inside.filter(ticked)
   const lacking = new Set(chosen.filter((r) => !r.ware?.oda && !pickOf(r)).map((r) => r.entry.id))
-  const productOf = (r: (typeof rows)[number]): OdaProduct | undefined => r.ware?.oda ?? pickOf(r)
-  const { packs, setHandCount, sizes } = usePackCounts(inside, productOf, !suggesting)
-  const counting = chosen.some((r) => packs(r)?.waiting)
 
   // Once, as soon as the Wares and Entries have loaded. Back from linking Oda, the app opens here
   // and either can come first.
@@ -1102,11 +1003,6 @@ function Choosing({
 
   const row = (r: (typeof rows)[number]) => {
     const marked = tried && lacking.has(r.entry.id)
-    const pack = packs(r)
-    const setCount = (count: number) => {
-      setHandCount(r, count)
-      setTicks({ ...ticks, [r.entry.id]: true })
-    }
     return (
       <li key={r.entry.id} style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', fontSize: '1.125rem' }}>
         <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}>
@@ -1123,13 +1019,11 @@ function Choosing({
         </label>
         <div style={{ paddingLeft: '2rem' }}>
           {r.ware?.oda ? (
-            <OdaProductLine ware={r.ware} wares={wares} entries={entries} picks={picks} />
+            <OdaProductLine ware={r.ware} />
           ) : (
             r.ware && (
               <PickLine
                 ware={r.ware}
-                wares={wares}
-                entries={entries}
                 picks={picks}
                 suggesting={suggesting}
                 onPick={(p) => {
@@ -1139,7 +1033,6 @@ function Choosing({
               />
             )
           )}
-          {pack && <PackStepper {...pack} onChange={setCount} />}
         </div>
       </li>
     )
@@ -1166,14 +1059,10 @@ function Choosing({
     if (lacking.size > 0) return
     setFilling(true)
     try {
-      // The function reads the Oda Products from the Wares, so they're saved first, with any
-      // Pack Size read here.
+      // The function reads the Oda Products from the Wares, so they're saved first.
       const links = chosen.flatMap((r): [string, OdaProduct][] => {
-        const p = productOf(r)
-        if (!r.ware || !p) return []
-        const size = sizes[p.id]
-        const read = size && size !== 'failed' ? size : undefined
-        return pickOf(r) || read ? [[r.ware.id, { ...toOdaProduct(p), ...read }]] : []
+        const p = pickOf(r)
+        return r.ware && p ? [[r.ware.id, toOdaProduct(p)]] : []
       })
       if (links.length > 0) await setOdaProducts(links)
       // Filled, the Oda Order begins and takes the choosing's place.
@@ -1227,12 +1116,9 @@ function Choosing({
       )}
       {tried && lacking.size > 0 && <div style={{ color: '#b00020' }}>Alle varer må ha et Oda-produkt</div>}
       {error && <div style={{ color: '#8a5a00' }}>{error}</div>}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-        <button onClick={fill} disabled={chosen.length === 0 || counting} style={buttonStyle}>
-          Fyll handlekurven
-        </button>
-        {counting && <span style={{ fontSize: '0.875rem', color: '#555' }}>Regner ut antall pakker …</span>}
-      </div>
+      <button onClick={fill} disabled={chosen.length === 0} style={{ ...buttonStyle, alignSelf: 'flex-start' }}>
+        Fyll handlekurven
+      </button>
     </>
   )
 }
@@ -1258,30 +1144,33 @@ function FillingBasket() {
   )
 }
 
-// An Entry's Pack Count, changed by hand from 1 to 20, and not while the AI is reading its Pack
-// Size. If that failed, it says so until the count is changed.
+// An Oda Product's Pack Count, from 1 to 20. With no count yet it's empty and its buttons are
+// disabled. Everything keeps its place, so nothing moves when the count arrives. What it has to say
+// shows on its own row.
 function PackStepper({
   count,
-  waiting,
-  failed,
+  disabled,
+  note,
   onChange,
 }: {
-  count: number
-  waiting?: boolean
-  failed?: boolean
+  count: number | null
+  disabled: boolean
+  note: string
   onChange: (count: number) => void
 }) {
   const step = { ...smallButtonStyle, padding: '0 0.625rem' }
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.25rem', fontSize: '0.875rem', color: '#555' }}>
-      <button aria-label="Færre pakker" disabled={waiting || count <= 1} onClick={() => onChange(count - 1)} style={step}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', color: '#555' }}>
+      <button aria-label="Færre pakker" disabled={disabled || count === null || count <= 1} onClick={() => onChange(count! - 1)} style={step}>
         −
       </button>
-      <span aria-label="Antall pakker">{waiting ? '…' : count}</span>
-      <button aria-label="Flere pakker" disabled={waiting || count >= MAX_PACKS} onClick={() => onChange(count + 1)} style={step}>
+      <span aria-label="Antall pakker" style={{ minWidth: '2ch', textAlign: 'center' }}>
+        {count}
+      </span>
+      <button aria-label="Flere pakker" disabled={disabled || count === null || count >= MAX_PACKS} onClick={() => onChange(count! + 1)} style={step}>
         +
       </button>
-      {failed && <span style={{ color: '#8a5a00' }}>Fikk ikke regnet ut antall pakker</span>}
+      {note && <span style={{ color: '#8a5a00' }}>{note}</span>}
     </div>
   )
 }
@@ -1290,15 +1179,11 @@ function PackStepper({
 // saved one, linking to oda.com; × opens the search in its place, starting with the Ware's name.
 function PickLine({
   ware,
-  wares,
-  entries,
   picks,
   suggesting,
   onPick,
 }: {
   ware: Ware
-  wares: Ware[]
-  entries: Entry[]
   picks: Picks
   suggesting: boolean
   onPick: (p: OdaResult) => void
@@ -1322,7 +1207,6 @@ function PickLine({
           {pick.packText && ` · ${pick.packText}`}
         </a>
         {!pick.available && 'ikke tilgjengelig'}
-        <AlsoOn ware={ware} wares={wares} entries={entries} picks={picks} productId={pick.id} />
         <ClearButton label="Bytt Oda-produkt" onClick={() => setSearching(true)} />
       </div>
     )
@@ -1336,61 +1220,56 @@ function PickLine({
 }
 
 // After filling, what wasn't available, laid out like the Order Summary: each Oda Product with the
-// Entries it's for below it, and one search for what to put in the Basket instead, with one Pack
-// Count, starting at what its Entries add up to. For a temporarily unavailable product that's a Substitute, for this Oda Order
-// only. For an Off Sale one it becomes the Ware's Oda Product, saved first with any Pack Size read
-// here. What gets nothing is Left Out. Picks last until a button is pressed.
-function SubstituteStep({ entries, onDishes }: { entries: Entry[]; onDishes: (entry: Entry) => void }) {
+// Entries it's for below it, and one search for what to put in the Basket instead. For a
+// temporarily unavailable product that's a Substitute, for this Oda Order only. For an Off Sale one
+// it becomes the Ware's Oda Product, saved first. What gets nothing is Left Out. Picks last until a
+// button is pressed, and through a call that fails.
+function SubstituteStep({
+  entries,
+  onDishes,
+  onStart,
+  onEnd,
+}: {
+  entries: Entry[]
+  onDishes: (entry: Entry) => void
+  onStart: () => void
+  onEnd: (outcome: 'done' | 'failed') => void
+}) {
   const wares = useWares()
   // By the id of the Oda Product they replace.
   const [picks, setPicks] = useState<Record<number, OdaResult>>({})
   const [busy, setBusy] = useState<'adding' | 'skipping' | null>(null)
   const [error, setError] = useState('')
-  const rows = entries.map((entry) => ({ entry, ware: wares.find((w) => w.id === entry.ware) }))
-  const productOf = (r: PackRow) => picks[r.entry.basket?.productId ?? 0]
-  const { packs, sizes } = usePackCounts(rows, productOf, true)
-  // Set by hand, by the id of the Oda Product replaced, for the pick they were set on.
-  const [handCounts, setHandCounts] = useState<Record<number, { product: number; count: number }>>({})
+  const wareOf = (entry: Entry) => wares.find((w) => w.id === entry.ware)
   const products = byProduct(entries)
-  const packsFor = (needs: (typeof products)[number]) => {
-    const { productId } = needs[0].line
-    const pick = picks[productId]
-    if (!pick) return null
-    const hand = handCounts[productId]
-    if (hand?.product === pick.id) return { count: hand.count }
-    const each = rows.filter((r) => needs.some((n) => n.entry.id === r.entry.id)).map(packs)
-    return {
-      count: Math.min(MAX_PACKS, each.reduce((sum, p) => sum + (p?.count ?? 1), 0)),
-      waiting: each.some((p) => p?.waiting),
-      failed: each.some((p) => p?.failed),
-    }
-  }
-  const picked = rows.filter((r) => productOf(r))
-  const counting = products.some((needs) => packsFor(needs)?.waiting)
+  const picked = entries.flatMap((entry) => {
+    const pick = picks[entry.basket?.productId ?? 0]
+    return pick ? [{ entry, pick }] : []
+  })
 
-  async function finish(chosen: typeof rows) {
+  async function finish(chosen: typeof picked) {
     setBusy(chosen.length > 0 ? 'adding' : 'skipping')
     setError('')
+    onStart()
+    let outcome: 'done' | 'failed' = 'done'
     try {
-      const links = chosen.flatMap((r): [string, OdaProduct][] => {
-        const p = productOf(r)
-        const size = sizes[p.id]
-        return r.entry.basket?.gone && r.ware ? [[r.ware.id, { ...toOdaProduct(p), ...(size && size !== 'failed' ? size : undefined) }]] : []
+      const links = chosen.flatMap(({ entry, pick }): [string, OdaProduct][] => {
+        const ware = wareOf(entry)
+        return entry.basket?.gone && ware ? [[ware.id, toOdaProduct(pick)]] : []
       })
       if (links.length > 0) await setOdaProducts(links)
-      const filled = await substituteBasket(
-        chosen.length === 0
-          ? []
-          : products.flatMap((needs) => {
-              const pick = picks[needs[0].line.productId]
-              return pick ? needs.map(({ entry }) => ({ id: entry.id, product: toOdaProduct(pick) })) : []
-            }),
-      )
-      if (!filled) setError('Koble til Oda på nytt')
-    } catch {
+      const filled = await substituteBasket(chosen.map(({ entry, pick }) => ({ id: entry.id, product: toOdaProduct(pick) })))
+      if (!filled) {
+        setError('Koble til Oda på nytt')
+        outcome = 'failed'
+      }
+    } catch (e) {
       setError('Oda svarer ikke')
+      // Another device got there first, so these Entries aren't coming back to this step.
+      if ((e as { code?: string }).code !== 'functions/failed-precondition') outcome = 'failed'
     } finally {
       setBusy(null)
+      onEnd(outcome)
     }
   }
 
@@ -1401,8 +1280,7 @@ function SubstituteStep({ entries, onDishes }: { entries: Entry[]; onDishes: (en
       <ul style={{ ...listStyle, gap: '0.75rem' }}>
         {products.map((needs) => {
           const { productId, name, packText, gone } = needs[0].line
-          const ware = rows.find((r) => r.entry.id === needs[0].entry.id)?.ware
-          const pack = packsFor(needs)
+          const ware = wareOf(needs[0].entry)
           return (
             <li key={productId} style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
               <div style={{ fontSize: '1.125rem' }}>
@@ -1426,25 +1304,18 @@ function SubstituteStep({ entries, onDishes }: { entries: Entry[]; onDishes: (en
                   }
                 />
               )}
-              {pack && (
-                <PackStepper
-                  {...pack}
-                  onChange={(count) => setHandCounts((h) => ({ ...h, [productId]: { product: picks[productId].id, count } }))}
-                />
-              )}
             </li>
           )
         })}
       </ul>
       {error && <div style={{ color: '#8a5a00' }}>{error}</div>}
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-        <button onClick={() => finish(picked)} disabled={picked.length === 0 || !!busy || counting} style={buttonStyle}>
+        <button onClick={() => finish(picked)} disabled={picked.length === 0 || !!busy} style={buttonStyle}>
           Legg i handlekurven
         </button>
         <button onClick={() => finish([])} disabled={!!busy} style={buttonStyle}>
           Hopp over
         </button>
-        {counting && <span style={{ fontSize: '0.875rem', color: '#555' }}>Regner ut antall pakker …</span>}
       </div>
     </>
   )
@@ -1491,12 +1362,209 @@ function ReplaceLine({
   )
 }
 
+type ProductNeeds = ReturnType<typeof byProduct>[number]
+
+const isUncounted = (needs: ProductNeeds) => needs.some(({ line }) => line.uncounted)
+const needsAmounts = (needs: ProductNeeds) => needs.some(({ entry }) => hasAmounts(entry.dishes ?? []))
+
+// The first saved Pack Size among the product's Entries, which are alphabetical.
+function savedSize(needs: ProductNeeds, wares: Ware[]) {
+  for (const { entry, line } of needs) {
+    const oda = wares.find((w) => w.id === entry.ware)?.oda
+    if (oda?.id === line.productId && oda.packGrams) return oda
+  }
+}
+
+const startingCount = (needs: ProductNeeds, size?: { packGrams?: number; packPieces?: number } | null) =>
+  startingPacks(needs.map(({ entry }) => entry.dishes ?? []), size ?? {})
+
+// Sets the starting Pack Counts of the products not yet counted. Those that need no reading go in
+// the Basket at once, so a slow read holds up nothing but its own products. Pack Sizes nobody has
+// saved are read in one request, for products where an Entry has amounts, and saved at once on the
+// Wares whose own Oda Product it is, even if the Oda Order is later Cancelled. A Substitute's is
+// used once. A product whose Pack Size can't be read stays not yet counted. Returns what went wrong
+// with Oda, if anything.
+async function setStartingCounts(needing: ProductNeeds[], wares: Ware[], onRead: (sizes: Record<number, PackSize | null>) => void) {
+  const land = async (counts: { productId: number; count: number }[]) => {
+    if (counts.length === 0) return ''
+    try {
+      return (await setPacks(counts, true)) ? '' : 'Koble til Oda på nytt'
+    } catch {
+      return 'Oda svarer ikke'
+    }
+  }
+  const unread = needing.filter((needs) => needsAmounts(needs) && !savedSize(needs, wares))
+  const known = needing.filter((needs) => !unread.includes(needs))
+
+  const readAndLand = async () => {
+    if (unread.length === 0) return ''
+    const products = unread.map((needs) => ({ id: needs[0].line.productId, name: needs[0].line.name, packText: needs[0].line.packText }))
+    const read = await readPackSizes(products).catch((e) => {
+      console.warn('Fikk ikke lest pakningsstørrelser:', e)
+      return unread.map(() => null)
+    })
+    onRead(Object.fromEntries(products.map((p, i) => [p.id, read[i]])))
+    const links = unread.flatMap((needs, i) => {
+      const size = read[i]
+      if (!size) return []
+      return needs.flatMap(({ entry, line }): [string, OdaProduct][] => {
+        const ware = wares.find((w) => w.id === entry.ware)
+        return ware?.oda?.id === line.productId ? [[ware.id, { ...toOdaProduct(ware.oda), ...size }]] : []
+      })
+    })
+    if (links.length > 0) setOdaProducts(links).catch(console.warn)
+    return land(unread.flatMap((needs, i) => (read[i] ? [{ productId: needs[0].line.productId, count: startingCount(needs, read[i]) }] : [])))
+  }
+
+  const errors = await Promise.all([
+    land(known.map((needs) => ({ productId: needs[0].line.productId, count: startingCount(needs, savedSize(needs, wares)) }))),
+    readAndLand(),
+  ])
+  return errors.find(Boolean) ?? ''
+}
+
+// What the Oda Order put in the Basket: what's next, then each Oda Product with its Pack Count and
+// the In Basket Entries it's for, both alphabetically, then what was Left Out. While any product
+// isn't yet counted, each device that opens it does the counting once, with "Bestilt" and "Avbryt"
+// disabled. Whatever fails, they open up afterwards, so a Gemini outage never blocks an order.
+function OrderSummary({ entries, onDishes }: { entries: Entry[]; onDishes: (entry: Entry) => void }) {
+  const wares = useWares()
+  const leftOut = entries.filter((e) => e.basket?.left)
+  const products = byProduct(entries.filter((e) => e.basket && (e.basket.quantity > 0 || e.basket.shared)))
+  const [counting, setCounting] = useState(() => products.some(isUncounted))
+  const [countError, setCountError] = useState('')
+  // Read here, by Oda Product id, or null if that failed.
+  const [sizes, setSizes] = useState<Record<number, PackSize | null>>({})
+  // "Bestilt", "Avbryt" and the steppers wait for each other on this device.
+  const [busy, setBusy] = useState(false)
+  const started = useRef(false)
+
+  useEffect(() => {
+    if (!counting || started.current || wares.length === 0) return
+    started.current = true
+    setStartingCounts(products.filter(isUncounted), wares, setSizes)
+      .then(setCountError)
+      .finally(() => setCounting(false))
+  }, [counting, products, wares])
+
+  return (
+    <>
+      <h2 style={{ fontSize: '1.375rem', margin: 0 }}>Oppsummering odabestilling</h2>
+      <OdaOrder counting={counting} countError={countError} busy={busy} setBusy={setBusy} />
+      <ul style={{ ...listStyle, gap: '0.75rem' }}>
+        {products.map((needs) => (
+          <OrderProduct
+            key={needs[0].line.productId}
+            needs={needs}
+            wares={wares}
+            read={sizes[needs[0].line.productId]}
+            counting={counting}
+            busy={busy}
+            setBusy={setBusy}
+            onDishes={onDishes}
+          />
+        ))}
+      </ul>
+      {leftOut.length > 0 && (
+        <section style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+          <h3 style={{ fontSize: '1rem', margin: 0, color: '#555' }}>Ikke tilgjengelig</h3>
+          <ul style={{ ...listStyle, gap: '0.75rem' }}>
+            {leftOut.map((entry) => (
+              <li key={entry.id} style={{ fontSize: '1.125rem', color: '#555' }}>
+                {entry.text}
+                <Details entry={entry} onDishes={onDishes} />
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+    </>
+  )
+}
+
+// One Oda Product on the Order Summary. Its stepper shows a new count at once, changes the real
+// Basket, and goes back if Oda fails. A product not yet counted shows the count it's about to get,
+// as soon as that's known, and none while its Pack Size is being read. "Sjekk antall" when no Pack
+// Size could be read for it, until the stepper is used.
+function OrderProduct({
+  needs,
+  wares,
+  read,
+  counting,
+  busy,
+  setBusy,
+  onDishes,
+}: {
+  needs: ProductNeeds
+  wares: Ware[]
+  read: PackSize | null | undefined
+  counting: boolean
+  busy: boolean
+  setBusy: (busy: boolean) => void
+  onDishes: (entry: Entry) => void
+}) {
+  const { productId, name, packText } = needs[0].line
+  const [pending, setPending] = useState<number | null>(null)
+  const [error, setError] = useState('')
+  const uncounted = isUncounted(needs)
+  const size = savedSize(needs, wares) ?? read
+  const sizeless = uncounted && needsAmounts(needs) && !size
+  const reading = counting && sizeless && read === undefined
+  const landing = counting && uncounted && !sizeless
+  const count = reading ? null : landing ? startingCount(needs, size) : needs.reduce((sum, { line }) => sum + line.quantity, 0)
+
+  async function change(count: number) {
+    setBusy(true)
+    setPending(count)
+    setError('')
+    try {
+      if (!(await setPacks([{ productId, count }]))) setError('Koble til Oda på nytt')
+    } catch {
+      setError('Oda svarer ikke')
+    } finally {
+      setPending(null)
+      setBusy(false)
+    }
+  }
+
+  return (
+    <li style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+      <a href={odaProductUrl(productId)} target="_blank" rel="noreferrer" style={{ fontSize: '1.125rem', color: 'inherit' }}>
+        {name}
+        {packText && ` · ${packText}`}
+      </a>
+      <PackStepper
+        count={pending ?? count}
+        disabled={busy}
+        note={error || (sizeless && !reading ? 'Sjekk antall' : '')}
+        onChange={change}
+      />
+      {needs.map(({ entry }) => (
+        <div key={entry.id} style={{ fontSize: '0.875rem', color: '#555' }}>
+          {entry.text}
+          <Details entry={entry} onDishes={onDishes} />
+        </div>
+      ))}
+    </li>
+  )
+}
+
 // While an Oda Order lasts: the next step is the Family Member's own, ordering in the Basket on
 // oda.com. Anyone may end it, with "Bestilt" or "Avbryt". Avbryt asks first, then takes out of
-// the Basket exactly what Kraft put in.
-function OdaOrder() {
+// the Basket exactly what Kraft put in. While counting both wait, and a line of text takes the
+// place of what's next, which keeps its height, so nothing moves when counting ends.
+function OdaOrder({
+  counting,
+  countError,
+  busy,
+  setBusy,
+}: {
+  counting: boolean
+  countError: string
+  busy: boolean
+  setBusy: (busy: boolean) => void
+}) {
   const basket = useBasket()
-  const [busy, setBusy] = useState(false)
   const [asking, setAsking] = useState(false)
   const [error, setError] = useState('')
   const url = basket && basket !== 'error' && basket.linked ? basket.url : 'https://oda.com/no/cart/'
@@ -1519,17 +1587,20 @@ function OdaOrder() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-      <div>
-        Neste steg er ditt: bestill i{' '}
-        <a href={url} target="_blank" rel="noreferrer">
-          handlekurven på oda.com
-        </a>
+      <div style={{ position: 'relative' }}>
+        {counting && <div style={{ position: 'absolute' }}>Regner ut antall pakker …</div>}
+        <div style={{ visibility: counting ? 'hidden' : 'visible' }}>
+          Neste steg er ditt: bestill i{' '}
+          <a href={url} target="_blank" rel="noreferrer">
+            handlekurven på oda.com
+          </a>
+        </div>
       </div>
       <div style={{ display: 'flex', gap: '0.5rem' }}>
-        <button onClick={() => act(orderedOda)} disabled={busy || asking} style={buttonStyle}>
+        <button onClick={() => act(orderedOda)} disabled={counting || busy || asking} style={buttonStyle}>
           Bestilt
         </button>
-        <button onClick={() => setAsking(true)} disabled={busy || asking} style={buttonStyle}>
+        <button onClick={() => setAsking(true)} disabled={counting || busy || asking} style={buttonStyle}>
           Avbryt
         </button>
       </div>
@@ -1544,7 +1615,7 @@ function OdaOrder() {
           onBack={() => setAsking(false)}
         />
       )}
-      {error && <div style={{ color: '#8a5a00' }}>{error}</div>}
+      {(error || countError) && <div style={{ color: '#8a5a00' }}>{error || countError}</div>}
     </div>
   )
 }

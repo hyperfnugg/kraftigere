@@ -11,6 +11,7 @@ type SubstituteEntry = { id: string; product: { id: number; name: string; packTe
 const odaBasket = httpsCallable<void, Basket>(functions, 'odaBasket')
 const odaFill = httpsCallable<{ entries: string[] }, Linked & { unavailable?: string[] }>(functions, 'odaFill')
 const odaSubstitute = httpsCallable<{ entries: SubstituteEntry[] }, Linked>(functions, 'odaSubstitute')
+const odaSetPacks = httpsCallable<{ products: { productId: number; count: number }[]; starting: boolean }, Linked>(functions, 'odaSetPacks')
 const odaOrdered = httpsCallable<void, void>(functions, 'odaOrdered')
 const odaCancel = httpsCallable<void, Linked>(functions, 'odaCancel')
 const odaLinkStart = httpsCallable<void, { url: string }>(functions, 'odaLinkStart')
@@ -55,6 +56,12 @@ export async function fillBasket(entries: string[]) {
 // Ends the step after filling: these go in the Basket, and any other Entry waiting is Left Out.
 export async function substituteBasket(entries: SubstituteEntry[]) {
   return (await odaSubstitute({ entries })).data.linked
+}
+
+// Sets Pack Counts by Oda Product, in the real Basket. Starting counts only touch products not yet
+// counted, so they never overwrite a count someone has set.
+export async function setPacks(products: { productId: number; count: number }[], starting = false) {
+  return (await odaSetPacks({ products, starting })).data.linked
 }
 
 // Ordered: checks off the In Basket Entries.

@@ -56,15 +56,13 @@ test('a Family Member chooses Entries and fills the Basket', async ({ page }) =>
   await expect(page.getByRole('link', { name: 'Oda: 4 varer i handlekurven' })).toBeVisible()
 
   // Wares without an Oda Product come first, each with the first available search hit suggested,
-  // unticked, and saying which others have it. Smør, bought before, is ticked.
+  // unticked. Smør, bought before, is ticked.
   const fresh = page.locator('section').filter({ has: page.getByRole('heading', { name: 'Nye varer' }) })
   const known = page.locator('section').filter({ has: page.getByRole('heading', { name: 'Tidligere kjøpte varer' }) })
   const melk = page.getByRole('link', { name: 'Tine Lettmelk 1% fett · 1% fett, 1 l' })
   await expect(fresh.getByRole('checkbox')).toHaveCount(3)
   await expect(melk).toHaveCount(2)
   await expect(melk.first()).toHaveAttribute('href', 'https://oda.com/no/products/430/')
-  await expect(fresh.getByText('også på «Sokker»')).toBeVisible()
-  await expect(fresh.getByText('også på «Melk»')).toBeVisible()
   await expect(fresh.getByRole('button', { name: 'Velg Oda-produkt' })).toBeVisible()
   await expect(tick(page, 'Melk')).not.toBeChecked()
   await expect(known.getByRole('link', { name: 'TINE Ekte smør · 250 g' })).toBeVisible()
@@ -100,7 +98,7 @@ test('a Family Member chooses Entries and fills the Basket', async ({ page }) =>
   await expect(page.getByRole('button', { name: /^(Fjern|Bytt) / })).toHaveCount(0)
 })
 
-test('the Order Summary adds up an Oda Product, which a suggestion can share with another Ware', async ({ page }) => {
+test('the Order Summary has one count per Oda Product, which a suggestion can share with another Ware', async ({ page }) => {
   await signIn(page, MEMBERS[0])
   await linkOda(page)
   await openTab(page, 'Hjem')
@@ -116,13 +114,13 @@ test('the Order Summary adds up an Oda Product, which a suggestion can share wit
   const product = page.getByRole('link', { name: 'Tine Lettmelk 1% fett · 1% fett, 1 l' })
   await expect(product).toHaveCount(2)
   await expect(tick(page, 'Kefir')).not.toBeChecked()
-  await expect(page.getByText('også på «Kefir»')).toBeVisible()
-  await expect(page.getByText('også på «Melk»')).toBeVisible()
 
   await tick(page, 'Kefir').check()
   await page.getByRole('button', { name: 'Fyll handlekurven' }).click()
   await expect(page.getByRole('heading', { name: 'Oppsummering odabestilling' })).toBeVisible()
-  await expect(page.getByRole('link', { name: '2 × Tine Lettmelk 1% fett · 1% fett, 1 l' })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Tine Lettmelk 1% fett · 1% fett, 1 l' })).toBeVisible()
+  await expect(page.getByLabel('Antall pakker')).toHaveText('2')
+  await expect(page.getByRole('button', { name: 'Bestilt' })).toBeEnabled()
   await expect(page.getByRole('listitem')).toHaveCount(1)
   await expect(page.getByRole('listitem').getByText('Kefir', { exact: true })).toBeVisible()
   await expect(page.getByRole('listitem').getByText('Melk', { exact: true })).toBeVisible()

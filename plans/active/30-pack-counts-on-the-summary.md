@@ -9,7 +9,7 @@ Thirtieth milestone and the seventh Oda one, on the `oda` branch, to land before
 - **The choosing.** No Pack Counts, no steppers and no Pack Size reading. It's about which Entries, and which Oda Products.
 - **The step after filling.** The same. It's about what replaces what.
 - **Filling and adding Substitutes.** One pack per Oda Product, held by its first Entry, with the others `shared`.
-- **The Order Summary.** It reads any missing Pack Sizes and sets the starting counts in one Basket change, then shows one stepper per Oda Product. Pressing it changes the real Basket at once, by the difference, and only ever by packs Kraft put there.
+- **The Order Summary.** It sets the starting counts of what it can work out at once, then reads any missing Pack Sizes and sets the rest, and shows one stepper per Oda Product. Pressing it changes the real Basket at once, by the difference, and only ever by packs Kraft put there.
 - **What a Pack Count is.** One for each Oda Product in an Oda Order, not one for each Entry. Its Entries' dishes are added up before rounding, when all of them have amounts. "Bestilt" and "Avbryt" go on working from what Kraft put in.
 
 ## Out of scope
@@ -40,27 +40,27 @@ Thirtieth milestone and the seventh Oda one, on the `oda` branch, to land before
   - **If Oda doesn't take it.** A transaction takes back only this call's differences and restores the mark, and does nothing for a line that's gone. It never restores old values: that would lose another device's change, or put `basket` back on an Entry whose Oda Order has ended.
   - Unit tests for working out the operations.
 - [x] **Commit: Setting Pack Counts in the Basket.** *(manual)* (touches the real Basket; review first)
-- [ ] **Starting counts in `amounts.ts`.** A pure function for one Oda Product's starting count from its Entries' dishes and a Pack Size. When every Entry has amounts they're added up before rounding, so 300 g and 400 g in packs of 1 kg is one pack. Otherwise each Entry adds its own, and one without amounts counts as one. Unit tests.
-- [ ] **The choosing and the step after filling lose their counts.** The steppers go, along with the hand counts, `usePackCounts`, the waiting on "Regner ut antall pakker …" and the Pack Size reading.
-- [ ] **The Order Summary counts.** While any product isn't yet counted, each device that opens it does the following once:
+- [x] **Starting counts in `amounts.ts`.** A pure function for one Oda Product's starting count from its Entries' dishes and a Pack Size. When every Entry has amounts they're added up before rounding, so 300 g and 400 g in packs of 1 kg is one pack. Otherwise each Entry adds its own, and one without amounts counts as one. Unit tests.
+- [x] **The choosing and the step after filling lose their counts.** The steppers go, along with the hand counts, `usePackCounts`, the waiting on "Regner ut antall pakker …" and the Pack Size reading.
+- [x] **The Order Summary counts.** While any product isn't yet counted, each device that opens it does the following once:
   - It uses the first saved Pack Size among the product's Entries, alphabetically, and otherwise asks the AI in one request, for products where an Entry has amounts.
   - A Pack Size that's read is saved at once on the Wares whose own Oda Product it is, even if the Oda Order is later Cancelled. A Substitute's is used once and not saved. What replaces an Off Sale product is already the Ware's own by then, so it's saved too.
-  - It calls `odaSetPacks` with the starting counts of the products it could work out. A product whose Pack Size can't be read stays not yet counted, at one pack.
-- [ ] **The Order Summary while counting.** The Oda Products and their Entries show from the start, so the Family Member can begin looking them over.
-  - "Regner ut antall pakker …" takes the place of "Neste steg er ditt", "Bestilt" and "Avbryt", and "…" takes the place of each stepper.
-  - Each takes up the same height as what replaces it, so nothing moves when counting ends.
+  - It calls `odaSetPacks` with the starting counts of the products that need no reading, without waiting for the read, and again with those it read. A product whose Pack Size can't be read stays not yet counted, at one pack.
+- [x] **The Order Summary while counting.** The Oda Products and their Entries show from the start, so the Family Member can begin looking them over.
+  - "Regner ut antall pakker …" takes the place of "Neste steg er ditt", keeping its height, and "Bestilt" and "Avbryt" are disabled, so nothing moves when counting ends.
+  - A product with a known count shows it, with its stepper working, from the start. One whose Pack Size is being read has an empty count, with − and + disabled.
   - If the read or Oda fails, everything opens up, so a Gemini outage never blocks an order.
-- [ ] **The Order Summary's steppers.**
+- [x] **The Order Summary's steppers.**
   - A `PackStepper` per Oda Product shows the new count at once and goes back if Oda fails, saying "Oda svarer ikke", or "Koble til Oda på nytt" if the Oda Link is broken. These show on the stepper's own row.
   - "Bestilt", "Avbryt" and the steppers block each other on one device while one is working.
   - "Sjekk antall" shows on the row of a product that isn't yet counted, with an Entry that has amounts and no Pack Size, once the read is over. Nothing about the failure is stored. Reopening the Order Summary reads again. Using the stepper clears the warning, and from then on a later read never changes that count.
-- [ ] **The step after filling keeps its error and picks.** When `odaSubstitute` fails, the step remounts, so "Oda svarer ikke" never shows and the picks are lost. It stays mounted through the call, as the choosing does through filling.
-- [ ] **Try it on the dev server**, iterating on feedback, with real Gemini and real Oda. Skipped in AFK mode. *(user)*
-  - Fill with two Entries on one Oda Product, see them go in as one pack, and see the count their dishes need together, with nothing moving as it lands.
+- [x] **The step after filling keeps its error and picks.** When `odaSubstitute` fails, the step remounts, so "Oda svarer ikke" never shows and the picks are lost. It stays mounted through the call, as the choosing does through filling.
+- [x] **Try it on the dev server**, iterating on feedback, with real Gemini and real Oda. Skipped in AFK mode. *(user)*
+  - Fill with two Entries on one Oda Product, and see the count their dishes need together, with nothing moving as it lands.
   - Lower it to one, and see it in the real Basket. Raise it. Change it on two devices.
   - Close the app right after filling, reopen it, and see the counts land.
   - Add a pack on oda.com, and see "Avbryt" leave that one.
-- [ ] **Tests.** `tests/e2e/pack-counts.spec.ts` is rewritten around the Order Summary, and `substitutes.spec.ts` loses its steppers. e2e against the fake Oda and the Gemini stub:
+- [x] **Tests.** `tests/e2e/pack-counts.spec.ts` is rewritten around the Order Summary, and `substitutes.spec.ts` loses its steppers. e2e against the fake Oda and the Gemini stub:
   - starting counts landing, including for a Substitute that meets a product already in the Basket, and after reopening;
   - a count set from the Order Summary reaching the Basket, both ways;
   - two devices counting at once, and a hand-set count that a second device's starting count leaves alone;
@@ -70,7 +70,7 @@ Thirtieth milestone and the seventh Oda one, on the `oda` branch, to land before
   - Oda failing while counts land, while a count changes, and while adding Substitutes, with the picks kept.
 
   Unit, rules and e2e pass, with no test reaching oda.com or Gemini.
-- [ ] **Commit: Pack Counts on the Order Summary.** *(manual)* (user-visible; review first)
+- [x] **Commit: Pack Counts on the Order Summary.** *(manual)* (user-visible; review first)
 - [ ] **Move plan to `plans/done/`.** `git mv plans/active/30-pack-counts-on-the-summary.md plans/done/30-pack-counts-on-the-summary.md`, and remove it from **Now** in `ROADMAP.md`.
 - [ ] **Commit: complete Pack Counts on the Order Summary milestone.** *(auto)*
 
@@ -90,3 +90,5 @@ Thirtieth milestone and the seventh Oda one, on the `oda` branch, to land before
 - 2026-11-06: Came out of trying plan 28. Steppers on each screen kept getting in each other's way, and the Family Member decided the counts belong in one place. The summary has to come after filling, since Oda only says what's unavailable then, which is why a stepper there has to change the real Basket.
 - 2026-11-06: Grilled. Pack Sizes are read on the Order Summary rather than in the choosing, since only then are all the products known. It saves AI requests and the waiting before filling, and counts a Substitute together with what it meets. The cost is that the Basket changes twice for a product needing more than one pack. Closing the app in between is safe, as any device that opens the Order Summary finishes the job. An empty Pack Size alone can't say a count has been applied, as a second device would overwrite a hand-set count, hence the mark on the line.
 - 2026-11-06: If another device ends the Oda Order while a call to Oda is in flight, one stray pack can land in the Basket. Accepted as rare, and visible on oda.com. `odaSubstitute` doesn't need `odaSetPacks`' careful undo, as the step after filling offers no way to end the Oda Order.
+- 2026-11-06: Trying it, "også på «…»" went, on Home and in the choosing. It's redundant now the Order Summary shows which Entries share an Oda Product.
+- 2026-11-06: Trying it, swapping the buttons and the steppers for "Regner ut antall pakker …" and "…" was too much visual noise. Only "Neste steg er ditt" is still replaced by that text. Buttons are now disabled rather than removed, and products with a known count look finished from the start. So a slow read doesn't hold them up, they reach the Basket at once, in a call of their own, which can make the starting counts two calls to Oda rather than one.

@@ -56,6 +56,22 @@ export function packCount(
   return Math.min(MAX_PACKS, Math.max(1, Math.ceil(Number(needed.toFixed(6)))))
 }
 
+export const hasAmounts = (dishes: { grams: number | null; pieces: number | null }[]) =>
+  dishes.some((d) => d.grams !== null || d.pieces !== null)
+
+// One Oda Product's starting Pack Count, from each of its Entries' dishes. When every Entry has
+// amounts they're added up before rounding, so 300 g and 400 g in packs of 1 kg is one pack.
+// Otherwise each Entry adds its own, and one without amounts counts as one.
+export function startingPacks(
+  entries: { grams: number | null; pieces: number | null }[][],
+  size: { packGrams?: number; packPieces?: number },
+) {
+  const packs = entries.every(hasAmounts)
+    ? packCount(entries.flat(), size)
+    : entries.reduce((sum, dishes) => sum + (hasAmounts(dishes) ? packCount(dishes, size) : 1), 0)
+  return Math.min(MAX_PACKS, packs)
+}
+
 // Grams added up, with pieces in parentheses when there are any: "360 g (6 stk)".
 export function formatAmount(amounts: { grams: number | null; pieces: number | null }[]) {
   const grams = sumKnown(amounts.map((a) => a.grams))
