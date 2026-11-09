@@ -3,6 +3,7 @@ import { describe, expect, test } from 'vitest'
 import {
   OdaAuthError,
   addOperations,
+  callbackUrl,
   fillEntries,
   odaClient,
   onePackEach,
@@ -44,6 +45,18 @@ describe('pkce', () => {
     const { verifier, challenge } = pkce()
     expect(verifier).toMatch(/^[\w-]{43}$/)
     expect(challenge).toBe(createHash('sha256').update(verifier).digest('base64url'))
+  })
+})
+
+describe('callbackUrl', () => {
+  test('is the deployed odaCallback outside the emulator', () => {
+    expect(callbackUrl('kraftigere', 'europe-west1')).toBe('https://europe-west1-kraftigere.cloudfunctions.net/odaCallback')
+  })
+
+  test("is odaCallback on the emulator's host in the emulator", () => {
+    expect(callbackUrl('demo-kraftigere', 'europe-west1', '127.0.0.1:5001')).toBe(
+      'http://127.0.0.1:5001/demo-kraftigere/europe-west1/odaCallback',
+    )
   })
 })
 

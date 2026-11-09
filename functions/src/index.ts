@@ -7,6 +7,7 @@ import { HttpsError, onCall, onRequest, type CallableRequest } from 'firebase-fu
 import {
   OdaAuthError,
   addOperations,
+  callbackUrl,
   fillEntries,
   odaClient,
   onePackEach,
@@ -26,8 +27,13 @@ import {
   type Tokens,
 } from './oda.js'
 
-// Close to the Family, and capped so a bug or a flood can't run up a bill.
-setGlobalOptions({ region: 'europe-west1', maxInstances: 2 })
+const REGION = 'europe-west1'
+const emulator = process.env.FUNCTIONS_EMULATOR === 'true'
+
+// Close to the Family, and capped so a bug or a flood can't run up a bill. Callables need an
+// App Check token, except in the emulator; odaCallback can't have one, as oda.com's redirect
+// can't carry it, and its state check guards it instead.
+setGlobalOptions({ region: REGION, maxInstances: 2, enforceAppCheck: !emulator })
 
 initializeApp()
 const db = getFirestore()
@@ -54,7 +60,7 @@ async function readLink() {
 // a new client on oda.com.
 async function mirrorLink() {
   const file = process.env.ODA_LINK_FILE
-  if (!file || process.env.FUNCTIONS_EMULATOR !== 'true') return
+  if (!file || !emulator) return
   const { client, tokens } = await readLink()
   await writeFile(file, JSON.stringify({ client, tokens }, null, 2) + '\n', { mode: 0o600 })
 }
@@ -70,19 +76,12 @@ async function requireFamily(req: CallableRequest) {
   if (!members.includes(email)) throw new HttpsError('permission-denied', 'Not a Family Member')
 }
 
-// Where oda.com sends the Family Member back after approving. Only the emulator is set up:
-// production comes with the "Oda in production" plan.
-function callbackUrl(req: CallableRequest) {
-  if (process.env.FUNCTIONS_EMULATOR !== 'true') throw new HttpsError('failed-precondition', 'Oda is only set up in the emulator')
-  return `http://${req.rawRequest.headers.host}/${process.env.GCLOUD_PROJECT}/europe-west1/odaCallback`
-}
-
 // Starts linking: returns the oda.com URL where a Family Member signs in and approves.
 export const odaLinkStart = onCall(async (req) => {
   await requireFamily(req)
   const origin = req.rawRequest.headers.origin
   if (!origin || !/^https?:\/\/[^/]+$/.test(origin)) throw new HttpsError('invalid-argument', 'No origin to return to')
-  const redirectUri = callbackUrl(req)
+  const redirectUri = callbackUrl(process.env.GCLOUD_PROJECT!, REGION, emulator ? req.rawRequest.headers.host : undefined)
 
   const link = await readLink()
   // Registered once; again only if the callback moved, as when the emulator's port changes.
@@ -183,7 +182,7 @@ export const odaBasket = onCall(async (req) => {
   await requireFamily(req)
   try {
     const cart = await callOda('get_cart')
-    if (process.env.FUNCTIONS_EMULATOR === 'true') logger.info('get_cart', JSON.stringify(cart).slice(0, 2000))
+    if (emulator) logger.info('get_cart', JSON.stringify(cart).slice(0, 2000))
     return { linked: true, ...summarizeCart(cart) }
   } catch (e) {
     if (e instanceof OdaAuthError) return { linked: false }
@@ -199,7 +198,7 @@ export const odaSearch = onCall(async (req: CallableRequest<{ query?: unknown }>
   if (!query) throw new HttpsError('invalid-argument', 'No query')
   try {
     const answer = await callOda('product_search', { queries: [query], size: 20 })
-    if (process.env.FUNCTIONS_EMULATOR === 'true') logger.info('product_search', JSON.stringify(answer).slice(0, 2000))
+    if (emulator) logger.info('product_search', JSON.stringify(answer).slice(0, 2000))
     return { linked: true, products: searchResults(answer) }
   } catch (e) {
     if (e instanceof OdaAuthError) return { linked: false }

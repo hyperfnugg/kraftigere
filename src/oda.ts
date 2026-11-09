@@ -2,30 +2,35 @@
 import { httpsCallable } from 'firebase/functions'
 import { useEffect, useState } from 'react'
 import { type OdaProduct } from './entries'
-import { functions } from './firebase'
+import { functions, startAppCheck, useEmulators } from './firebase'
 
 export type Basket = { linked: false } | { linked: true; items: number; url: string }
 type Linked = { linked: boolean }
 type SubstituteEntry = { id: string; product: { id: number; name: string; packText: string } }
 
-const odaBasket = httpsCallable<void, Basket>(functions, 'odaBasket')
-const odaFill = httpsCallable<{ entries: string[] }, Linked & { unavailable?: string[] }>(functions, 'odaFill')
-const odaSubstitute = httpsCallable<{ entries: SubstituteEntry[] }, Linked>(functions, 'odaSubstitute')
-const odaSetPacks = httpsCallable<{ products: { productId: number; count: number }[]; starting: boolean }, Linked>(functions, 'odaSetPacks')
-const odaOrdered = httpsCallable<void, void>(functions, 'odaOrdered')
-const odaCancel = httpsCallable<void, Linked>(functions, 'odaCancel')
-const odaLinkStart = httpsCallable<void, { url: string }>(functions, 'odaLinkStart')
+// The deployed functions refuse a call without an App Check token; the emulator doesn't ask.
+function callable<Req, Res>(name: string) {
+  const call = httpsCallable<Req, Res>(functions, name)
+  return async (data?: Req) => {
+    if (!useEmulators) await startAppCheck()
+    return call(data)
+  }
+}
+
+const odaBasket = callable<void, Basket>('odaBasket')
+const odaFill = callable<{ entries: string[] }, Linked & { unavailable?: string[] }>('odaFill')
+const odaSubstitute = callable<{ entries: SubstituteEntry[] }, Linked>('odaSubstitute')
+const odaSetPacks = callable<{ products: { productId: number; count: number }[]; starting: boolean }, Linked>('odaSetPacks')
+const odaOrdered = callable<void, void>('odaOrdered')
+const odaCancel = callable<void, Linked>('odaCancel')
+const odaLinkStart = callable<void, { url: string }>('odaLinkStart')
 
 // A product_search result: an Oda Product with today's price and availability.
 export type OdaResult = OdaProduct & { price: number | null; available: boolean }
 export type Search = { linked: false } | { linked: true; products: OdaResult[] }
 
-const odaSearch = httpsCallable<{ query: string }, Search>(functions, 'odaSearch')
-
-const odaSuggest = httpsCallable<{ queries: string[] }, { linked: false } | { linked: true; products: OdaResult[][] }>(
-  functions,
-  'odaSuggest',
-)
+const odaSearch = callable<{ query: string }, Search>('odaSearch')
+const odaSuggest = callable<{ queries: string[] }, { linked: false } | { linked: true; products: OdaResult[][] }>('odaSuggest')
 
 // A few Oda Products for each of the Ware names, in one search, per name in the order given.
 export async function suggestOda(queries: string[]) {

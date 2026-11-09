@@ -14,6 +14,13 @@ export function pkce() {
   return { verifier, challenge }
 }
 
+// Where oda.com sends the Family Member back after approving: the deployed odaCallback, or in
+// the emulator, odaCallback on the host the callable was reached on.
+export function callbackUrl(project: string, region: string, emulatorHost?: string) {
+  if (emulatorHost) return `http://${emulatorHost}/${project}/${region}/odaCallback`
+  return `https://${region}-${project}.cloudfunctions.net/odaCallback`
+}
+
 export function odaClient(baseUrl: string, fetchImpl: typeof fetch = fetch) {
   const resource = `${baseUrl}/mcp`
 
