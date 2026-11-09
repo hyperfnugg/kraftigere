@@ -30,9 +30,9 @@ Hjem's field becomes the one place to find and add Groceries: what's typed filte
 - [x] **Commit: Hjem as search and add.** *(auto)*
 - [x] **Account tests.** Logg ut through the ⋮ menu, in `app.spec.ts`.
 - [x] **Commit: account in the ⋮ menu.** *(auto)*
-- [ ] **Move plan to `plans/done/`.** `git mv plans/active/32-hjem-search-and-add.md plans/done/32-hjem-search-and-add.md`.
-- [ ] **Commit: complete Hjem as search and add milestone.** *(auto)*
-- [ ] **Push.** The user asked for it, AFK.
+- [x] **Move plan to `plans/done/`.** `git mv plans/active/32-hjem-search-and-add.md plans/done/32-hjem-search-and-add.md`.
+- [x] **Commit: complete Hjem as search and add milestone.** *(auto)*
+- [x] **Push.** The user asked for it, AFK.
 
 ## Done when
 
