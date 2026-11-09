@@ -71,8 +71,8 @@ Thirtieth milestone and the seventh Oda one, on the `oda` branch, to land before
 
   Unit, rules and e2e pass, with no test reaching oda.com or Gemini.
 - [x] **Commit: Pack Counts on the Order Summary.** *(manual)* (user-visible; review first)
-- [ ] **Move plan to `plans/done/`.** `git mv plans/active/30-pack-counts-on-the-summary.md plans/done/30-pack-counts-on-the-summary.md`, and remove it from **Now** in `ROADMAP.md`.
-- [ ] **Commit: complete Pack Counts on the Order Summary milestone.** *(auto)*
+- [x] **Move plan to `plans/done/`.** `git mv plans/active/30-pack-counts-on-the-summary.md plans/done/30-pack-counts-on-the-summary.md`, and remove it from **Now** in `ROADMAP.md`.
+- [x] **Commit: complete Pack Counts on the Order Summary milestone.** *(auto)*
 
 ## Done when
 

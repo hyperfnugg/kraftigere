@@ -5,7 +5,6 @@ Where Kraft is heading. It changes often. Ideas are one line each, cheap to add 
 ## Now
 
 - [Dependency maintenance](plans/active/05-dependency-maintenance.md)
-- [Pack Counts on the Order Summary](plans/active/30-pack-counts-on-the-summary.md)
 - [Oda in production](plans/active/29-oda-in-production.md)
 
 ## Ideas
