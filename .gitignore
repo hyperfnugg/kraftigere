@@ -41,3 +41,6 @@ dist-ssr
 
 # Throwaway prototypes (plan 18)
 /scratch/
+
+# Claude Code: local settings and worktrees
+/.claude/
