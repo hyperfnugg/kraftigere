@@ -26,8 +26,8 @@
 - **Styling:** inline styles where possible. No CSS framework, no animations, no transitions, no icon library — nothing that isn't load-bearing.
 - **Auth:** Firebase Auth with Google provider (Google SSO).
 - **State:** Firestore, access gated by security rules on the signed-in user.
-- **Functions:** Cloud Functions (2nd gen, `europe-west1`) in `functions/` hold the Oda Link and talk to Oda's MCP server (ADR 0005). Callables require App Check and an allowlisted sign-in. CI deploys them with Hosting and the rules from `main`; a new function is deployed by hand once first (ADR 0002). A budget-triggered kill switch removes billing (ADR 0005).
-- **LLM:** Gemini via Firebase AI Logic (Gemini Developer API backend), called directly from the browser with App Check protecting the key.
+- **Functions:** Cloud Functions (2nd gen, `europe-west1`) in `functions/` hold the Oda Link and talk to Oda's MCP server (ADR 0005), and call Gemini. Callables require App Check and an allowlisted sign-in. CI deploys them with Hosting and the rules from `main`; a new function is deployed by hand once first (ADR 0002). A budget-triggered kill switch removes billing (ADR 0005).
+- **LLM:** Gemini on Vertex AI, called only by the `generate` callable, so only Family Members can use it. The prompts are built in the browser (`src/ai.ts`).
 
 ## Local development
 

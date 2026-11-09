@@ -28,12 +28,12 @@ Right now the browser calls Gemini through Firebase AI Logic, and AI Logic check
 - [x] **Try it on the dev server**, iterating on feedback. Menu, Recipes, Confirm's matches and pack sizes still work, with stubs and with real AI on in the emulator. Skipped in AFK mode. *(user)*
 - [x] **Tests.** `npx tsc -b`, `npm run lint`, `npm run test:unit`, and the e2e specs that use the AI (`menu`, `recipe`, `confirm`, `pack-counts`). A test that `generate` refuses a signed-in account not on the allowlist.
 - [x] **Commit: Gemini through the `generate` callable.** *(manual)* — auth control; review first.
-- [ ] **Vertex AI access.** Enable the Vertex AI API (`aiplatform.googleapis.com`) and grant `roles/aiplatform.user` to the default compute service account that the callables run as. *(user)*
-- [ ] **Deploy `generate` once by hand** (`npx firebase deploy --only functions:generate`), since `firebase-deploy` can't create functions (ADR 0002). Then push to `main` so CI deploys the client. *(user)*
-- [ ] **Verify in production.** Menu and a Recipe work on `kraftigere.web.app`. A signed-in Google account that isn't on the allowlist is refused by `generate`. *(user)*
-- [ ] **Close AI Logic.** Turn off the Firebase AI Logic API (`firebasevertexai.googleapis.com`) and delete the Gemini API key it used. Delete the App Check debug token too; nothing uses it now. A direct AI Logic call with the public config is refused. An installed copy of the app on the old client loses AI until it updates; accepted. *(user)*
-- [ ] **ADR 0004 note.** A dated note: Gemini is now behind the allowlist on a server, App Check is no longer its only protection, and AI Logic is off. Update `README.md`'s stack if it names AI Logic.
-- [ ] **Commit: Gemini behind the allowlist in production.** *(auto)*
+- [x] **Vertex AI access.** Enable the Vertex AI API (`aiplatform.googleapis.com`) and grant `roles/aiplatform.user` to the default compute service account that the callables run as. *(user)*
+- [x] **Deploy `generate` once by hand** (`npx firebase deploy --only functions:generate`), since `firebase-deploy` can't create functions (ADR 0002). Then push to `main` so CI deploys the client. *(user)*
+- [x] **Verify in production.** Menu and a Recipe work on `kraftigere.web.app`. A signed-in Google account that isn't on the allowlist is refused by `generate`. *(user)*
+- [x] **Close AI Logic.** Turn off the Firebase AI Logic API (`firebasevertexai.googleapis.com`) and delete the Gemini API key it used. Delete the App Check debug token too; nothing uses it now. A direct AI Logic call with the public config is refused. An installed copy of the app on the old client loses AI until it updates; accepted. *(user)*
+- [x] **ADR 0004 note.** A dated note: Gemini is now behind the allowlist on a server, App Check is no longer its only protection, and AI Logic is off. Update `README.md`'s stack if it names AI Logic.
+- [x] **Commit: Gemini behind the allowlist in production.** *(auto)*
 - [ ] **Move plan to `plans/done/`.** `git mv plans/active/31-gemini-behind-the-allowlist.md plans/done/31-gemini-behind-the-allowlist.md`.
 - [ ] **Commit: complete Gemini behind the allowlist milestone.** *(auto)*
 

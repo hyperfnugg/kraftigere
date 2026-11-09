@@ -27,7 +27,7 @@ Multi-step work lives in `plans/active/<NN>-<kebab-name>.md`, where `<NN>` is th
 ## Style
 
 - Inline styles in components. No CSS framework, no animations, no transitions, no icon library.
-- React + TypeScript + Vite frontend; Firebase (Auth, Firestore, AI Logic / Gemini) backend. Full stack in `README.md`.
+- React + TypeScript + Vite frontend; Firebase (Auth, Firestore, Cloud Functions; Gemini on Vertex AI) backend. Full stack in `README.md`.
 - Keep new code minimal — this is a POC. Don't add abstractions for hypothetical future needs.
 
 ## Agent skills
