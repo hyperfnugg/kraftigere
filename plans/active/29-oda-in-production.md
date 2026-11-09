@@ -34,8 +34,8 @@ The Family fills the Basket from `kraftigere.web.app`, with spending limited, an
 - [x] **Try it on the dev server**, iterating on feedback. Linking, filling and Avbryt still work in the emulator. Skipped in AFK mode. *(user)*
 - [x] **Tests.** `npx tsc -b`, `npm run lint`, `npm run test:unit`, and the Oda e2e specs. A unit test for `callbackUrl`, if it can be pulled out without an abstraction made only for the test. Enforcement can't be tested against the emulator; production verification below covers it.
 - [x] **Commit: Production Oda client and App Check on the callables.** *(manual)* — security control; review first.
-- [ ] **CI builds functions.** Both workflows run `npm ci --prefix functions`, because `tsc -b` builds `functions` and neither workflow installs its dependencies today. `deploy.yml` deploys `hosting,firestore:rules,functions`. Check how a deploy without `--force` behaves when a function has been removed from the source.
-- [ ] **Commit: Build and deploy functions in CI.** *(manual)* — CI change; review first.
+- [x] **CI builds functions.** Both workflows run `npm ci --prefix functions`, because `tsc -b` builds `functions` and neither workflow installs its dependencies today. `deploy.yml` deploys `hosting,firestore:rules,functions`. Without `--force`, a function removed from the source stops the functions release before anything is deleted, and it prints the `firebase functions:delete` commands to run (firebase-tools 15.34.1, `deploy/functions/release/index.js`).
+- [x] **Commit: Build and deploy functions in CI.** *(manual)* — CI change; review first.
 - [ ] **Kill switch.** A function triggered by the kill switch budget's Pub/Sub topic. It removes the project's billing account only if the message is from that budget and `costAmount` is above `budgetAmount`, since budgets also notify below the limit. Unit test the decision. It needs no App Check, and its topic isn't public.
 - [ ] **Scripts.** Both tried on the emulator first, per ADR 0003, and using the developer's own credentials.
   - `scripts/dump-firestore.mjs`: copies every document to a JSON file at a path given as an argument. The copy holds family data, so it never goes in the repo.
@@ -52,9 +52,9 @@ The Family fills the Basket from `kraftigere.web.app`, with spending limited, an
   - Soft budget for the project: $20 a month, with emails at 50%, 90% and 100%.
   - Gemini spend cap: $10 a month.
   - Kill switch budget for the project: $200 a month, publishing to the kill switch's Pub/Sub topic.
-- [ ] **Widen the deploy service account.** `firebase-deploy` has `firebase.viewer`, `firebasehosting.admin` and `firebaserules.admin`. Add the smallest set of roles a functions deploy needs, including permission to act as the runtime service account. List them in ADR 0002. *(user)*
+- [ ] **Widen the deploy service account.** `firebase-deploy` has `firebase.viewer`, `firebasehosting.admin` and `firebaserules.admin`. Add the smallest set of roles a functions deploy needs, including permission to act as the runtime service account, and to read Artifact Registry's cleanup policy, which every functions deploy checks. List them in ADR 0002. *(user)*
 - [ ] **Local copy of Firestore.** `scripts/dump-firestore.mjs`, to a path outside the repo. *(user)*
-- [ ] **Deploy the kill switch by hand,** from the rebased `oda`, with `--only functions:<name>`, since CI deploys only from `main`. Give its runtime service account permission to remove the project's billing, and nothing wider. *(user)*
+- [ ] **Deploy the kill switch by hand,** from the rebased `oda`, with `--only functions:<name>`, since CI deploys only from `main`. Give its runtime service account permission to remove the project's billing, and nothing wider. Accept the cleanup policy for container images that the deploy asks for: without one, every non-interactive deploy from CI fails after deploying, since it can't set the policy without `--force`. *(user)*
 - [ ] **Test the kill switch for real.** Publish a message under the limit and see that nothing happens. Then publish a fake over-budget message, see billing removed, and relink by hand. Afterwards compare Firestore with the local copy, and confirm the budgets, the Gemini cap, App Check and the kill switch function are all still there. *(user)*
 - [ ] **Record what removing billing did.** Put the result in ADR 0005, including whether Google's warning that resources might be irretrievably deleted holds up. It couldn't be found in a search on 2026-11-06.
 - [ ] **Commit: What removing billing does.** *(auto)*

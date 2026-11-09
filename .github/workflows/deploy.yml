@@ -22,11 +22,18 @@ jobs:
         with:
           node-version: '24'
           cache: 'npm'
+          cache-dependency-path: |
+            package-lock.json
+            functions/package-lock.json
       - run: npm ci
+      # `tsc -b` builds functions too, and the deploy uploads what it builds.
+      - run: npm ci --prefix functions
       - run: npm run build
       # Keyless: GitHub's OIDC token is exchanged for the deploy service account. See docs/adr/0002-firebase-hosting.md.
       - uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
         with:
           workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
           service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
-      - run: npx firebase deploy --only hosting,firestore:rules --project kraftigere --non-interactive
+      # Without --force, a function removed from the source stops the deploy rather than being
+      # deleted: run the `firebase functions:delete` it prints, then deploy again.
+      - run: npx firebase deploy --only hosting,firestore:rules,functions --project kraftigere --non-interactive
