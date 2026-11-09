@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite'
+import { configDefaults, defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
@@ -14,6 +14,8 @@ function chunkFor(id: string) {
 }
 
 export default defineConfig({
+  // Claude Code's worktrees are whole copies of the repo, and their tests would run here too.
+  test: { exclude: [...configDefaults.exclude, '.claude/**'] },
   build: { rolldownOptions: { output: { manualChunks: chunkFor } } },
   plugins: [
     react(),
