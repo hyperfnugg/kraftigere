@@ -1,7 +1,8 @@
 // A fake oda.com for e2e, so no test reaches the real one: OAuth endpoints that approve at
 // once, and an /mcp with a Basket that starts with 4 items and that manipulate_cart changes,
 // and a product_search that answers every query with the same 7 products, or none for a query
-// with "ukjent" in it. Tests read and change the Basket at /basket, and put it back at /reset.
+// with "ukjent" in it. Tests read and change the Basket at /basket, make manipulate_cart fail at
+// /fail, and put it all back at /reset.
 // The test emulators' function finds it through ODA_BASE_URL (playwright.config.ts).
 import { createServer } from 'node:http'
 
@@ -14,6 +15,8 @@ const OFF_SALE = 61999
 // Quantities by product id.
 const START = { 430: 3, 7: 1 }
 let basket = { ...START }
+// Set at /fail: manipulate_cart then answers with an error, as when Oda is down.
+let failing = false
 
 // As on oda.com, the Basket takes products that aren't available, and each line says so.
 const UNAVAILABLE = {
@@ -84,8 +87,12 @@ createServer(async (req, res) => {
     case '/basket':
       if (req.method === 'POST') manipulate(JSON.parse(body))
       return json(res, 200, basket)
+    case '/fail':
+      failing = JSON.parse(body)
+      return json(res, 200, { failing })
     case '/reset':
       basket = { ...START }
+      failing = false
       return json(res, 200, basket)
     case '/o/register/':
       n++
@@ -116,6 +123,7 @@ createServer(async (req, res) => {
       }
       const tool = message.params?.name
       const args = message.params?.arguments ?? {}
+      if (tool === 'manipulate_cart' && failing) return json(res, 500, {})
       if (tool === 'manipulate_cart') manipulate(args.operations)
       const text = JSON.stringify(tool === 'product_search' ? search(args.queries) : cart())
       return json(res, 200, { jsonrpc: '2.0', id: message.id, result: { content: [{ type: 'text', text }] } })

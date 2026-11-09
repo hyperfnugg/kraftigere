@@ -56,7 +56,7 @@ test("a Family Member picks a Ware's Oda Product on Home", async ({ page }) => {
   await expect(page.getByRole('link', { name: 'TINE Ekte smør · 250 g' })).toBeVisible()
 })
 
-test("a pasted link or a tap picks another Ware's Oda Product, and the Ware says so", async ({ page }) => {
+test("a pasted link or a tap picks another Ware's Oda Product", async ({ page }) => {
   await signIn(page, MEMBERS[0])
   await linkOdaHome(page)
   await addEntry(page, 'Melk')
@@ -75,22 +75,14 @@ test("a pasted link or a tap picks another Ware's Oda Product, and the Ware says
   await expect(results(page).first()).toHaveText('Tine Lettmelk 1% fett · 1% fett, 1 l · 19,40 kr')
   await expect(results(page).first()).toHaveAttribute('aria-disabled', 'false')
   await search.fill('https://oda.com/no/products/430-tine-tine-lettmelk-1-fett/')
-  await expect(page.getByText('også på «Melk»')).toBeVisible()
+  await expect(entry(page, 'Kaffe').getByRole('link', { name: 'Tine Lettmelk 1% fett · 1% fett, 1 l' })).toBeVisible()
   expect((await readDoc('wares/kaffe')).oda.mapValue.fields.id).toEqual({ integerValue: '430' })
 
-  // By tap, and the Ware names every other Ware with it.
+  // By tap.
   await entry(page, 'Te').getByText('Te', { exact: true }).click()
   await page.getByRole('button', { name: 'Velg Oda-produkt' }).click()
   await results(page).first().click()
-  await expect(page.getByText(/^også på «.*», «.*»$/)).toBeVisible()
-
-  // A Ware whose Entry is Checked no longer counts.
-  await openTab(page, 'Handle')
-  await page.getByRole('checkbox', { name: 'Melk', exact: true }).click()
-  await expect(page.getByRole('checkbox', { name: 'Melk', exact: true })).toBeChecked()
-  await openTab(page, 'Hjem')
-  await entry(page, 'Te').getByText('Te', { exact: true }).click()
-  await expect(page.getByText('også på «Kaffe»', { exact: true })).toBeVisible()
+  await expect(entry(page, 'Te').getByRole('link', { name: 'Tine Lettmelk 1% fett · 1% fett, 1 l' })).toBeVisible()
 
   // A link to a product the search doesn't find.
   await page.getByRole('button', { name: 'Fjern Oda-produkt' }).click()

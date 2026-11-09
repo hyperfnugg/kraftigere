@@ -1,5 +1,18 @@
 import { expect, test, type Page } from '@playwright/test'
-import { MEMBERS, fakeBasket, linkOda, readDoc, reset, resetFakeBasket, seed, signIn, writeDoc } from './helpers'
+import {
+  MEMBERS,
+  changeFakeBasket,
+  failFakeOda,
+  fakeBasket,
+  linkOda,
+  openTab,
+  readDoc,
+  reset,
+  resetFakeBasket,
+  seed,
+  signIn,
+  writeDoc,
+} from './helpers'
 
 test.beforeEach(async () => {
   await reset()
@@ -14,148 +27,301 @@ const START = { 430: 3, 7: 1 }
 const str = (stringValue: string) => ({ stringValue })
 const int = (n: number) => ({ integerValue: String(n) })
 
+type Oda = { id: number; packText: string; packGrams?: number }
+type Line = { quantity: number; shared?: boolean }
+
 const dishFields = (grams: number) => ({
   mapValue: { fields: { week: str('2026-W45'), recipe: str('mon-0'), course: str('Middag'), grams: int(grams), pieces: { nullValue: null } } },
 })
 
-const entryFields = (name: string, { dishes = [], note }: { dishes?: number[]; note?: string }) => ({
-  text: str(name),
-  ware: str(name.toLowerCase()),
-  checked: { booleanValue: false },
-  createdAt: { timestampValue: '2026-11-04T08:00:00Z' },
-  ...(note && { note: str(note) }),
-  ...(dishes.length > 0 && { dishes: { arrayValue: { values: dishes.map(dishFields) } } }),
-})
-
-// A waiting Entry for a Ware, which has the Oda Product if one is given.
-async function put(
-  name: string,
-  oda?: { id: number; packText: string; packGrams?: number },
-  entry: { dishes?: number[]; note?: string } = {},
-) {
-  await writeDoc(`wares/${name.toLowerCase()}`, {
+// A Ware with this Oda Product, named after the Ware.
+const putWare = (name: string, oda: Oda) =>
+  writeDoc(`wares/${name.toLowerCase()}`, {
     name: str(name),
     addCount: int(1),
-    ...(oda && {
-      oda: {
+    oda: {
+      mapValue: {
+        fields: { id: int(oda.id), name: str(name), packText: str(oda.packText), ...(oda.packGrams && { packGrams: int(oda.packGrams) }) },
+      },
+    },
+  })
+
+// A waiting Entry for a Ware with this Oda Product, with dishes needing these grams. With a line,
+// it's In Basket as just after filling: not yet counted, with its packs in the fake Basket.
+async function put(name: string, oda: Oda, { dishes = [], note, line }: { dishes?: number[]; note?: string; line?: Line } = {}) {
+  await putWare(name, oda)
+  await putEntry(name, oda, { dishes, note, line })
+  if (line && line.quantity > 0) await changeFakeBasket([{ productId: oda.id, quantity: line.quantity }])
+}
+
+const putEntry = (name: string, oda: Oda, { dishes = [], note, line }: { dishes?: number[]; note?: string; line?: Line & { packText?: string } }) =>
+  writeDoc(`entries/${name.toLowerCase()}`, {
+    text: str(name),
+    ware: str(name.toLowerCase()),
+    checked: { booleanValue: false },
+    createdAt: { timestampValue: '2026-11-04T08:00:00Z' },
+    ...(note && { note: str(note) }),
+    ...(dishes.length > 0 && { dishes: { arrayValue: { values: dishes.map(dishFields) } } }),
+    ...(line && {
+      basket: {
         mapValue: {
           fields: {
-            id: int(oda.id),
+            productId: int(oda.id),
+            quantity: int(line.quantity),
             name: str(name),
-            packText: str(oda.packText),
-            ...(oda.packGrams && { packGrams: int(oda.packGrams) }),
+            packText: str(line.packText ?? oda.packText),
+            uncounted: { booleanValue: true },
+            ...(line.shared && { shared: { booleanValue: true } }),
           },
         },
       },
     }),
   })
-  await writeDoc(`entries/${name.toLowerCase()}`, entryFields(name, entry))
+
+const product = (page: Page, name: string) =>
+  page.getByRole('listitem').filter({ has: page.getByRole('link', { name: new RegExp(`^${name} · `) }) })
+const count = (page: Page, name: string) => product(page, name).getByLabel('Antall pakker')
+const more = (page: Page, name: string) => product(page, name).getByLabel('Flere pakker')
+const fewer = (page: Page, name: string) => product(page, name).getByLabel('Færre pakker')
+const check = (page: Page, name: string) => product(page, name).getByText('Sjekk antall')
+const fill = (page: Page) => page.getByRole('button', { name: 'Fyll handlekurven' })
+// Shown once counting is over, as "Regner ut antall pakker …" takes its place until then.
+const nextStep = (page: Page) => page.getByText('Neste steg er ditt: bestill i')
+const uncounted = async (name: string) => (await readDoc(`entries/${name.toLowerCase()}`)).basket.mapValue.fields.uncounted?.booleanValue
+const packGrams = async (name: string) => {
+  const grams = (await readDoc(`wares/${name.toLowerCase()}`)).oda.mapValue.fields.packGrams
+  return grams && Number(grams.integerValue ?? grams.doubleValue)
 }
 
-const tick = (page: Page, name: string) => page.getByRole('checkbox', { name: new RegExp(`^${name}`) })
-const row = (page: Page, name: string) => page.getByRole('listitem').filter({ has: tick(page, name) })
-const count = (page: Page, name: string) => row(page, name).getByLabel('Antall pakker')
-const failed = (page: Page, name: string) => row(page, name).getByText('Fikk ikke regnet ut antall pakker')
-const fill = (page: Page) => page.getByRole('button', { name: 'Fyll handlekurven' })
-const nextStep = (page: Page) => page.getByText('Neste steg er ditt: bestill i')
+async function cancel(page: Page) {
+  await page.getByRole('button', { name: 'Avbryt', exact: true }).click()
+  await page.getByRole('button', { name: 'Avbryt odabestillingen' }).click()
+  await expect(fill(page)).toBeVisible()
+}
 
+// Signed in, with the Oda Link, on Hjem, so an Oda Order put in place after it shows nothing yet.
 async function start(page: Page) {
   await signIn(page, MEMBERS[0])
   await linkOda(page)
+  await openTab(page, 'Hjem')
 }
 
-test('enough packs for the dishes reach the Basket, and Avbryt takes them all out', async ({ page }) => {
+test('starting counts reach the Basket, can be changed both ways, and Avbryt takes them all out', async ({ page }) => {
   await put('Pasta', { id: 501, packText: '500 g' }, { dishes: [600, 600] })
   await put('Melk', { id: 502, packText: '1 l' }, { note: 'mye' })
-  await put('Salt', { id: 503, packText: '1 kg' })
   await start(page)
+  await openTab(page, 'Odabestilling')
+  await fill(page).click()
 
+  await expect(nextStep(page)).toBeVisible()
   // A Note doesn't change the count, and neither does a Ware with no amounts.
   await expect(count(page, 'Pasta')).toHaveText('3')
   await expect(count(page, 'Melk')).toHaveText('1')
-  await expect(count(page, 'Salt')).toHaveText('1')
-
-  await fill(page).click()
-  await expect(nextStep(page)).toBeVisible()
-  expect(await fakeBasket()).toEqual({ ...START, 501: 3, 502: 1, 503: 1 })
-  await expect(page.getByRole('link', { name: '3 × Pasta · 500 g' })).toBeVisible()
-  await expect(page.getByRole('link', { name: '1 × Melk · 1 l' })).toBeVisible()
-  await expect(page.getByLabel('Flere pakker')).toHaveCount(0)
+  expect(await fakeBasket()).toEqual({ ...START, 501: 3, 502: 1 })
 
   // The Pack Size read for Pasta is saved, and none is read for what has no amounts.
-  const pasta = (await readDoc('wares/pasta')).oda.mapValue.fields
-  expect(Number(pasta.packGrams.integerValue ?? pasta.packGrams.doubleValue)).toBe(500)
-  expect((await readDoc('wares/melk')).oda.mapValue.fields.packGrams).toBeUndefined()
+  expect(await packGrams('Pasta')).toBe(500)
+  expect(await packGrams('Melk')).toBeUndefined()
 
-  await page.getByRole('button', { name: 'Avbryt' }).click()
-  await page.getByRole('button', { name: 'Avbryt odabestillingen' }).click()
-  await expect(fill(page)).toBeVisible()
+  await more(page, 'Melk').click()
+  await expect(count(page, 'Melk')).toHaveText('2')
+  await expect(more(page, 'Melk')).toBeEnabled()
+  expect(await fakeBasket()).toEqual({ ...START, 501: 3, 502: 2 })
+  await fewer(page, 'Pasta').click()
+  await expect(count(page, 'Pasta')).toHaveText('2')
+  await expect(fewer(page, 'Pasta')).toBeEnabled()
+  expect(await fakeBasket()).toEqual({ ...START, 501: 2, 502: 2 })
+
+  await cancel(page)
   expect(await fakeBasket()).toEqual(START)
 })
 
-test('a saved Pack Size is not read again', async ({ page }) => {
-  // The stub can't read "pose", so asking it would show as failed.
-  await put('Pasta', { id: 501, packText: 'pose', packGrams: 500 }, { dishes: [1200] })
+test('Entries on one Oda Product go in as one pack, and their dishes are added up', async ({ page }) => {
+  await put('Pasta', { id: 501, packText: '1 kg' }, { dishes: [300] })
+  await put('Pastasalat', { id: 501, packText: '1 kg' }, { dishes: [400] })
+  await put('Melk', { id: 502, packText: '1 l' })
+  await put('Kefir', { id: 502, packText: '1 l' })
   await start(page)
-
-  await expect(count(page, 'Pasta')).toHaveText('3')
-  await expect(failed(page, 'Pasta')).toBeHidden()
-})
-
-test('changing a count ticks the Entry, and changing the Oda Product works it out again', async ({ page }) => {
-  await put('Melk')
-  await start(page)
-
-  // Suggested, so unticked, and one pack with nothing to count from.
-  await expect(row(page, 'Melk').getByRole('link', { name: 'Tine Lettmelk 1% fett · 1% fett, 1 l' })).toBeVisible()
-  await expect(tick(page, 'Melk')).not.toBeChecked()
-  await expect(count(page, 'Melk')).toHaveText('1')
-  await expect(row(page, 'Melk').getByLabel('Færre pakker')).toBeDisabled()
-
-  await row(page, 'Melk').getByLabel('Flere pakker').click()
-  await row(page, 'Melk').getByLabel('Flere pakker').click()
-  await row(page, 'Melk').getByLabel('Færre pakker').click()
-  await expect(count(page, 'Melk')).toHaveText('2')
-  await expect(tick(page, 'Melk')).toBeChecked()
-
-  await row(page, 'Melk').getByRole('button', { name: 'Bytt Oda-produkt' }).click()
-  await page.getByRole('option').filter({ hasText: /1,75 l/ }).click()
-  await expect(row(page, 'Melk').getByRole('link', { name: 'Tine Lettmelk 1% fett · 1% fett, 1,75 l' })).toBeVisible()
-  await expect(count(page, 'Melk')).toHaveText('1')
-
-  await row(page, 'Melk').getByLabel('Flere pakker').click()
+  await openTab(page, 'Odabestilling')
   await fill(page).click()
+
+  // 300 g and 400 g in packs of 1 kg is one pack. Without amounts each Entry adds one.
   await expect(nextStep(page)).toBeVisible()
-  expect(await fakeBasket()).toEqual({ ...START, 8143: 2 })
+  await expect(count(page, 'Pasta')).toHaveText('1')
+  await expect(count(page, 'Kefir')).toHaveText('2')
+  expect(await fakeBasket()).toEqual({ ...START, 501: 1, 502: 2 })
+
+  // They can be one carton.
+  await fewer(page, 'Kefir').click()
+  await expect(count(page, 'Kefir')).toHaveText('1')
+  await expect(fewer(page, 'Kefir')).toBeDisabled()
+  await expect(more(page, 'Kefir')).toBeEnabled()
+  expect(await fakeBasket()).toEqual({ ...START, 501: 1, 502: 1 })
+
+  // Bestilt checks off every Entry, whichever holds the packs.
+  await page.getByRole('button', { name: 'Bestilt' }).click()
+  await expect(fill(page)).toBeVisible()
+  for (const name of ['pasta', 'pastasalat', 'melk', 'kefir']) expect((await readDoc(`entries/${name}`)).checked.booleanValue).toBe(true)
 })
 
-test('dishes arriving work the count out again, unless it was set by hand', async ({ page }) => {
-  await put('Pasta', { id: 501, packText: '500 g', packGrams: 500 }, { dishes: [400] })
-  await put('Ris', { id: 502, packText: '500 g', packGrams: 500 }, { dishes: [400] })
+test('counts left after filling land when the Order Summary is next opened', async ({ page }) => {
   await start(page)
-  await expect(count(page, 'Pasta')).toHaveText('1')
-  await row(page, 'Ris').getByLabel('Flere pakker').click()
-  await expect(count(page, 'Ris')).toHaveText('2')
+  // As if the app was closed right after filling.
+  await put('Pasta', { id: 501, packText: '500 g', packGrams: 500 }, { dishes: [1200], line: { quantity: 1 } })
+  await put('Ris', { id: 502, packText: '1 kg' }, { dishes: [1500], line: { quantity: 1 } })
+  await openTab(page, 'Odabestilling')
 
-  await writeDoc('entries/pasta', entryFields('Pasta', { dishes: [400, 800] }))
-  await writeDoc('entries/ris', entryFields('Ris', { dishes: [400, 800] }))
+  await expect(nextStep(page)).toBeVisible()
   await expect(count(page, 'Pasta')).toHaveText('3')
   await expect(count(page, 'Ris')).toHaveText('2')
+  expect(await fakeBasket()).toEqual({ ...START, 501: 3, 502: 2 })
+  expect(await uncounted('Pasta')).toBeUndefined()
+  expect(await packGrams('Ris')).toBe(1000)
 })
 
-test('a Pack Size the AI cannot read starts at one pack, marked, and can still be filled', async ({ page }) => {
-  await put('Pasta', { id: 501, packText: 'pose' }, { dishes: [1200] })
+test('a Substitute meeting a product already in the Oda Order is counted together with it', async ({ page }) => {
   await start(page)
+  await put('Smør', { id: 125, packText: '250 g' }, { line: { quantity: 1 } })
+  // Its own is unavailable, and the step after filling put TINE Ekte smør in its place.
+  await putWare('Ost', { id: 24681, packText: '1 l' })
+  await putEntry('Ost', { id: 125, packText: '250 g' }, { dishes: [1200], line: { quantity: 1 } })
+  await changeFakeBasket([{ productId: 125, quantity: 1 }])
+  await openTab(page, 'Odabestilling')
 
-  await expect(failed(page, 'Pasta')).toBeVisible()
-  await expect(count(page, 'Pasta')).toHaveText('1')
-  await expect(fill(page)).toBeEnabled()
-
-  // Changing the count clears the mark.
-  await row(page, 'Pasta').getByLabel('Flere pakker').click()
-  await expect(failed(page, 'Pasta')).toBeHidden()
-  await fill(page).click()
+  // 1200 g is 5 packs, and Smør, with no amounts, adds one.
   await expect(nextStep(page)).toBeVisible()
+  await expect(count(page, 'Ost')).toHaveText('6')
+  await expect(page.getByRole('listitem')).toHaveCount(1)
+  expect(await fakeBasket()).toEqual({ ...START, 125: 6 })
+  // Saved on the Ware whose own it is, not on the one it substitutes for.
+  expect(await packGrams('Smør')).toBe(250)
+  expect(await packGrams('Ost')).toBeUndefined()
+
+  await cancel(page)
+  expect(await fakeBasket()).toEqual(START)
+})
+
+test('two devices counting at once count once', async ({ page, browser }) => {
+  await start(page)
+  await put('Pasta', { id: 501, packText: '500 g', packGrams: 500 }, { dishes: [1200], line: { quantity: 1 } })
+  await put('Ris', { id: 502, packText: '1 kg' }, { dishes: [1500], line: { quantity: 1 } })
+  const other = await (await browser.newContext()).newPage()
+  await signIn(other, MEMBERS[1])
+
+  await Promise.all([openTab(page, 'Odabestilling'), openTab(other, 'Odabestilling')])
+  for (const p of [page, other]) {
+    await expect(nextStep(p)).toBeVisible()
+    await expect(count(p, 'Pasta')).toHaveText('3')
+    await expect(count(p, 'Ris')).toHaveText('2')
+  }
+  expect(await fakeBasket()).toEqual({ ...START, 501: 3, 502: 2 })
+
+  // A count set on one shows on the other.
+  await more(page, 'Ris').click()
+  await expect(count(other, 'Ris')).toHaveText('3')
+  expect(await fakeBasket()).toEqual({ ...START, 501: 3, 502: 3 })
+})
+
+test('a failed read shows "Sjekk antall" and blocks nothing, and reopening reads again', async ({ page }) => {
+  await start(page)
+  await put('Pasta', { id: 501, packText: 'pose' }, { dishes: [1200], line: { quantity: 1 } })
+  await openTab(page, 'Odabestilling')
+
+  await expect(check(page, 'Pasta')).toBeVisible()
+  await expect(count(page, 'Pasta')).toHaveText('1')
+  await expect(page.getByRole('button', { name: 'Bestilt' })).toBeEnabled()
+  expect(await uncounted('Pasta')).toBe(true)
+
+  // Oda now says something the AI can read.
+  await putEntry('Pasta', { id: 501, packText: 'pose' }, { dishes: [1200], line: { quantity: 1, packText: '500 g' } })
+  await openTab(page, 'Hjem')
+  await openTab(page, 'Odabestilling')
+  await expect(count(page, 'Pasta')).toHaveText('3')
+  await expect(check(page, 'Pasta')).toBeHidden()
+  await expect(nextStep(page)).toBeVisible()
+  expect(await fakeBasket()).toEqual({ ...START, 501: 3 })
+})
+
+test('a count set by hand is never changed by a later starting count', async ({ page, browser }) => {
+  await start(page)
+  await put('Pasta', { id: 501, packText: 'pose' }, { dishes: [1200], line: { quantity: 1 } })
+  await openTab(page, 'Odabestilling')
+  await expect(check(page, 'Pasta')).toBeVisible()
+
+  // Using the stepper clears the warning.
+  await more(page, 'Pasta').click()
+  await expect(count(page, 'Pasta')).toHaveText('2')
+  await expect(check(page, 'Pasta')).toBeHidden()
+  await expect.poll(() => uncounted('Pasta')).toBeUndefined()
+
+  // Another device would now count 3, and leaves it alone.
+  await putWare('Pasta', { id: 501, packText: 'pose', packGrams: 500 })
+  const other = await (await browser.newContext()).newPage()
+  await signIn(other, MEMBERS[1])
+  await openTab(other, 'Odabestilling')
+  await expect(nextStep(other)).toBeVisible()
+  await expect(count(other, 'Pasta')).toHaveText('2')
   expect(await fakeBasket()).toEqual({ ...START, 501: 2 })
-  expect((await readDoc('wares/pasta')).oda.mapValue.fields.packGrams).toBeUndefined()
+})
+
+test('after a change, Avbryt takes out what Kraft holds and leaves what the Family added', async ({ page }) => {
+  await start(page)
+  await put('Pasta', { id: 501, packText: '500 g', packGrams: 500 }, { dishes: [1200], line: { quantity: 1 } })
+  await openTab(page, 'Odabestilling')
+  await expect(count(page, 'Pasta')).toHaveText('3')
+  await expect(nextStep(page)).toBeVisible()
+
+  // Added on oda.com, which Kraft doesn't read back.
+  await changeFakeBasket([{ productId: 501, quantity: 2 }])
+  await fewer(page, 'Pasta').click()
+  await expect(count(page, 'Pasta')).toHaveText('2')
+  await expect(fewer(page, 'Pasta')).toBeEnabled()
+  expect(await fakeBasket()).toEqual({ ...START, 501: 4 })
+
+  await cancel(page)
+  expect(await fakeBasket()).toEqual({ ...START, 501: 2 })
+})
+
+test('Oda failing while counts land leaves them not yet counted, and they land next time', async ({ page }) => {
+  await start(page)
+  await put('Pasta', { id: 501, packText: '500 g', packGrams: 500 }, { dishes: [1200], line: { quantity: 1 } })
+  await failFakeOda(true)
+  await openTab(page, 'Odabestilling')
+
+  await expect(page.getByText('Oda svarer ikke')).toBeVisible()
+  await expect(nextStep(page)).toBeVisible()
+  await expect(count(page, 'Pasta')).toHaveText('1')
+  await expect(page.getByRole('button', { name: 'Bestilt' })).toBeEnabled()
+  expect(await uncounted('Pasta')).toBe(true)
+  expect(await fakeBasket()).toEqual({ ...START, 501: 1 })
+
+  await failFakeOda(false)
+  await openTab(page, 'Hjem')
+  await openTab(page, 'Odabestilling')
+  await expect(nextStep(page)).toBeVisible()
+  await expect(count(page, 'Pasta')).toHaveText('3')
+  await expect(page.getByText('Oda svarer ikke')).toBeHidden()
+  expect(await fakeBasket()).toEqual({ ...START, 501: 3 })
+})
+
+test('Oda failing while a count changes puts it back and says so on its row', async ({ page }) => {
+  await start(page)
+  await put('Pasta', { id: 501, packText: '500 g', packGrams: 500 }, { dishes: [1200], line: { quantity: 1 } })
+  await openTab(page, 'Odabestilling')
+  await expect(nextStep(page)).toBeVisible()
+  await expect(count(page, 'Pasta')).toHaveText('3')
+
+  await failFakeOda(true)
+  await more(page, 'Pasta').click()
+  await expect(product(page, 'Pasta').getByText('Oda svarer ikke')).toBeVisible()
+  await expect(count(page, 'Pasta')).toHaveText('3')
+  expect(await fakeBasket()).toEqual({ ...START, 501: 3 })
+  expect(Number((await readDoc('entries/pasta')).basket.mapValue.fields.quantity.integerValue)).toBe(3)
+
+  await failFakeOda(false)
+  await more(page, 'Pasta').click()
+  await expect(count(page, 'Pasta')).toHaveText('4')
+  await expect(more(page, 'Pasta')).toBeEnabled()
+  await expect(product(page, 'Pasta').getByText('Oda svarer ikke')).toBeHidden()
+  expect(await fakeBasket()).toEqual({ ...START, 501: 4 })
 })

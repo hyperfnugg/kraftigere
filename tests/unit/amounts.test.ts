@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { formatAmount, measureText, packCount, packSizeOf, piecesOf, sumKnown } from '../../src/amounts'
+import { formatAmount, hasAmounts, measureText, packCount, packSizeOf, piecesOf, startingPacks, sumKnown } from '../../src/amounts'
 
 describe('piecesOf', () => {
   test.each([
@@ -105,5 +105,35 @@ describe('packCount', () => {
 
   test('does not add a pack for a rounding error in the decimals', () => {
     expect(packCount([dish(0.1), dish(0.2)], { packGrams: 0.3 })).toBe(1)
+  })
+})
+
+test('hasAmounts looks for grams or pieces on any dish', () => {
+  expect(hasAmounts([])).toBe(false)
+  expect(hasAmounts([{ grams: null, pieces: null }])).toBe(false)
+  expect(hasAmounts([{ grams: null, pieces: null }, { grams: null, pieces: 2 }])).toBe(true)
+})
+
+describe('startingPacks', () => {
+  const dish = (grams: number | null, pieces: number | null = null) => ({ grams, pieces })
+  const kilo = { packGrams: 1000 }
+
+  test('adds up the dishes before rounding when every Entry has amounts', () => {
+    expect(startingPacks([[dish(300)], [dish(400)]], kilo)).toBe(1)
+    expect(startingPacks([[dish(600)], [dish(600)]], kilo)).toBe(2)
+    expect(startingPacks([[dish(null, 3)], [dish(null, 4)]], { packGrams: 720, packPieces: 12 })).toBe(1)
+  })
+
+  test('otherwise each Entry adds its own, and one without amounts counts as one', () => {
+    expect(startingPacks([[dish(300)], []], kilo)).toBe(2)
+    expect(startingPacks([[dish(1200)], [dish(null)]], kilo)).toBe(3)
+    expect(startingPacks([[], []], {})).toBe(2)
+    expect(startingPacks([[]], {})).toBe(1)
+  })
+
+  test('stays within the most allowed', () => {
+    expect(startingPacks([[dish(100000)], [dish(100000)]], { packGrams: 100 })).toBe(20)
+    expect(startingPacks([[dish(100000)], []], { packGrams: 100 })).toBe(20)
+    expect(startingPacks(Array.from({ length: 25 }, () => []), {})).toBe(20)
   })
 })
