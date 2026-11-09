@@ -28,8 +28,8 @@ Hjem's field becomes the one place to find and add Groceries: what's typed filte
 - [x] **Unit tests** for `typedName` and `suggest`.
 - [x] **e2e.** Update the helpers (`signIn`, `addEntry`) and the specs that relied on Legg til, buttons as Suggestions, newest-first order and the header's Logg ut. New tests in `hjem.spec.ts` for the filter, "+", the staple picker, chips in one row, keyboard on the List and closing an open Entry, and in `oda-products.spec.ts` for Esc with the Oda search open.
 - [x] **Commit: Hjem as search and add.** *(auto)*
-- [ ] **Account tests.** Logg ut through the ⋮ menu.
-- [ ] **Commit: account in the ⋮ menu.** *(auto)*
+- [x] **Account tests.** Logg ut through the ⋮ menu, in `app.spec.ts`.
+- [x] **Commit: account in the ⋮ menu.** *(auto)*
 - [ ] **Move plan to `plans/done/`.** `git mv plans/active/32-hjem-search-and-add.md plans/done/32-hjem-search-and-add.md`.
 - [ ] **Commit: complete Hjem as search and add milestone.** *(auto)*
 - [ ] **Push.** The user asked for it, AFK.
@@ -44,4 +44,4 @@ Hjem's field becomes the one place to find and add Groceries: what's typed filte
 ## Notes
 
 - 2026-11-10: Decided in the exploratory session. Chips under the field, like a phone keyboard's suggestions, rather than a dropdown, to keep vertical space. Two-mode filtering (active and passive) was dropped for one rule: text in the field filters. Sideways-scrolling chips felt off, so the row shows what fits. The "+" chip goes first so it's never cut off. The account badge was tried beside the field, then settled in the ⋮ menu's top row, unfolding inline rather than as a popover in a menu.
-- 2026-11-10: Writing the tests found a bug: an open Entry closed on pointerdown, which moved the rows below it before the click, so a tap on a lower row missed. It now closes on click, judged by the click's composed path, since the button tapped (Velg Oda-produkt) may be gone by then. The chef's hat arrows (Right, Left, Up/Down on the hats) have no e2e test, as they need Dishes from Iverksett; checked by hand only.
+- 2026-11-10: Writing the tests found a bug: an open Entry closed on pointerdown, which moved the rows below it before the click, so a tap on a lower row missed. It now closes on click, judged by the click's composed path, since the button tapped (Velg Oda-produkt) may be gone by then. The chef's hat arrows (Right, Left, Up/Down on the hats) have no e2e test, as they need Dishes from Iverksett; tried on the dev server only.

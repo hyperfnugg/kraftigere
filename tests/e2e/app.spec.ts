@@ -22,6 +22,19 @@ test('a Family Member signs in and sees the List', async ({ page }) => {
   await expect(page.getByPlaceholder('Hva trenger vi?')).toBeVisible()
 })
 
+test("who's signed in and Logg ut are behind the initials in the ⋮ menu", async ({ page }) => {
+  await signIn(page, MEMBERS[0])
+  await expect(page.getByRole('button', { name: 'Logg ut' })).toHaveCount(0)
+
+  await page.getByRole('button', { name: 'Mer' }).click()
+  const account = page.getByRole('button', { name: /^Konto: / })
+  await expect(account).toHaveAttribute('aria-expanded', 'false')
+  await account.click()
+  await expect(page.getByText(MEMBERS[0])).toBeVisible()
+  await page.getByRole('button', { name: 'Logg ut' }).click()
+  await expect(page.getByRole('button', { name: 'Logg inn med Google' })).toBeVisible()
+})
+
 test('a non-member sees the not-authorized screen', async ({ page }) => {
   await completeGooglePopup(page, OUTSIDER)
   await expect(page.getByText('Ingen tilgang')).toBeVisible()

@@ -151,21 +151,6 @@ function List({ user }: { user: User }) {
       {!online && (
         <div style={{ fontSize: '0.875rem', color: '#8a5a00' }}>Frakoblet: endringer lagres når nettet er tilbake</div>
       )}
-      <header
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          fontSize: '0.875rem',
-          color: '#555',
-        }}
-      >
-        <span>{user.displayName ?? user.email}</span>
-        <button onClick={() => signOut()} style={smallButtonStyle}>
-          Logg ut
-        </button>
-      </header>
-
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '1rem' }}>
         {tab === 'Home' && <Home entries={entries} ordering={ordering} onOdaOrder={() => setTab('Oda')} onDishes={setDishesOf} />}
         {tab === 'Meals' && <MealsTab openAt={recipeLink} ordering={ordering} onOdaOrder={() => setTab('Oda')} />}
@@ -239,6 +224,7 @@ function List({ user }: { user: User }) {
               borderRadius: '0.5rem',
             }}
           >
+            <Account user={user} />
             {MORE_TABS.map(({ tab: t, name }) => (
               <button
                 key={t}
@@ -903,6 +889,78 @@ function StaplePicker({
           {picked.size > 0 ? `Legg til ${picked.size}` : 'Lukk'}
         </button>
       </div>
+    </div>
+  )
+}
+
+// Who's signed in, as initials in the top right of the ⋮ menu, opening the full name and
+// Logg ut below them. Rarely needed, so kept small and one tap away.
+function Account({ user }: { user: User }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+  const name = user.displayName ?? user.email ?? ''
+  const words = name.split(/[\s@.]+/).filter(Boolean)
+  const initials = (words.length > 1 ? words[0][0] + words[words.length - 1][0] : (words[0]?.[0] ?? '?')).toUpperCase()
+
+  useEffect(() => {
+    if (!open) return
+    function onPointerDown(e: PointerEvent) {
+      if (!ref.current?.contains(e.target as Node)) setOpen(false)
+    }
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') setOpen(false)
+    }
+    document.addEventListener('pointerdown', onPointerDown)
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown)
+      document.removeEventListener('keydown', onKeyDown)
+    }
+  }, [open])
+
+  return (
+    <div ref={ref} style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.5rem' }}>
+      <button
+        onClick={() => setOpen(!open)}
+        aria-expanded={open}
+        aria-label={`Konto: ${name}`}
+        title={name}
+        style={{
+          width: '2rem',
+          height: '2rem',
+          borderRadius: '50%',
+          border: 'none',
+          background: '#e4e4e4',
+          color: '#444',
+          font: 'inherit',
+          fontSize: initials.length > 1 ? '0.875rem' : '1.125rem',
+          fontWeight: 700,
+          padding: 0,
+          cursor: 'pointer',
+        }}
+      >
+        {initials}
+      </button>
+      {open && (
+        <div
+          style={{
+            alignSelf: 'stretch',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '0.5rem',
+            padding: '0 0 0.5rem',
+            borderBottom: '1px solid #ddd',
+            fontSize: '0.875rem',
+            color: '#555',
+          }}
+        >
+          {user.displayName && <span style={{ color: '#000' }}>{user.displayName}</span>}
+          {user.email && <span>{user.email}</span>}
+          <button onClick={() => signOut()} style={{ ...smallButtonStyle, alignSelf: 'flex-start' }}>
+            Logg ut
+          </button>
+        </div>
+      )}
     </div>
   )
 }
