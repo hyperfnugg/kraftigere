@@ -2,7 +2,7 @@ import { expect, type Page } from '@playwright/test'
 
 import { FIRESTORE_HOST, MEMBERS, PROJECT } from '../../scripts/seed.mjs'
 
-export { FIRESTORE_HOST, MEMBERS, OUTSIDER, reset, seed, setMembers } from '../../scripts/seed.mjs'
+export { FIRESTORE_HOST, MEMBERS, OUTSIDER, PROJECT, reset, seed, setMembers } from '../../scripts/seed.mjs'
 
 // Completes the Auth emulator's fake Google popup with a seeded account.
 export async function completeGooglePopup(page: Page, email: string) {

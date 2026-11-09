@@ -1,21 +1,11 @@
 // The Oda Link and the Basket, through the Oda functions. See docs/adr/0005-oda-route.md.
-import { httpsCallable } from 'firebase/functions'
 import { useEffect, useState } from 'react'
 import { type OdaProduct } from './entries'
-import { functions, startAppCheck, useEmulators } from './firebase'
+import { callable } from './firebase'
 
 export type Basket = { linked: false } | { linked: true; items: number; url: string }
 type Linked = { linked: boolean }
 type SubstituteEntry = { id: string; product: { id: number; name: string; packText: string } }
-
-// The deployed functions refuse a call without an App Check token; the emulator doesn't ask.
-function callable<Req, Res>(name: string) {
-  const call = httpsCallable<Req, Res>(functions, name)
-  return async (data?: Req) => {
-    if (!useEmulators) await startAppCheck()
-    return call(data)
-  }
-}
 
 const odaBasket = callable<void, Basket>('odaBasket')
 const odaFill = callable<{ entries: string[] }, Linked & { unavailable?: string[] }>('odaFill')

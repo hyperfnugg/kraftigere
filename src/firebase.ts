@@ -1,4 +1,4 @@
-import { initializeApp, type FirebaseApp } from 'firebase/app'
+import { initializeApp } from 'firebase/app'
 import {
   connectAuthEmulator,
   getAuth,
@@ -14,7 +14,7 @@ import {
   persistentLocalCache,
   persistentMultipleTabManager,
 } from 'firebase/firestore'
-import { connectFunctionsEmulator, getFunctions } from 'firebase/functions'
+import { connectFunctionsEmulator, getFunctions, httpsCallable, type HttpsCallableOptions } from 'firebase/functions'
 import { useEffect, useState, useSyncExternalStore } from 'react'
 
 export const firebaseConfig = {
@@ -51,27 +51,32 @@ if (useEmulators) {
   connectFunctionsEmulator(functions, functionsHost, Number(functionsPort))
 }
 
-// App Check guards Gemini and the Oda functions, not Firestore or Auth (ADR 0004). Started
-// once, on first need, so reCAPTCHA stays out of launch. Under the emulators it gets an app of
-// its own, for real Gemini with the debug token from .env.development.local, which leaves Auth
-// and Firestore on the emulators; the Oda functions there don't ask for it.
-let appCheck: Promise<FirebaseApp> | undefined
+// App Check guards the callables (Gemini and Oda), not Firestore or Auth (ADR 0004). Started
+// once, on first need, so reCAPTCHA stays out of launch. The emulators don't ask for it.
+let appCheck: Promise<void> | undefined
 export function startAppCheck() {
   appCheck ??= (async () => {
     const { initializeAppCheck, ReCaptchaV3Provider } = await import('firebase/app-check')
-    const checked = useEmulators ? initializeApp(firebaseConfig, 'ai') : app
-    if (useEmulators) Object.assign(self, { FIREBASE_APPCHECK_DEBUG_TOKEN: import.meta.env.VITE_APPCHECK_DEBUG_TOKEN })
-    initializeAppCheck(checked, {
+    initializeAppCheck(app, {
       provider: new ReCaptchaV3Provider('6LdWdOosAAAAAD-CgahJPqpZb3pi8A06Bv5-rkh-'),
       isTokenAutoRefreshEnabled: true,
     })
-    return checked
   })().catch((e) => {
     // Try again on the next call, e.g. after being offline.
     appCheck = undefined
     throw e
   })
   return appCheck
+}
+
+// A callable function. The deployed functions refuse a call without an App Check token; the
+// emulator doesn't ask.
+export function callable<Req, Res>(name: string, options?: HttpsCallableOptions) {
+  const call = httpsCallable<Req, Res>(functions, name, options)
+  return async (data?: Req) => {
+    if (!useEmulators) await startAppCheck()
+    return call(data)
+  }
 }
 
 const provider = new GoogleAuthProvider()

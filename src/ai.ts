@@ -1,6 +1,5 @@
-import type { Schema as SchemaType } from 'firebase/ai'
 import { type PackSize, packSizeOf } from './amounts'
-import { startAppCheck, useEmulators } from './firebase'
+import { callable, startAppCheck, useEmulators } from './firebase'
 import {
   DAYS,
   DAY_NAMES,
@@ -14,85 +13,35 @@ import {
   type Recipe,
 } from './weeks'
 
-// Flash-Lite for its free tier: about 500 requests a day, where 3.x Flash gets 20 and a
-// week's planning takes 10–20. On 2026-10-23, 3.8 Flash hung past a minute at LOW once,
-// and 3.5 Flash was fast.
-const MODEL = 'gemini-3.5-flash-lite'
+// Gemini, through the generate function, which only Family Members may call. It keeps the model
+// and answers { stub: true } in the emulator, unless real Gemini is on there
+// (functions/.env.local), and then the task's stub below answers.
+const generate = callable<
+  { prompt: string; schema: object; maxTokens: number },
+  { stub: true } | { json: unknown }
+>('generate', { timeout: 125_000 }) // A little past the function's own 120 s.
 
-// Gemini has no emulator. With an App Check debug token in .env.development.local,
-// `npm run dev` calls the real Gemini through its own app on the real project, while Auth
-// and Firestore stay on the emulators. Without one (and in e2e), stubs answer instead.
-const realAi = !useEmulators || !!import.meta.env.VITE_APPCHECK_DEBUG_TOKEN
-
-type Sdk = typeof import('firebase/ai')
-let sdk: Promise<{ sdk: Sdk; ai: ReturnType<Sdk['getAI']> }> | undefined
-
-// Loaded when Middag first opens (see warmUp), so App Check's reCAPTCHA and the AI SDK stay
-// out of launch but are ready by the first AI call.
-function load() {
-  sdk ??= (async () => {
-    const [aiApp, ai] = await Promise.all([startAppCheck(), import('firebase/ai')])
-    return { sdk: ai, ai: ai.getAI(aiApp, { backend: new ai.GoogleAIBackend() }) }
-  })().catch((e) => {
-    // Try again on the next call, e.g. after being offline.
-    sdk = undefined
-    throw e
-  })
-  return sdk
-}
-
+// Starts App Check when Middag first opens, so reCAPTCHA stays out of launch but is ready by the
+// first AI call.
 export function warmUp() {
-  if (realAi) load().catch(() => {})
+  if (!useEmulators) startAppCheck().catch(() => {})
 }
 
-// Sends the prompt and returns Gemini's JSON answer, shaped by the schema. maxTokens caps
-// thinking and answer together, so a model stuck repeating itself stops early.
-async function generateJson(
-  prompt: string,
-  maxTokens: number,
-  schema: (s: Sdk['Schema']) => SchemaType,
-): Promise<unknown> {
-  const { sdk, ai } = await load()
-  const model = sdk.getGenerativeModel(
-    ai,
-    {
-      model: MODEL,
-      generationConfig: {
-        responseMimeType: 'application/json',
-        responseSchema: schema(sdk.Schema),
-        maxOutputTokens: maxTokens,
-        // Gemini 3 thinks by default. Planning dinners needs a little, not much.
-        thinkingConfig: { thinkingLevel: sdk.ThinkingLevel.MEDIUM },
-      },
-    },
-    // Until the answer starts arriving.
-    { timeout: 60_000 },
-  )
-  // Streamed only to log when the answer starts and ends, to find where time goes.
-  const start = performance.now()
-  const ms = () => Math.round(performance.now() - start)
-  const result = await model.generateContentStream(prompt)
-  // A broken stream rejects this as well as the loop below, which is left before this is awaited.
-  result.response.catch(() => {})
-  let first: number | undefined
-  let usage
-  for await (const chunk of result.stream) {
-    first ??= ms()
-    // Token counts come with the last part; the combined response leaves them out.
-    usage = chunk.usageMetadata ?? usage
-  }
-  const response = await result.response
-  const finish = response.candidates?.[0]?.finishReason
-  console.info(
-    `Gemini ${MODEL}: first part after ${first} ms, done after ${ms()} ms, finished ${finish}, ` +
-      `${usage?.thoughtsTokenCount ?? 0} thinking and ${usage?.candidatesTokenCount ?? 0} answer tokens`,
-  )
-  if (finish === 'MAX_TOKENS') {
-    console.warn('Gemini answer, cut off:', response.text().slice(0, 1000))
-    throw new Error(`Gemini ran past ${maxTokens} tokens`)
-  }
-  return JSON.parse(response.text())
+// Sends the prompt and returns Gemini's JSON answer, shaped by the JSON schema, or { stub: true }.
+// maxTokens caps thinking and answer together, so a model stuck repeating itself stops early.
+async function generateJson(prompt: string, maxTokens: number, schema: object) {
+  return (await generate({ prompt, schema, maxTokens })).data
 }
+
+// JSON schema, with every property required.
+const object = (properties: Record<string, object>) => ({ type: 'object', properties, required: Object.keys(properties) })
+const array = (items: object, more?: object) => ({ type: 'array', items, ...more })
+// No description: undefined would reach Gemini as null.
+const string = (description?: string) => (description ? { type: 'string', description } : { type: 'string' })
+const number = (type: 'number' | 'integer', description: string, nullable = false) => ({
+  type: nullable ? [type, 'null'] : type,
+  description,
+})
 
 export type Context = { guidelines: string; dayNotes: Partial<Record<Day, string>>; weekLabel: string }
 
@@ -113,7 +62,6 @@ const clean = (s: unknown, max: number) => (typeof s === 'string' ? s.trim().sli
 // A Menu: dinner for each day of the week, each a list of courses. With a current Menu and
 // an instruction, the Menu is remade from them.
 export async function makeMenu(context: Context, change?: { current: Menu; instruction: string }): Promise<Menu> {
-  if (!realAi) return stubMenu(change)
   const prompt = [
     'Du planlegger middager for en familie, én middag for hver dag i uka, mandag til søndag.',
     'Hver middag er én rett.',
@@ -125,17 +73,17 @@ export async function makeMenu(context: Context, change?: { current: Menu; instr
   ]
     .filter(Boolean)
     .join('\n\n')
-  const json = (await generateJson(prompt, 4000, (Schema) =>
-    Schema.object({
-      properties: Object.fromEntries(
-        DAYS.map((d) => [d, Schema.array({
-            description: `Rettene ${DAY_NAMES[d].toLowerCase()}`,
-            maxItems: MAX_COURSES,
-            items: Schema.string(),
-          })]),
+  const answer = await generateJson(
+    prompt,
+    4000,
+    object(
+      Object.fromEntries(
+        DAYS.map((d) => [d, array(string(), { description: `Rettene ${DAY_NAMES[d].toLowerCase()}`, maxItems: MAX_COURSES })]),
       ),
-    }),
-  )) as Partial<Record<Day, unknown>>
+    ),
+  )
+  if ('stub' in answer) return stubMenu(change)
+  const json = answer.json as Partial<Record<Day, unknown>>
   return Object.fromEntries(
     DAYS.map((d) => {
       const courses = Array.isArray(json[d]) ? json[d] : []
@@ -151,7 +99,6 @@ export async function makeRecipe(
   dish: { day: Day; meal: string[]; course: string },
   change?: { current: Recipe; instruction: string },
 ): Promise<Recipe> {
-  if (!realAi) return stubRecipe(dish.course, change)
   const prompt = [
     'Du skriver en oppskrift på én rett til en familiemiddag.',
     'Skriv på norsk bokmål.',
@@ -172,31 +119,29 @@ export async function makeRecipe(
   ]
     .filter(Boolean)
     .join('\n\n')
-  const json = (await generateJson(prompt, 12000, (Schema) =>
-    Schema.object({
-      properties: {
-        servings: Schema.integer({ description: 'Antall porsjoner' }),
-        // No maxItems: nested limits make a schema Gemini refuses (400). The answer is
-        // capped below instead.
-        steps: Schema.array({
-          items: Schema.object({
-            properties: {
-              ingredients: Schema.array({
-                items: Schema.object({
-                  properties: {
-                    text: Schema.string({ description: 'Hva som trengs' }),
-                    grams: Schema.number({ nullable: true, description: 'Mengden i gram' }),
-                    measure: Schema.string({ description: 'Kjøkkenmål, eller tomt' }),
-                  },
-                }),
-              }),
-              instructions: Schema.array({ items: Schema.string(), description: 'Korte instruksjoner, i rekkefølge' }),
-            },
-          }),
+  const answer = await generateJson(
+    prompt,
+    12000,
+    object({
+      servings: number('integer', 'Antall porsjoner'),
+      // No maxItems: nested limits made a schema Gemini refused (400). The answer is capped
+      // below instead.
+      steps: array(
+        object({
+          ingredients: array(
+            object({
+              text: string('Hva som trengs'),
+              grams: number('number', 'Mengden i gram', true),
+              measure: string('Kjøkkenmål, eller tomt'),
+            }),
+          ),
+          instructions: array(string(), { description: 'Korte instruksjoner, i rekkefølge' }),
         }),
-      },
+      ),
     }),
-  )) as { servings?: unknown; steps?: unknown }
+  )
+  if ('stub' in answer) return stubRecipe(dish.course, change)
+  const json = answer.json as { servings?: unknown; steps?: unknown }
   return {
     course: dish.course,
     servings: Math.min(50, Math.max(1, Math.round(Number(json.servings) || 4))),
@@ -230,7 +175,6 @@ const quantity = (n: unknown) => (typeof n === 'number' && Number.isFinite(n) &&
 // The Ware for each Ingredient wording, by name, in the same order, preferring the
 // Family's own. A name that isn't theirs yet is a new one.
 export async function makeMatches(wordings: string[], wares: string[]): Promise<string[]> {
-  if (!realAi) return wordings.map(wareFromWording)
   const prompt = [
     'Du gjør ingrediensene fra ukas oppskrifter om til en handleliste.',
     'For hver ingrediens, velg varen den skal kjøpes som. Varens navn er ingrediensens navn, uten det som ikke gjør den til noe annet å kjøpe. Behold det som skiller i butikken: "melk, hel", "løk, gul", "kylling, bryst". Ta bort resten: "salt, fin", "salt, hav" og "salt, koksalt" er alle "salt", og "smør, meieri" og "meierismør" er "smør".',
@@ -240,21 +184,17 @@ export async function makeMatches(wordings: string[], wares: string[]): Promise<
     `Familiens varer: ${wares.join(', ') || '(ingen)'}`,
     `Ingredienser, svar i samme rekkefølge:\n${wordings.map((w) => `- ${w}`).join('\n')}`,
   ].join('\n\n')
-  const json = (await generateJson(prompt, 6000, (Schema) =>
-    Schema.object({
-      properties: {
-        matches: Schema.array({
-          maxItems: wordings.length,
-          items: Schema.object({
-            properties: {
-              wording: Schema.string({ description: 'Ingrediensen, som gitt' }),
-              name: Schema.string({ description: 'Navnet på varen' }),
-            },
-          }),
-        }),
-      },
+  const answer = await generateJson(
+    prompt,
+    6000,
+    object({
+      matches: array(object({ wording: string('Ingrediensen, som gitt'), name: string('Navnet på varen') }), {
+        maxItems: wordings.length,
+      }),
     }),
-  )) as { matches?: unknown }
+  )
+  if ('stub' in answer) return wordings.map(wareFromWording)
+  const json = answer.json as { matches?: unknown }
   const answers = Array.isArray(json.matches) ? (json.matches as Partial<Record<'wording' | 'name', unknown>>[]) : []
   return wordings.map((w, i) => {
     // By wording, as the order may slip.
@@ -266,29 +206,28 @@ export async function makeMatches(wordings: string[], wares: string[]): Promise<
 // The Pack Size of each Oda Product, in the same order, or null for one the answer gives none
 // for. Kraft works out the Pack Count from it, so the AI only reads, and doesn't count.
 export async function readPackSizes(products: { id: number; name: string; packText: string }[]): Promise<(PackSize | null)[]> {
-  if (!realAi) return products.map(stubPackSize)
   const prompt = [
     'Du leser hvor mye én pakning av hver vare i en nettbutikk inneholder, ut fra navnet og pakningsteksten.',
     'Oppgi vekten av hele pakningen i gram. Regn om det som er oppgitt i liter eller annet mål, omtrentlig (1 l melk er omtrent 1030 g, 1 l olje omtrent 920 g), og anslå vekten når bare antallet er oppgitt (12 egg er omtrent 720 g).',
     'Oppgi antall stykk i pakningen bare for det som kjøpes per stykk, som egg (12), en sitron (1) eller en løk (1). For det som kjøpes etter vekt eller volum, som melk, mel og smør, skal antall stykk være tomt.',
     `Varer:\n${products.map((p) => `- ${p.id}: ${p.name} (${p.packText || 'ingen pakningstekst'})`).join('\n')}`,
   ].join('\n\n')
-  const json = (await generateJson(prompt, 6000, (Schema) =>
-    Schema.object({
-      properties: {
-        products: Schema.array({
-          maxItems: products.length,
-          items: Schema.object({
-            properties: {
-              id: Schema.integer({ description: 'Varens nummer, som gitt' }),
-              grams: Schema.number({ nullable: true, description: 'Vekten av én pakning i gram' }),
-              pieces: Schema.integer({ nullable: true, description: 'Antall stykk i én pakning, eller tomt' }),
-            },
-          }),
+  const answer = await generateJson(
+    prompt,
+    6000,
+    object({
+      products: array(
+        object({
+          id: number('integer', 'Varens nummer, som gitt'),
+          grams: number('number', 'Vekten av én pakning i gram', true),
+          pieces: number('integer', 'Antall stykk i én pakning, eller tomt', true),
         }),
-      },
+        { maxItems: products.length },
+      ),
     }),
-  )) as { products?: unknown }
+  )
+  if ('stub' in answer) return products.map(stubPackSize)
+  const json = answer.json as { products?: unknown }
   const answers = Array.isArray(json.products) ? (json.products as Partial<Record<'id' | 'grams' | 'pieces', unknown>>[]) : []
   return products.map((p) => {
     const a = answers.find((a) => a.id === p.id)

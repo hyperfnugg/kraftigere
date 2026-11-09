@@ -1,5 +1,6 @@
 import { randomBytes } from 'node:crypto'
 import { writeFile } from 'node:fs/promises'
+import { GoogleGenAI, ThinkingLevel } from '@google/genai'
 import { applicationDefault, initializeApp } from 'firebase-admin/app'
 import { FieldValue, getFirestore } from 'firebase-admin/firestore'
 import { logger, setGlobalOptions } from 'firebase-functions/v2'
@@ -70,7 +71,7 @@ async function mirrorLink() {
 // A sign-in left this long is abandoned.
 const PENDING_MS = 10 * 60 * 1000
 
-// Only Family Members may use the Oda Link.
+// Only Family Members may use the Oda Link and Gemini.
 async function requireFamily(req: CallableRequest) {
   const email = req.auth?.token.email
   if (!email) throw new HttpsError('unauthenticated', 'Not signed in')
@@ -390,6 +391,65 @@ export const odaCancel = onCall(async (req) => {
   await batch.commit()
   return { linked: true }
 })
+
+// Flash-Lite, fast and cheap. On 2026-10-23, 3.8 Flash hung past a minute at LOW once, and
+// 3.5 Flash was fast.
+const MODEL = 'gemini-3.5-flash-lite'
+
+// Gemini through Vertex AI, as the functions' service account, so there's no key. The emulator
+// answers { stub: true } and src/ai.ts stubs the task, unless functions/.env.local names a real
+// project in GEMINI_PROJECT (with ADC from `gcloud auth application-default login`). e2e sets
+// AI_STUBS, as .env.local wins over the emulator's own environment.
+function geminiProject() {
+  if (!emulator) return process.env.GCLOUD_PROJECT
+  if (process.env.AI_STUBS) return undefined
+  return process.env.GEMINI_PROJECT
+}
+let genai: GoogleGenAI | undefined
+
+// Gemini's JSON answer to the prompt, shaped by the JSON schema. maxTokens caps thinking and
+// answer together, so a model stuck repeating itself stops early. Only Family Members may
+// spend on it; the prompts are built in the client.
+export const generate = onCall(
+  { timeoutSeconds: 120 },
+  async (req: CallableRequest<{ prompt?: unknown; schema?: unknown; maxTokens?: unknown }>) => {
+    await requireFamily(req)
+    const { prompt, schema } = req.data ?? {}
+    const maxTokens = req.data?.maxTokens
+    if (typeof prompt !== 'string' || !prompt || prompt.length > 50_000) throw new HttpsError('invalid-argument', 'No prompt, or too long')
+    if (!schema || typeof schema !== 'object') throw new HttpsError('invalid-argument', 'No schema')
+    if (typeof maxTokens !== 'number' || !Number.isInteger(maxTokens) || maxTokens < 1 || maxTokens > 16_000) {
+      throw new HttpsError('invalid-argument', 'Bad token cap')
+    }
+    const project = geminiProject()
+    if (!project) return { stub: true }
+    // Gemini 3 isn't in europe-west1 on Vertex (404, 2026-11-09), only global, as AI Logic was.
+    genai ??= new GoogleGenAI({ vertexai: true, project, location: 'global' })
+    const start = Date.now()
+    const response = await genai.models.generateContent({
+      model: MODEL,
+      contents: prompt,
+      config: {
+        responseMimeType: 'application/json',
+        responseJsonSchema: schema,
+        maxOutputTokens: maxTokens,
+        // Gemini 3 thinks by default. Planning dinners needs a little, not much.
+        thinkingConfig: { thinkingLevel: ThinkingLevel.MEDIUM },
+      },
+    })
+    const finish = response.candidates?.[0]?.finishReason
+    const usage = response.usageMetadata
+    logger.info(
+      `Gemini ${MODEL}: done after ${Date.now() - start} ms, finished ${finish}, ` +
+        `${usage?.thoughtsTokenCount ?? 0} thinking and ${usage?.candidatesTokenCount ?? 0} answer tokens`,
+    )
+    if (finish === 'MAX_TOKENS') {
+      logger.warn('Gemini answer, cut off:', response.text?.slice(0, 1000))
+      throw new HttpsError('resource-exhausted', `Gemini ran past ${maxTokens} tokens`)
+    }
+    return { json: JSON.parse(response.text ?? '') as unknown }
+  },
+)
 
 // The kill switch. The budget's id comes from functions/.env.kraftigere, so the emulator has
 // none and never acts. It runs as its own service account, the only one allowed to remove
