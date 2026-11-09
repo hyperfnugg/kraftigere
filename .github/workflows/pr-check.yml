@@ -16,7 +16,12 @@ jobs:
         with:
           node-version: '24'
           cache: 'npm'
+          cache-dependency-path: |
+            package-lock.json
+            functions/package-lock.json
       - run: npm ci
+      # `tsc -b` builds functions too, and the e2e tests run them in the emulator.
+      - run: npm ci --prefix functions
       - run: npm run build
       - run: npm run lint
 
