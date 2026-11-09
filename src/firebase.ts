@@ -1,4 +1,4 @@
-import { initializeApp } from 'firebase/app'
+import { initializeApp, type FirebaseApp } from 'firebase/app'
 import {
   connectAuthEmulator,
   getAuth,
@@ -49,6 +49,29 @@ if (useEmulators) {
   connectFirestoreEmulator(db, firestoreHost, Number(firestorePort))
   const [functionsHost, functionsPort] = (env.VITE_FUNCTIONS_EMULATOR_HOST ?? '127.0.0.1:5001').split(':')
   connectFunctionsEmulator(functions, functionsHost, Number(functionsPort))
+}
+
+// App Check guards Gemini and the Oda functions, not Firestore or Auth (ADR 0004). Started
+// once, on first need, so reCAPTCHA stays out of launch. Under the emulators it gets an app of
+// its own, for real Gemini with the debug token from .env.development.local, which leaves Auth
+// and Firestore on the emulators; the Oda functions there don't ask for it.
+let appCheck: Promise<FirebaseApp> | undefined
+export function startAppCheck() {
+  appCheck ??= (async () => {
+    const { initializeAppCheck, ReCaptchaV3Provider } = await import('firebase/app-check')
+    const checked = useEmulators ? initializeApp(firebaseConfig, 'ai') : app
+    if (useEmulators) Object.assign(self, { FIREBASE_APPCHECK_DEBUG_TOKEN: import.meta.env.VITE_APPCHECK_DEBUG_TOKEN })
+    initializeAppCheck(checked, {
+      provider: new ReCaptchaV3Provider('6LdWdOosAAAAAD-CgahJPqpZb3pi8A06Bv5-rkh-'),
+      isTokenAutoRefreshEnabled: true,
+    })
+    return checked
+  })().catch((e) => {
+    // Try again on the next call, e.g. after being offline.
+    appCheck = undefined
+    throw e
+  })
+  return appCheck
 }
 
 const provider = new GoogleAuthProvider()

@@ -27,13 +27,13 @@ The Family fills the Basket from `kraftigere.web.app`, with spending limited, an
 
 ## Steps
 
-- [ ] **Production Oda client.** `callbackUrl` in `functions/src/index.ts` returns `https://europe-west1-kraftigere.cloudfunctions.net/odaCallback` outside the emulator, built from the project and region rather than the request's host. The emulator's URL stays as it is.
-- [ ] **App Check on the callables.** Every `onCall` gets `enforceAppCheck`, off only when `FUNCTIONS_EMULATOR` is `'true'`. `odaCallback` stays unenforced, because oda.com's redirect can't carry a token, and its `state` check guards it.
-- [ ] **App Check on the client.** Split starting App Check out of `load()` in `src/ai.ts`, so Oda calls can start it without the AI SDK, and it starts only once. `src/oda.ts` awaits it before each callable, outside the emulators.
+- [x] **Production Oda client.** `callbackUrl` in `functions/src/oda.ts` returns `https://europe-west1-kraftigere.cloudfunctions.net/odaCallback` outside the emulator, built from the project and region rather than the request's host. The emulator's URL stays as it is.
+- [x] **App Check on the callables.** Every `onCall` gets `enforceAppCheck` from `setGlobalOptions`, off only when `FUNCTIONS_EMULATOR` is `'true'`. `odaCallback` stays unenforced, because oda.com's redirect can't carry a token, and its `state` check guards it.
+- [x] **App Check on the client.** Split starting App Check out of `load()` in `src/ai.ts` into `startAppCheck` in `src/firebase.ts`, so Oda calls can start it without the AI SDK, and it starts only once. `src/oda.ts` awaits it before each callable, outside the emulators.
   - The main chunk still has no reCAPTCHA, and neither Hjem nor Shop loads it. `useBasket` only runs in Odabestilling.
-- [ ] **Try it on the dev server**, iterating on feedback. Linking, filling and Avbryt still work in the emulator. Skipped in AFK mode. *(user)*
-- [ ] **Tests.** `npx tsc -b`, `npm run lint`, `npm run test:unit`, and the Oda e2e specs. A unit test for `callbackUrl`, if it can be pulled out without an abstraction made only for the test. Enforcement can't be tested against the emulator; production verification below covers it.
-- [ ] **Commit: Production Oda client and App Check on the callables.** *(manual)* — security control; review first.
+- [x] **Try it on the dev server**, iterating on feedback. Linking, filling and Avbryt still work in the emulator. Skipped in AFK mode. *(user)*
+- [x] **Tests.** `npx tsc -b`, `npm run lint`, `npm run test:unit`, and the Oda e2e specs. A unit test for `callbackUrl`, if it can be pulled out without an abstraction made only for the test. Enforcement can't be tested against the emulator; production verification below covers it.
+- [x] **Commit: Production Oda client and App Check on the callables.** *(manual)* — security control; review first.
 - [ ] **CI builds functions.** Both workflows run `npm ci --prefix functions`, because `tsc -b` builds `functions` and neither workflow installs its dependencies today. `deploy.yml` deploys `hosting,firestore:rules,functions`. Check how a deploy without `--force` behaves when a function has been removed from the source.
 - [ ] **Commit: Build and deploy functions in CI.** *(manual)* — CI change; review first.
 - [ ] **Kill switch.** A function triggered by the kill switch budget's Pub/Sub topic. It removes the project's billing account only if the message is from that budget and `costAmount` is above `budgetAmount`, since budgets also notify below the limit. Unit test the decision. It needs no App Check, and its topic isn't public.

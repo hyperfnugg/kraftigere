@@ -1,7 +1,6 @@
 import type { Schema as SchemaType } from 'firebase/ai'
-import { initializeApp } from 'firebase/app'
 import { type PackSize, packSizeOf } from './amounts'
-import { app, firebaseConfig, useEmulators } from './firebase'
+import { startAppCheck, useEmulators } from './firebase'
 import {
   DAYS,
   DAY_NAMES,
@@ -23,27 +22,16 @@ const MODEL = 'gemini-3.5-flash-lite'
 // Gemini has no emulator. With an App Check debug token in .env.development.local,
 // `npm run dev` calls the real Gemini through its own app on the real project, while Auth
 // and Firestore stay on the emulators. Without one (and in e2e), stubs answer instead.
-const debugToken: string | undefined = import.meta.env.VITE_APPCHECK_DEBUG_TOKEN
-const realAi = !useEmulators || !!debugToken
+const realAi = !useEmulators || !!import.meta.env.VITE_APPCHECK_DEBUG_TOKEN
 
 type Sdk = typeof import('firebase/ai')
 let sdk: Promise<{ sdk: Sdk; ai: ReturnType<Sdk['getAI']> }> | undefined
 
 // Loaded when Middag first opens (see warmUp), so App Check's reCAPTCHA and the AI SDK stay
-// out of launch but are ready by the first AI call. App Check only protects Gemini;
-// Firestore and Auth must not enforce it (ADR 0004).
+// out of launch but are ready by the first AI call.
 function load() {
   sdk ??= (async () => {
-    const [{ initializeAppCheck, ReCaptchaV3Provider }, ai] = await Promise.all([
-      import('firebase/app-check'),
-      import('firebase/ai'),
-    ])
-    const aiApp = useEmulators ? initializeApp(firebaseConfig, 'ai') : app
-    if (useEmulators) Object.assign(self, { FIREBASE_APPCHECK_DEBUG_TOKEN: debugToken })
-    initializeAppCheck(aiApp, {
-      provider: new ReCaptchaV3Provider('6LdWdOosAAAAAD-CgahJPqpZb3pi8A06Bv5-rkh-'),
-      isTokenAutoRefreshEnabled: true,
-    })
+    const [aiApp, ai] = await Promise.all([startAppCheck(), import('firebase/ai')])
     return { sdk: ai, ai: ai.getAI(aiApp, { backend: new ai.GoogleAIBackend() }) }
   })().catch((e) => {
     // Try again on the next call, e.g. after being offline.
