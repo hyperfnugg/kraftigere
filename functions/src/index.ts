@@ -1,9 +1,11 @@
 import { randomBytes } from 'node:crypto'
 import { writeFile } from 'node:fs/promises'
-import { initializeApp } from 'firebase-admin/app'
+import { applicationDefault, initializeApp } from 'firebase-admin/app'
 import { FieldValue, getFirestore } from 'firebase-admin/firestore'
 import { logger, setGlobalOptions } from 'firebase-functions/v2'
 import { HttpsError, onCall, onRequest, type CallableRequest } from 'firebase-functions/v2/https'
+import { onMessagePublished } from 'firebase-functions/v2/pubsub'
+import { overBudget, removeBilling } from './killSwitch.js'
 import {
   OdaAuthError,
   addOperations,
@@ -388,3 +390,20 @@ export const odaCancel = onCall(async (req) => {
   await batch.commit()
   return { linked: true }
 })
+
+// The kill switch. The budget's id comes from functions/.env.kraftigere, so the emulator has
+// none and never acts. It runs as its own service account, the only one allowed to remove
+// billing, and its topic takes messages only from the budget and the project's owners.
+export const killSwitch = onMessagePublished(
+  { topic: 'kill-switch', serviceAccount: 'kill-switch@', maxInstances: 1 },
+  async (event) => {
+    const { attributes, json } = event.data.message
+    const budgetId = process.env.KILL_SWITCH_BUDGET_ID
+    if (!budgetId) logger.error('KILL_SWITCH_BUDGET_ID is not set, so the kill switch can never act')
+    if (!overBudget(attributes, json, budgetId)) return
+    logger.warn('Kill switch budget overspent, removing billing', json)
+    const { access_token } = await applicationDefault().getAccessToken()
+    await removeBilling(process.env.GCLOUD_PROJECT!, access_token)
+    logger.warn('Billing removed')
+  },
+)
