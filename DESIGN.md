@@ -1,6 +1,6 @@
 # Design
 
-How Kraft looks and what its parts are called. `CONTEXT.md` names the domain (Ware, Entry, Menu); this file names the screen (Row, Chip, Main Action), so a change can be talked about in either. To see every part and state rendered, run `npm run dev` and open `/design.html`.
+How Kraft looks and what its parts are called. `CONTEXT.md` names the domain (Ware, Entry, Menu); this file names the screen (Row, Chip, Main Action), so a change can be talked about in either. To see every part and state rendered, run `npm run dev` and open `/design.html` (`src/design.tsx`, dev only).
 
 **Functional first, then friendly, then stylish.** The look is brutalist and early-web: system font, black on white, square boxes with 1px black borders, no shadows, no rounding, no motion. It is monochrome: colour appears only for something that needs attention.
 
@@ -55,7 +55,7 @@ _Look_: the browser's checkbox, sized up to 1.25rem.
 
 **Name**:
 What a Row is about, such as the Ware's name: the first text in the Row.
-_Look_: black, `text-base`.
+_Look_: black, `text-lg`; `text-xl` on Handle, where it's read at arm's length in the store.
 
 **Detail**:
 Everything secondary in a Row after its Name: the Source Mark, the Note, the amount. Parts are separated by " · ".
@@ -68,7 +68,7 @@ _Look_: a Glyph in `muted`.
 **Grip**:
 The ↕ at the end of a Row on Handle, dragged to change the Store Order.
 _UI_: "Flytt" (its label)
-_Look_: a bare Glyph Button.
+_Look_: a bare drawn ↕ in a 44px square, like a Glyph Button.
 _Avoid_: handle (Handle is a tab)
 
 ### Fields
@@ -105,7 +105,7 @@ _Look_: two Glyph Buttons around a `text-lg` bold label.
 
 **Button**:
 A tappable box with a text label, for any action that isn't the Main Action.
-_Look_: `<Button>`: white fill, 1px black border, square, black text; `small` for those in Rows and Chips.
+_Look_: `<Button>`: no fill, 1px black border, square, black text, 44px tall; `small` (36px, `text-sm`) for those in Rows and Chips.
 
 **Main Action**:
 The one action a screen or Dialog exists for, such as "Fyll handlekurven", "Iverksett" or "Logg inn med Google". At most one per screen or Dialog.
@@ -121,7 +121,7 @@ A button that reads as the text around it, such as a dish name that opens its Re
 _Look_: `<TextButton>`: no box, the surrounding font.
 
 **Glyph**:
-A plain Unicode character used as a picture, such as ⌂ or ↻. Never an emoji, never an icon font or image.
+A plain Unicode character used as a picture, such as ⌂ or ↻; where Unicode has only a colour emoji, a line drawing in the text's colour and size (the Source Mark's pot, the Grip). Never an emoji, an icon font or a picture file.
 
 ### Messages
 
@@ -202,7 +202,7 @@ No other colour is added for decoration, grouping or success. If something needs
 - Phone first. Content is at most 32rem wide and centred; Dialogs at most 24rem.
 - The page has 1rem (`p-4`) at the sides, and room at the bottom for the Tab Bar.
 - Spacing is `gap` on the parent, not margins on children: `gap-1` inside a Row's Detail, `gap-2` between Rows' contents and in Sections, `gap-4` between Sections.
-- Anything tappable is at least 44×44px.
+- Anything tappable is at least 44×44px, except a `small` Button (36px tall) and a Chip.
 - Text never widens the page: long words wrap (`wrap-anywhere`).
 
 ### Surfaces
