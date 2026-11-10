@@ -32,6 +32,11 @@ A Ware the Family has added by hand, and so knows well. A Staple remembers how o
 _UI_: "Basisvare"
 _Avoid_: Favourite, regular, item
 
+**Store Order**:
+Where a Ware sits in the store, so Handle lists Entries in the order the Family walks it. It belongs to the Ware, not the Entry, so a Ware added again goes back to its place. A new Ware comes last. A Family Member sets it by dragging on Handle.
+_UI_: not named; the drag handle says "Flytt"
+_Avoid_: Sort order, position, aisle
+
 **Personal List**:
 A List that belongs to one Family Member and is visible only to them. Every List is either the Family's or Personal, never shared by only some Family Members.
 _Avoid_: Private list

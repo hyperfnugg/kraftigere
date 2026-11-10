@@ -125,6 +125,26 @@ export function reorder(others: number[], to: number): [number, number][] {
   return writes
 }
 
+// The Store Orders a drop on Handle writes, as [wareId, order] pairs. `list` is the List's
+// Entries in Store Order without the moved one, which lands at `to`. It works over every
+// Ware with a Store Order, not just those on the List, so that pushing on tied neighbours
+// also pushes any Ware without an Entry in the way, and none of them changes place.
+export function dropOrders(list: Entry[], moved: Entry, to: number, wares: Ware[], order: (e: Entry) => number) {
+  const listed = new Set([...list.map((e) => e.ware), moved.ware])
+  const all = [
+    ...list.map((e) => ({ ware: e.ware, order: order(e), tie: e.id })),
+    ...wares.flatMap((w) => (w.order === undefined || listed.has(w.id) ? [] : [{ ware: w.id, order: w.order, tie: w.id }])),
+  ].sort((a, b) => a.order - b.order || (a.tie < b.tie ? -1 : a.tie > b.tie ? 1 : 0))
+  // Right after its new neighbour above, or right before the top one.
+  const at = (ware: string) => all.findIndex((x) => x.ware === ware)
+  const i = to > 0 ? at(list[to - 1].ware) + 1 : list.length > 0 ? at(list[0].ware) : 0
+  const placed = all.toSpliced(i, 0, { ware: moved.ware, order: 0, tie: moved.id })
+  return reorder(
+    all.map((x) => x.order),
+    i,
+  ).map(([j, o]): [string, number] => [placed[j].ware, o])
+}
+
 // Sets the Store Order of several Wares at once, as [wareId, order] pairs.
 export function setOrders(orders: [string, number][]) {
   const batch = writeBatch(db)

@@ -26,7 +26,11 @@ import {
   isStaple,
   removeEntries,
   removeEntry,
+  dropOrders,
+  inStoreOrder,
   setNeverOda,
+  setOrders,
+  storeOrder,
   setNote,
   setOdaProduct,
   setOdaProducts,
@@ -1288,18 +1292,84 @@ function Shop({
     return () => document.removeEventListener('visibilitychange', onHide)
   }, [])
   const inPlace = (e: Entry) => !e.checked || lingering.has(e.id)
-  const unchecked = entries.filter(inPlace)
-  const checked = entries.filter((e) => !inPlace(e))
 
-  const row = (entry: Entry) => (
+  // In Store Order. A drop's orders show at once and until Firestore has them, so the old
+  // order doesn't flash back.
+  const wares = useWares()
+  const [dropped, setDropped] = useState<Map<string, number> | null>(null)
+  const order = (e: Entry) => dropped?.get(e.ware) ?? storeOrder(e, wares)
+  const unchecked = inStoreOrder(entries.filter(inPlace), order)
+  const checked = inStoreOrder(
+    entries.filter((e) => !inPlace(e)),
+    order,
+  )
+
+  // While dragging, the dragged Entry and the index it would land at, shown there live.
+  const [drag, setDrag] = useState<{ id: string; to: number } | null>(null)
+  const items = useRef(new Map<string, HTMLLIElement>())
+  const dragged = drag && unchecked.find((e) => e.id === drag.id)
+  const shown = dragged ? unchecked.filter((e) => e !== dragged).toSpliced(drag.to, 0, dragged) : unchecked
+  const dropAt = (id: string, y: number) =>
+    unchecked.filter((e) => {
+      const r = e.id !== id && items.current.get(e.id)?.getBoundingClientRect()
+      return r && r.top + r.height / 2 < y
+    }).length
+  // An Entry not yet timed counts as added now.
+  function drop(id: string, to: number, now: number) {
+    const moved = unchecked.find((e) => e.id === id)
+    if (!moved) return
+    const others = unchecked.filter((e) => e !== moved)
+    const writes = dropOrders(others, moved, to, wares, (e) => Math.min(order(e), now))
+    setDropped(new Map(writes))
+    setOrders(writes)
+      .catch(console.error)
+      .finally(() => setDropped(null))
+  }
+  // Listens on window: reordering moves the dragged row in the DOM, which would lose pointer
+  // capture. The listeners reach the latest drop through a ref.
+  const dropRef = useRef(drop)
+  useLayoutEffect(() => {
+    dropRef.current = drop
+  })
+  const dragId = drag?.id
+  useEffect(() => {
+    if (!dragId) return
+    let to = -1
+    const move = (e: PointerEvent) => {
+      to = dropAt(dragId, e.clientY)
+      setDrag({ id: dragId, to })
+    }
+    const up = () => {
+      if (to >= 0) dropRef.current(dragId, to, Date.now())
+      setDrag(null)
+    }
+    const cancel = () => setDrag(null)
+    window.addEventListener('pointermove', move)
+    window.addEventListener('pointerup', up)
+    window.addEventListener('pointercancel', cancel)
+    return () => {
+      window.removeEventListener('pointermove', move)
+      window.removeEventListener('pointerup', up)
+      window.removeEventListener('pointercancel', cancel)
+    }
+    // dropAt reads only refs and the rows, which the drag doesn't change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dragId])
+
+  const row = (entry: Entry, i: number) => (
     <li
       key={entry.id}
+      ref={(el) => {
+        if (el) items.current.set(entry.id, el)
+        else items.current.delete(entry.id)
+      }}
       style={{
         fontSize: '1.375rem',
         opacity: entry.checked ? 0.4 : 1,
         display: 'flex',
         alignItems: 'center',
         gap: '0.75rem',
+        background: drag?.id === entry.id ? '#eee' : 'transparent',
       }}
     >
       <label style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: ordering ? 'default' : 'pointer' }}>
@@ -1315,6 +1385,42 @@ function Shop({
           <Details entry={entry} onDishes={onDishes} />
         </span>
       </label>
+      {!entry.checked && !ordering && (
+        <div
+          aria-label={`Flytt ${entry.text}`}
+          onPointerDown={(e) => {
+            e.preventDefault()
+            setDrag({ id: entry.id, to: i })
+          }}
+          style={{
+            flexShrink: 0,
+            width: '2.25rem',
+            height: '2.25rem',
+            border: '1px solid #ccc',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#666',
+            cursor: 'grab',
+            touchAction: 'none',
+            userSelect: 'none',
+          }}
+        >
+          {/* Drawn, not the ↕ glyph, so the row's text is just the Entry's. */}
+          <svg
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+            style={{ width: '1.25rem', height: '1.25rem' }}
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={1.75}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M12 4 V20 M8 8 L12 4 L16 8 M8 16 L12 20 L16 16" />
+          </svg>
+        </div>
+      )}
     </li>
   )
 
@@ -1325,7 +1431,7 @@ function Shop({
           <OdaOrderLink onClick={onOdaOrder} />
         </div>
       )}
-      <ul style={{ ...listStyle, gap: '0.75rem' }}>{unchecked.map(row)}</ul>
+      <ul style={{ ...listStyle, gap: '0.75rem' }}>{shown.map(row)}</ul>
       {/* Folded away below the List, so checking off the first Entry doesn't push the List down. */}
       {checked.length > 0 && (
         <details>

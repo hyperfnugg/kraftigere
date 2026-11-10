@@ -1,6 +1,6 @@
 import { Timestamp } from 'firebase/firestore'
 import { describe, expect, test } from 'vitest'
-import { type Entry, type Ware, inStoreOrder, reorder, storeOrder, suggest, typedName } from '../../src/entries'
+import { type Entry, type Ware, dropOrders, inStoreOrder, reorder, storeOrder, suggest, typedName } from '../../src/entries'
 
 describe('typedName', () => {
   test('drops punctuation and spaces at the ends', () => {
@@ -88,5 +88,33 @@ describe('reorder', () => {
       [1, 11],
       [2, 12],
     ])
+  })
+})
+
+describe('dropOrders', () => {
+  const ware = (id: string, order?: number): Ware => ({ id, name: id, addCount: 1, order })
+  const entry = (id: string): Entry => ({ id, text: id, ware: id, checked: false, createdAt: null })
+  const wares = [ware('a', 5), ware('b', 5), ware('c', 100), ware('h', 6), ware('old')]
+  const order = (e: Entry) => wares.find((w) => w.id === e.ware)!.order!
+
+  test('between neighbours with room, writes only the moved Ware', () => {
+    expect(dropOrders([entry('a'), entry('c')], entry('b'), 1, [ware('a', 10), ware('b', 50), ware('c', 30)], (e) => ({ a: 10, c: 30 })[e.ware]!)).toEqual([['b', 20]])
+  })
+
+  test('pushing on tied neighbours also pushes a Ware without an Entry, keeping its place', () => {
+    // On the List: a (5), b (5). Off it: h (6). c lands between a and b.
+    expect(dropOrders([entry('a'), entry('b')], entry('c'), 1, wares, order)).toEqual([
+      ['c', 6],
+      ['b', 7],
+      ['h', 8],
+    ])
+  })
+
+  test('to the top lands right before the top Entry, after Wares off the List above it', () => {
+    expect(dropOrders([entry('h'), entry('c')], entry('b'), 0, [ware('a', 1), ware('h', 6), ware('c', 100), ware('b', 200)], (e) => ({ h: 6, c: 100 })[e.ware]!)).toEqual([['b', 3.5]])
+  })
+
+  test('to the bottom of a List of one', () => {
+    expect(dropOrders([entry('a')], entry('c'), 1, [ware('a', 5), ware('c', 100)], () => 5)).toEqual([['c', 1005]])
   })
 })

@@ -154,6 +154,7 @@ test('Groceries is locked on every device until Bestilt checks the Entries off',
   await openTab(other, 'Handle')
   await expect(other.getByText('Odabestilling pågår')).toBeVisible()
   await expect(tick(other, 'Melk')).toBeDisabled()
+  await expect(other.getByLabel(/^Flytt /)).toHaveCount(0)
   await expect(other.getByRole('button', { name: 'Fjern avkryssede' })).toBeHidden()
 
   await page.getByRole('button', { name: 'Bestilt' }).click()
