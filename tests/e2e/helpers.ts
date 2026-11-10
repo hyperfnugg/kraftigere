@@ -1,6 +1,6 @@
 import { expect, type Page } from '@playwright/test'
 
-import { FIRESTORE_HOST, MEMBERS, PROJECT } from '../../scripts/seed.mjs'
+import { FIRESTORE_HOST, MEMBERS, PROJECT, signInWithIdp } from '../../scripts/seed.mjs'
 
 export { FIRESTORE_HOST, MEMBERS, OUTSIDER, PROJECT, reset, seed, setMembers } from '../../scripts/seed.mjs'
 
@@ -30,8 +30,31 @@ export async function completeGooglePopup(page: Page, email: string) {
   }).toPass({ intervals: [100], timeout: 20_000 })
 }
 
+// Signs in without the popup: the Auth emulator signs the seeded account in, and the page
+// starts with that user where Firebase Auth keeps it. Firebase looks for a saved user in each of
+// its persistences, localStorage among them, as `firebase:authUser:<apiKey>:<appName>` in the
+// shape of User.toJSON(), and checks it with the emulator. Only the first load gets it, so a
+// sign-out stays signed out after a reload.
 export async function signIn(page: Page, email: string) {
-  await completeGooglePopup(page, email)
+  const { localId, idToken, refreshToken, expiresIn, displayName } = await signInWithIdp(email)
+  const user = {
+    uid: localId,
+    email,
+    emailVerified: true,
+    displayName,
+    isAnonymous: false,
+    providerData: [{ providerId: 'google.com', uid: email, email, displayName, phoneNumber: null, photoURL: null }],
+    stsTokenManager: { refreshToken, accessToken: idToken, expirationTime: Date.now() + Number(expiresIn) * 1_000 },
+  }
+  await page.addInitScript(
+    ([key, value]) => {
+      if (window !== window.top || sessionStorage.getItem('e2e-signed-in')) return
+      sessionStorage.setItem('e2e-signed-in', '1')
+      localStorage.setItem(key, value)
+    },
+    ['firebase:authUser:demo:[DEFAULT]', JSON.stringify(user)],
+  )
+  await page.goto('./')
   await expect(page.getByRole('button', { name: 'Mer' })).toBeVisible()
 }
 

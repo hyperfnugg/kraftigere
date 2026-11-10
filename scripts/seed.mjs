@@ -49,22 +49,26 @@ async function firestoreEmpty() {
   return ((await res.json()).collectionIds ?? []).length === 0
 }
 
+// Signs in to the Auth emulator with Google, creating the account the first time. The emulator
+// accepts an unsigned JSON ID token. Returns its answer: localId, idToken, refreshToken, expiresIn.
+export async function signInWithIdp(email) {
+  const idToken = JSON.stringify({ sub: email, email, email_verified: true, name: email.split('@')[0] })
+  const res = await fetch(`http://${AUTH_HOST}/identitytoolkit.googleapis.com/v1/accounts:signInWithIdp?key=demo`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      requestUri: 'http://localhost',
+      postBody: `id_token=${encodeURIComponent(idToken)}&providerId=google.com`,
+      returnSecureToken: true,
+    }),
+  })
+  if (!res.ok) throw new Error(`Google sign-in failed: ${email} ${res.status} ${await res.text()}`)
+  return res.json()
+}
+
 // Creates Google accounts in the Auth emulator so its sign-in popup lists them.
-// The emulator accepts an unsigned JSON ID token.
 async function seedAccounts() {
-  for (const email of [...MEMBERS, OUTSIDER]) {
-    const idToken = JSON.stringify({ sub: email, email, email_verified: true, name: email.split('@')[0] })
-    const res = await fetch(`http://${AUTH_HOST}/identitytoolkit.googleapis.com/v1/accounts:signInWithIdp?key=demo`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        requestUri: 'http://localhost',
-        postBody: `id_token=${encodeURIComponent(idToken)}&providerId=google.com`,
-        returnSecureToken: true,
-      }),
-    })
-    if (!res.ok) throw new Error(`account seed failed: ${email} ${res.status} ${await res.text()}`)
-  }
+  for (const email of [...MEMBERS, OUTSIDER]) await signInWithIdp(email)
 }
 
 export async function seed() {
