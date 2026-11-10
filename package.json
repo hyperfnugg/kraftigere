@@ -16,13 +16,13 @@
   },
   "dependencies": {
     "downshift": "^9.4.0",
-    "firebase": "^12.12.1",
+    "firebase": "^13.2.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "@firebase/rules-unit-testing": "^5.0.2",
+    "@firebase/rules-unit-testing": "^6.0.0",
     "@playwright/mcp": "^0.0.84",
     "@playwright/test": "^1.64.1",
     "@types/node": "^24.19.2",
@@ -39,6 +39,10 @@
     "typescript-eslint": "^8.72.1",
     "vite": "^8.3.5",
     "vite-plugin-pwa": "^2.0.0",
-    "vitest": "^5.0.5"
+    "vitest": "^5.1.0"
+  },
+  "overrides": {
+    "@grpc/grpc-js": "^1.14.6",
+    "uuid": "^11.1.1"
   }
 }
