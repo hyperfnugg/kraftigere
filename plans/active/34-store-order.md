@@ -20,9 +20,9 @@ Handle lists the Entries in the order the Family walks the store, so shopping is
 
 ## Steps
 
-- [ ] **Order logic.** In `src/entries.ts`: `order` on `Ware`, read in `useWares`. A pure `storeOrder(entry, wares)` and `reorder(keys, from, to)` returning the writes a drop needs (the dragged key midway, neighbours spread when tied or closer than 1). `setOrders` writes them in one batch.
-- [ ] **Unit tests** for `storeOrder` and `reorder`: midpoint, first and last place, ties from one Iverksett batch, legacy Wares without `order`.
-- [ ] **Commit: Store Order logic.** *(auto)*
+- [x] **Order logic.** In `src/entries.ts`: `order` on `Ware`, read in `useWares`. Pure `storeOrder(entry, wares)`, `inStoreOrder(entries, order)` (ties by id) and `reorder(others, to)`, which returns the writes a drop needs: the moved order midway, or when neighbours are under 2 apart, 1 after the one before, pushing on only those in the way. `setOrders` writes them in one batch.
+- [x] **Unit tests** for `storeOrder`, `inStoreOrder` and `reorder`: midpoint, first and last place, ties from one Iverksett batch, legacy Wares without `order`.
+- [x] **Commit: Store Order logic.** *(auto)*
 - [ ] **Order on creation.** `addEntry` sets `order` only when it creates the Ware, so it's passed the Wares. Iverksett (`src/matching.ts`) sets consecutive orders on the Wares it creates.
 - [ ] **Rules** in `firestore.rules`: `order` allowed on create and as a lone update, as a number.
 - [ ] **Rules tests** in `tests/rules/firestore.test.ts`: create with and without `order`, update `order` alone, reject a non-number, reject `order` alongside other fields on an add.
