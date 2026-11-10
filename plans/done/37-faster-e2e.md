@@ -36,7 +36,7 @@ No dev-server step: nothing here is user-visible.
 ## Done when
 
 - A sign-in clicks the popup once, or skips the popup entirely, except in the test that covers the popup.
-- The e2e step of a PR check takes under 2 minutes, down from about 4.5, and passes twice in a row locally. (1 min 33 s and 2 min 6 s in the two PR checks on the final code; see Notes.)
+- The e2e step of a PR check takes under 2 minutes, down from about 4.5, and passes twice in a row locally. (1 min 33 s, 2 min 6 s and 2 min 5 s in the PR checks on the final code; see Notes.)
 - `npm run dev` still runs beside `npm run test:e2e`.
 
 ## Notes
@@ -81,4 +81,4 @@ No dev-server step: nothing here is user-visible.
 - Two stacks on Vite dev servers (run 42824490082): e2e step 2 min 19 s, whole check 4 min 12 s. Test time summed to 234 s, against 124 s locally: the two stacks starved the CPU, because each fresh browser context loads hundreds of unbundled modules from the dev server.
 - So each stack now serves a production build on `vite preview` (0.3 s to build). The chromium project blocks service workers, and the pwa tests and `npm run perf` use stack 0's build, so the separate preview server on 4273 and the per-stack Vite cache dirs are gone. Locally: 78 passed twice in 1.1 min, sign-in 12.6 s, test time 91–101 s.
 - Two stacks on production builds (run 42825786414): e2e step 1 min 33 s (17 s startup, 78 passed in 1.5 min, no retries), whole check 4 min 15 s. Test time summed to 148 s, so CPU still limits it; three stacks in CI weren't tried. `npm ci` (about 55 s) is now the biggest step.
-- The same code again (run 42826654718, the plan's move to done): e2e step 2 min 6 s (25 s startup, 78 passed in 2.1 min, no retries). Runners vary, so the step is about 1.5–2 min, at the target rather than safely under it. If it creeps up, try `E2E_STACKS=3` in CI, or cache `npm ci`.
+- The same code again (run 42826654718, the plan's move to done): e2e step 2 min 6 s (25 s startup, 78 passed in 2.1 min, no retries). A third run (42827478617) took 2 min 5 s. Three stacks in CI (run 42828256030) took 2 min 1 s (23 s startup, no retries), no better, since the runner is CPU-bound, so CI stays on two. The step is about 1.5–2 min on the final code, at the target rather than safely under it. What's left to cut is CPU per test, or `npm ci` for the whole check.
