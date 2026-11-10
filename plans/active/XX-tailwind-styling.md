@@ -25,8 +25,8 @@ Tailwind v4 via `@tailwindcss/vite`, a theme in `src/index.css` with a named col
 - [x] **Commit: Tailwind and its theme** *(manual)* — new dependency and build plugin.
 - [x] **Convert `Confirm.tsx`.**
 - [x] **Commit: Confirm on Tailwind** *(manual)*
-- [ ] **Convert `Meals.tsx`.**
-- [ ] **Commit: Meals on Tailwind** *(manual)*
+- [x] **Convert `Meals.tsx`.** `TextButton` in `src/ui.tsx` is a button that reads as text, for the links in Meals and App. The Recipe screen widens at `sm:`, which is the 40rem of `useWide`.
+- [x] **Commit: Meals on Tailwind** *(manual)*
 - [ ] **Convert `App.tsx`.**
 - [ ] **Commit: App on Tailwind** *(manual)*
 - [ ] **Try it on the dev server**, comparing each screen with `main`, iterating on feedback. Skipped in AFK mode. *(user)*

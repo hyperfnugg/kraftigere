@@ -42,17 +42,10 @@ import {
   type StoredRecipe,
   type Week,
 } from './weeks'
+import { Button, TextButton } from './ui'
 
-const buttonStyle = { fontSize: '1rem', padding: '0.5rem 1rem', cursor: 'pointer' }
-const smallButtonStyle = { ...buttonStyle, fontSize: '0.875rem', padding: '0.25rem 0.75rem' }
-const textareaStyle = {
-  width: '100%',
-  boxSizing: 'border-box',
-  fontSize: '1rem',
-  fontFamily: 'inherit',
-  padding: '0.5rem',
-} as const
-const headingStyle = { fontSize: '1.125rem', margin: 0 }
+const textareaClass = 'box-border w-full p-2 text-base [font-family:inherit]'
+const headingClass = 'm-0 text-lg'
 
 // A text that saves when you leave it. While you type, others' changes don't overwrite it.
 export function SavedText({
@@ -84,7 +77,7 @@ export function SavedText({
         if (draft !== null && draft.trim() !== value) onSave(draft)
         setDraft(null)
       }}
-      style={textareaStyle}
+      className={textareaClass}
     />
   )
 }
@@ -94,12 +87,9 @@ export function SavedText({
 // Says an Oda Order is under way, and goes to it.
 export function OdaOrderLink({ onClick }: { onClick: () => void }) {
   return (
-    <button
-      onClick={onClick}
-      style={{ font: 'inherit', color: 'inherit', padding: 0, border: 'none', background: 'none', textDecoration: 'underline', cursor: 'pointer' }}
-    >
+    <TextButton onClick={onClick} className="text-inherit underline">
       Odabestilling pågår
-    </button>
+    </TextButton>
   )
 }
 
@@ -137,13 +127,14 @@ export function MealsTab({
 
   return (
     <>
-      <button
+      <Button
+        small
         onClick={() => setGuidelinesOpen(!guidelinesOpen)}
         aria-expanded={guidelinesOpen}
-        style={{ ...smallButtonStyle, alignSelf: 'flex-start' }}
+        className="self-start"
       >
         Føringer
-      </button>
+      </Button>
       {guidelinesOpen && (
         <SavedText
           label="Føringer"
@@ -154,24 +145,14 @@ export function MealsTab({
         />
       )}
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-        <button
-          onClick={() => previous && setWeekId(previous)}
-          disabled={!previous}
-          aria-label="Forrige uke"
-          style={buttonStyle}
-        >
+      <div className="flex items-center gap-2">
+        <Button onClick={() => previous && setWeekId(previous)} disabled={!previous} aria-label="Forrige uke">
           ‹
-        </button>
-        <h2 style={{ ...headingStyle, flex: 1, textAlign: 'center' }}>{weekLabel(weekId)}</h2>
-        <button
-          onClick={() => next && setWeekId(next)}
-          disabled={!next}
-          aria-label="Neste uke"
-          style={buttonStyle}
-        >
+        </Button>
+        <h2 className={`${headingClass} flex-1 text-center`}>{weekLabel(weekId)}</h2>
+        <Button onClick={() => next && setWeekId(next)} disabled={!next} aria-label="Neste uke">
           ›
-        </button>
+        </Button>
       </div>
 
       {week && (
@@ -191,8 +172,8 @@ export function MealsTab({
   )
 }
 
-const sectionStyle = { display: 'flex', flexDirection: 'column', gap: '0.5rem' } as const
-const errorStyle = { color: '#a00', fontSize: '0.875rem' }
+const sectionClass = 'flex flex-col gap-2'
+const errorClass = 'text-sm text-danger'
 
 // The day's one dish, or none.
 function parseMeal(text: string) {
@@ -256,18 +237,18 @@ function Instruct({
     setText('')
   }
   return (
-    <form onSubmit={onSubmit} style={{ display: 'flex', gap: '0.5rem' }}>
+    <form onSubmit={onSubmit} className="flex gap-2">
       <input
         aria-label={label}
         placeholder="Be om en endring"
         value={text}
         onChange={(e) => setText(e.target.value)}
         maxLength={500}
-        style={{ flex: 1, minWidth: 0, fontSize: '1rem', padding: '0.5rem' }}
+        className="min-w-0 flex-1 p-2 text-base"
       />
-      <button type="submit" disabled={disabled} style={buttonStyle}>
+      <Button type="submit" disabled={disabled}>
         Endre
-      </button>
+      </Button>
     </form>
   )
 }
@@ -280,13 +261,9 @@ function confirmRemake(onRemake: () => void) {
 // "Utdatert" on the Menu, with when it became so. Tapping it remakes.
 function Outdated({ since, disabled, onRemake }: { since: Timestamp; disabled: boolean; onRemake: () => void }) {
   return (
-    <button
-      onClick={() => confirmRemake(onRemake)}
-      disabled={disabled}
-      style={{ ...smallButtonStyle, alignSelf: 'flex-start', color: '#8a5a00' }}
-    >
+    <Button small onClick={() => confirmRemake(onRemake)} disabled={disabled} className="self-start text-accent">
       Utdatert · {timeLabel(since.toDate())}
-    </button>
+    </Button>
   )
 }
 
@@ -369,7 +346,7 @@ function Remake({
       disabled={disabled}
       aria-label={title}
       title={title}
-      style={iconStyle(disabled, since ? '#8a5a00' : '#000')}
+      className={iconClass(disabled, since ? 'text-accent' : 'text-black')}
     >
       ↻
     </button>
@@ -377,16 +354,8 @@ function Remake({
 }
 
 // A plain text glyph as a button, not an emoji or a button box.
-const iconStyle = (disabled: boolean, color = '#000') => ({
-  background: 'none',
-  border: 'none',
-  padding: '0.25rem',
-  fontSize: '1.5rem',
-  lineHeight: 1,
-  color,
-  cursor: disabled ? 'default' : 'pointer',
-  opacity: disabled ? 0.3 : 1,
-})
+const iconClass = (disabled: boolean, color = 'text-black') =>
+  `border-none bg-transparent p-1 text-2xl leading-none ${color} ${disabled ? 'cursor-default opacity-30' : 'cursor-pointer'}`
 
 // A new Meal for the day from the AI, following its Note.
 async function suggestMeal(weekId: string, day: Day) {
@@ -474,7 +443,7 @@ function MenuSection({
       disabled={!!busy}
       aria-label={`Ny middag ${DAY_NAMES[day].toLowerCase()}`}
       title="Ny middag"
-      style={iconStyle(!!busy)}
+      className={iconClass(!!busy)}
     >
       ↻
     </button>
@@ -485,23 +454,16 @@ function MenuSection({
     makeWeekRecipes(weekId, courses, progress, job.mark)
 
   return (
-    <section style={sectionStyle}>
-      <h3 style={headingStyle}>Meny</h3>
+    <section className={sectionClass}>
+      <h3 className={headingClass}>Meny</h3>
       {menuOutdated && (
         <Outdated since={menuOutdated} disabled={!!busy} onRemake={() => run('Lager meny…', () => make())} />
       )}
       {DAYS.map((d) => (
-        <div key={d} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+        <div key={d} className="flex items-center gap-3">
           <div
             onClick={(e) => onDayClick(d, e)}
-            style={{
-              flex: 1,
-              minWidth: 0,
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '0.25rem',
-              cursor: daysEditable || recipeToOpen(d) ? 'pointer' : undefined,
-            }}
+            className={`flex min-w-0 flex-1 flex-col gap-1 ${daysEditable || recipeToOpen(d) ? 'cursor-pointer' : ''}`}
           >
             <span
               {...(daysEditable && {
@@ -516,10 +478,10 @@ function MenuSection({
                   toggleEditing(d)
                 },
               })}
-              style={{ fontSize: '0.875rem', color: '#555' }}
+              className="text-sm text-muted"
             >
               {DAY_NAMES[d]}
-              {week.dayNotes?.[d] && <span style={{ color: '#666' }}> · {week.dayNotes[d]}</span>}
+              {week.dayNotes?.[d] && <span className="text-muted"> · {week.dayNotes[d]}</span>}
             </span>
             {editing === d && daysEditable && (
               <DayEditor
@@ -537,7 +499,7 @@ function MenuSection({
             )}
             {menu && (
               <>
-                {menu[d].length === 0 && <div style={{ color: '#999' }}>Ingen middag</div>}
+                {menu[d].length === 0 && <div className="text-faint">Ingen middag</div>}
                 {menu[d].map((course, i) => {
                   const id = recipeId(d, i)
                   const recipe = recipes[id]
@@ -547,36 +509,36 @@ function MenuSection({
                       key={id}
                       role="group"
                       aria-label={`Oppskrift ${course}`}
-                      style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                      className="flex items-center gap-2"
                     >
                       {recipe ? (
                         <span
                           role="button"
                           tabIndex={0}
                           onKeyDown={(e) => e.key === 'Enter' && setOpenRecipe({ day: d, course: i })}
-                          style={{ fontSize: '1.125rem' }}
+                          className="text-lg"
                         >
                           {course}
                         </span>
                       ) : (
-                        <span style={{ fontSize: '1.125rem', color: '#999' }}>{course}</span>
+                        <span className="text-lg text-faint">{course}</span>
                       )}
                       {pending.includes(id) && <Working />}
                       {/* After "Lag oppskrifter", a changed course gets its Recipe here. */}
                       {!recipe && recipesStarted && !confirmed && !pending.includes(id) && (
-                        <button
+                        <Button
+                          small
                           onClick={(e) => {
                             e.stopPropagation()
                             run('Lager oppskrift…', (p) => makeRecipes([{ day: d, course: i }], p))
                           }}
                           disabled={!!busy}
-                          style={smallButtonStyle}
                         >
                           Lag oppskrift
-                        </button>
+                        </Button>
                       )}
                       {outdated && !pending.includes(id) && (
-                        <span style={{ fontSize: '0.875rem', color: '#8a5a00' }}>utdatert</span>
+                        <span className="text-sm text-accent">utdatert</span>
                       )}
                     </div>
                   )
@@ -600,26 +562,25 @@ function MenuSection({
           onClose={() => setOpenRecipe(null)}
         />
       )}
-      {busy && <div style={{ color: '#555' }}>{busy}</div>}
-      {error && <div style={errorStyle}>{error}</div>}
+      {busy && <div className="text-muted">{busy}</div>}
+      {error && <div className={errorClass}>{error}</div>}
       {week.confirmedAt ? (
-        <div style={{ color: '#555' }}>Iverksatt · {timeLabel(week.confirmedAt.toDate())}</div>
+        <div className="text-muted">Iverksatt · {timeLabel(week.confirmedAt.toDate())}</div>
       ) : (
         menu && (
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <div className="flex gap-2">
             {/* Stays, disabled once run, so the steps show: Lag oppskrifter, then Iverksett. */}
-            <button
+            <Button
               onClick={() => run('Lager oppskrifter…', (p) => makeRecipes(allCourses, p))}
               disabled={!!busy || recipesStarted}
-              style={buttonStyle}
             >
               Lag oppskrifter
-            </button>
-            <button onClick={() => setConfirming(true)} disabled={!!busy || !ready || ordering} style={buttonStyle}>
+            </Button>
+            <Button onClick={() => setConfirming(true)} disabled={!!busy || !ready || ordering}>
               Iverksett
-            </button>
+            </Button>
             {ordering && (
-              <span style={{ alignSelf: 'center', color: '#555' }}>
+              <span className="self-center text-muted">
                 <OdaOrderLink onClick={onOdaOrder} />
               </span>
             )}
@@ -675,11 +636,11 @@ function useWakeLock() {
 function Quantity({ ingredient }: { ingredient: Ingredient }) {
   const { grams, measure } = ingredient
   const extra = measureText(measure)
-  const grey = { color: '#666', fontSize: '0.85em' }
-  if (grams === null) return <span style={grey}>{extra}</span>
+  const grey = 'text-[0.85em] text-muted'
+  if (grams === null) return <span className={grey}>{extra}</span>
   return (
     <>
-      {formatNumber(grams)} g{extra && <span style={grey}> ({extra})</span>}
+      {formatNumber(grams)} g{extra && <span className={grey}> ({extra})</span>}
     </>
   )
 }
@@ -687,21 +648,7 @@ function Quantity({ ingredient }: { ingredient: Ingredient }) {
 // An instruction's number in a circle, as in Modernist Cuisine.
 function InstructionNumber({ n }: { n: number }) {
   return (
-    <span
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        flexShrink: 0,
-        minWidth: '1.5em',
-        height: '1.5em',
-        marginTop: '0.1em',
-        border: '1px solid currentColor',
-        borderRadius: '0.75em',
-        fontSize: '0.75em',
-        boxSizing: 'border-box',
-      }}
-    >
+    <span className="mt-[0.1em] box-border inline-flex h-[1.5em] min-w-[1.5em] shrink-0 items-center justify-center rounded-[0.75em] border border-current text-[0.75em]">
       {n}
     </span>
   )
@@ -710,7 +657,7 @@ function InstructionNumber({ n }: { n: number }) {
 // One instruction with its number, wrapped lines indented past the number.
 function Instruction({ n, text }: { n: number; text: string }) {
   return (
-    <div style={{ display: 'flex', gap: '0.5rem' }}>
+    <div className="flex gap-2">
       <InstructionNumber n={n} />
       <span>{text}</span>
     </div>
@@ -723,24 +670,22 @@ function Instruction({ n, text }: { n: number; text: string }) {
 function RecipeSteps({ steps, wide }: { steps: Step[]; wide: boolean }) {
   // The number of each step's first instruction.
   const firsts = steps.map((_, i) => 1 + steps.slice(0, i).reduce((n, s) => n + s.instructions.length, 0))
-  const rule = '1px solid #ccc'
-
   if (!wide) {
     return (
-      <div style={{ fontSize: '1.125rem', lineHeight: 1.4, borderBottom: rule }}>
+      <div className="border-b border-line text-lg leading-[1.4]">
         {steps.map((step, i) => (
           <div
             key={i}
             role="group"
             aria-label={`Steg ${i + 1}`}
-            style={{ ...sectionStyle, borderTop: rule, padding: '0.75rem 0' }}
+            className={`${sectionClass} border-t border-line py-3`}
           >
             {step.ingredients.length > 0 && (
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', columnGap: '1rem' }}>
+              <div className="grid grid-cols-[1fr_auto] gap-x-4">
                 {step.ingredients.map((ing, k) => (
                   <Fragment key={k}>
                     <span>{ing.text}</span>
-                    <span style={{ whiteSpace: 'nowrap' }}>
+                    <span className="whitespace-nowrap">
                       <Quantity ingredient={ing} />
                     </span>
                   </Fragment>
@@ -756,31 +701,29 @@ function RecipeSteps({ steps, wide }: { steps: Step[]; wide: boolean }) {
     )
   }
 
-  const cell = { padding: '0.375rem 1rem 0.375rem 0', verticalAlign: 'top', textAlign: 'left' } as const
-  const head = { ...cell, fontSize: '0.875rem', fontWeight: 'normal', color: '#555', letterSpacing: '0.05em' }
+  const cell = 'py-1.5 pr-4 pl-0 text-left align-top'
+  const head = `${cell} text-sm font-normal tracking-wider text-muted`
   return (
-    <table
-      style={{ width: '100%', borderCollapse: 'collapse', fontSize: '1.25rem', lineHeight: 1.4, borderBottom: rule }}
-    >
+    <table className="w-full border-collapse border-b border-line text-xl leading-[1.4]">
       <thead>
         <tr>
-          <th style={{ ...head, width: '30%' }}>INGREDIENS</th>
-          <th style={{ ...head, width: '15%' }}>MENGDE</th>
-          <th style={head}>FREMGANGSMÅTE</th>
+          <th className={`${head} w-[30%]`}>INGREDIENS</th>
+          <th className={`${head} w-[15%]`}>MENGDE</th>
+          <th className={head}>FREMGANGSMÅTE</th>
         </tr>
       </thead>
       {steps.map((step, i) => {
         const rows = Math.max(1, step.ingredients.length, step.instructions.length)
         return (
-          <tbody key={i} aria-label={`Steg ${i + 1}`} style={{ borderTop: rule }}>
+          <tbody key={i} aria-label={`Steg ${i + 1}`} className="border-t border-line">
             {Array.from({ length: rows }, (_, r) => {
               const ing = step.ingredients[r]
               const text = step.instructions[r]
               return (
                 <tr key={r}>
-                  <td style={cell}>{ing?.text}</td>
-                  <td style={{ ...cell, whiteSpace: 'nowrap' }}>{ing && <Quantity ingredient={ing} />}</td>
-                  <td style={cell}>{text !== undefined && <Instruction n={firsts[i] + r} text={text} />}</td>
+                  <td className={cell}>{ing?.text}</td>
+                  <td className={`${cell} whitespace-nowrap`}>{ing && <Quantity ingredient={ing} />}</td>
+                  <td className={cell}>{text !== undefined && <Instruction n={firsts[i] + r} text={text} />}</td>
                 </tr>
               )
             })}
@@ -830,30 +773,21 @@ function RecipeView({
     <div
       role="dialog"
       aria-label={recipe.course}
-      style={{ position: 'fixed', inset: 0, zIndex: 1, background: '#fff', overflowY: 'auto' }}
+      className="fixed inset-0 z-1 overflow-y-auto bg-white"
     >
-      <div
-        style={{
-          ...sectionStyle,
-          gap: '1rem',
-          width: wide ? 'min(100%, 72rem)' : 'min(100%, 32rem)',
-          margin: '0 auto',
-          padding: '1rem 1rem 6rem',
-          boxSizing: 'border-box',
-          fontFamily: 'system-ui, sans-serif',
-        }}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <button onClick={onClose} style={smallButtonStyle}>
+      {/* sm is 40rem, as for useWide. */}
+      <div className="mx-auto box-border flex w-[min(100%,32rem)] flex-col gap-4 px-4 pt-4 pb-24 sm:w-[min(100%,72rem)]">
+        <div className="flex justify-between">
+          <Button small onClick={onClose}>
             ‹ Meny
-          </button>
-          <button onClick={() => setEditing(!editing)} style={smallButtonStyle}>
+          </Button>
+          <Button small onClick={() => setEditing(!editing)}>
             {editing ? 'Ferdig' : 'Rediger'}
-          </button>
+          </Button>
         </div>
-        <div style={{ fontSize: '0.875rem', color: '#555' }}>{DAY_NAMES[day]}</div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <h2 style={{ fontSize: '1.375rem', margin: 0 }}>{recipe.course}</h2>
+        <div className="text-sm text-muted">{DAY_NAMES[day]}</div>
+        <div className="flex items-center gap-2">
+          <h2 className="m-0 text-xl">{recipe.course}</h2>
           {pending.includes(recipe.id) && <Working />}
           {ai && !pending.includes(recipe.id) && (
             <Remake
@@ -868,7 +802,7 @@ function RecipeView({
           <RecipeEditor weekId={weekId} recipe={recipe} />
         ) : (
           <>
-            <div style={{ color: '#555' }}>{recipe.servings} porsjoner</div>
+            <div className="text-muted">{recipe.servings} porsjoner</div>
             <RecipeSteps steps={recipe.steps} wide={wide} />
           </>
         )}
@@ -879,8 +813,8 @@ function RecipeView({
             onInstruct={(instruction) => run('Endrer oppskrift…', () => remake(instruction))}
           />
         )}
-        {busy && <div style={{ color: '#555' }}>{busy}</div>}
-        {error && <div style={errorStyle}>{error}</div>}
+        {busy && <div className="text-muted">{busy}</div>}
+        {error && <div className={errorClass}>{error}</div>}
       </div>
     </div>
   )
@@ -919,10 +853,10 @@ function DayEditor({
       onBlur={(e) => {
         if (!e.currentTarget.contains(e.relatedTarget)) save()
       }}
-      style={{ ...sectionStyle, padding: '0.5rem', border: '1px solid #ddd' }}
+      className={`${sectionClass} border border-line p-2`}
     >
-      <label style={sectionStyle}>
-        <span style={{ fontSize: '0.875rem', color: '#555' }}>Notat</span>
+      <label className={sectionClass}>
+        <span className="text-sm text-muted">Notat</span>
         <textarea
           autoFocus
           aria-label="Notat"
@@ -931,19 +865,19 @@ function DayEditor({
           rows={2}
           maxLength={5000}
           placeholder="Gjester, hvem som er borte, rester som skal brukes."
-          style={textareaStyle}
+          className={textareaClass}
         />
       </label>
       {courses && (
-        <label style={sectionStyle}>
-          <span style={{ fontSize: '0.875rem', color: '#555' }}>Middag</span>
+        <label className={sectionClass}>
+          <span className="text-sm text-muted">Middag</span>
           <input
             aria-label="Middag"
             value={coursesDraft ?? courses.join(' + ')}
             onChange={(e) => setCoursesDraft(e.target.value)}
             maxLength={200}
             placeholder="Ingen middag"
-            style={{ fontSize: '1rem', padding: '0.5rem' }}
+            className="p-2 text-base"
           />
         </label>
       )}
@@ -963,6 +897,7 @@ function SavedInput({
   label: string
   value: string
   onSave: (text: string) => void
+  // A width class; without one the input takes the space left.
   width?: string
   inputMode?: 'decimal' | 'numeric'
   placeholder?: string
@@ -981,7 +916,7 @@ function SavedInput({
         if (draft !== null && draft.trim() !== value) onSave(draft.trim())
         setDraft(null)
       }}
-      style={{ width, flex: width ? undefined : 1, minWidth: 0, fontSize: '1rem', padding: '0.25rem' }}
+      className={`${width ?? 'flex-1'} min-w-0 p-1 text-base`}
     />
   )
 }
@@ -1032,23 +967,24 @@ function RecipeEditor({ weekId, recipe }: { weekId: string; recipe: StoredRecipe
   const canAddStep = recipe.steps.length < MAX_STEPS
   const addStep = (at: number, label: string) =>
     canAddStep && (
-      <button
+      <Button
+        small
         onClick={() => saveSteps((steps) => steps.toSpliced(at, 0, { ingredients: [], instructions: [] }))}
         aria-label={label}
-        style={{ ...smallButtonStyle, alignSelf: 'flex-start' }}
+        className="self-start"
       >
         + steg
-      </button>
+      </Button>
     )
 
   return (
-    <div style={sectionStyle}>
-      <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+    <div className={sectionClass}>
+      <label className="flex items-center gap-2">
         <SavedInput
           label="Porsjoner"
           value={String(recipe.servings)}
           inputMode="numeric"
-          width="3rem"
+          width="w-12"
           onSave={(text) => {
             const n = Math.round(Number(text))
             if (n >= 1 && n <= 50) save({ servings: n })
@@ -1063,33 +999,33 @@ function RecipeEditor({ weekId, recipe }: { weekId: string; recipe: StoredRecipe
           key={i}
           role="group"
           aria-label={`Steg ${i + 1}`}
-          style={{ ...sectionStyle, borderTop: '1px solid #ddd', paddingTop: '0.5rem' }}
+          className={`${sectionClass} border-t border-line pt-2`}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span style={{ flex: 1, fontSize: '0.875rem', color: '#555' }}>Steg {i + 1}</span>
-            <button
+          <div className="flex items-center gap-2">
+            <span className="flex-1 text-sm text-muted">Steg {i + 1}</span>
+            <Button
+              small
               onClick={() => saveSteps((steps) => steps.filter((_, j) => j !== i))}
               aria-label={`Fjern steg ${i + 1}`}
-              style={smallButtonStyle}
             >
               Fjern steg
-            </button>
+            </Button>
           </div>
           {step.ingredients.map((ing, k) => (
-            <div key={k} role="group" aria-label={`Ingrediens ${ing.text}`} style={{ display: 'flex', gap: '0.25rem' }}>
+            <div key={k} role="group" aria-label={`Ingrediens ${ing.text}`} className="flex gap-1">
               <SavedInput
                 label="Gram"
                 value={amountText(ing.grams)}
                 inputMode="decimal"
                 placeholder="g"
-                width="3.5rem"
+                width="w-14"
                 onSave={(text) => setIngredient(i, k, { grams: parseAmount(text) })}
               />
               <SavedInput
                 label="Mål"
                 value={ing.measure}
                 placeholder="mål"
-                width="5.5rem"
+                width="w-22"
                 onSave={(measure) => setIngredient(i, k, { measure })}
               />
               <SavedInput
@@ -1097,22 +1033,19 @@ function RecipeEditor({ weekId, recipe }: { weekId: string; recipe: StoredRecipe
                 value={ing.text}
                 onSave={(text) => text && setIngredient(i, k, { text })}
               />
-              <button
+              <Button
+                small
                 onClick={() => setIngredients(i, (ings) => ings.filter((_, j) => j !== k))}
                 aria-label={`Fjern ${ing.text}`}
-                style={smallButtonStyle}
               >
                 Fjern
-              </button>
+              </Button>
             </div>
           ))}
           {step.ingredients.length < MAX_STEP_INGREDIENTS && (
-            <button
-              onClick={() => setIngredients(i, (ings) => [...ings, newIngredient])}
-              style={{ ...smallButtonStyle, alignSelf: 'flex-start' }}
-            >
+            <Button small onClick={() => setIngredients(i, (ings) => [...ings, newIngredient])} className="self-start">
               Legg til ingrediens
-            </button>
+            </Button>
           )}
           <SavedText
             label={`Fremgangsmåte steg ${i + 1}`}
