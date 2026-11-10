@@ -29,9 +29,9 @@ No dev-server step: nothing here is user-visible.
 - [ ] **Parallel e2e.** Implement the choice. Keep e2e beside `npm run dev` (ports 5173/8080/9099 untouched), and keep the failure report upload in CI.
 - [ ] **Commit: run e2e in parallel.** *(manual)* — CI.
 - [ ] **Measure** a PR check end to end, and record the before and after in Notes.
-- [ ] **Move plan to `plans/done/`.** `git mv plans/active/XX-faster-e2e.md plans/done/XX-faster-e2e.md`.
+- [ ] **Move plan to `plans/done/`.** `git mv plans/active/37-faster-e2e.md plans/done/37-faster-e2e.md`.
 - [ ] **Commit: complete faster e2e milestone.** *(auto)*
-- [ ] **Number the plan** when it merges into `main`: `git mv` it to the next number across `plans/active/` and `plans/done/` there, and update the link in `ROADMAP.md`.
+- [x] **Number the plan** when it merges into `main`: `git mv` it to the next number across `plans/active/` and `plans/done/` there, and update the link in `ROADMAP.md`.
 
 ## Done when
 
