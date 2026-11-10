@@ -1,6 +1,6 @@
 # Faster e2e
 
-**Status:** ready-for-agent · enhancement
+**Status:** done · enhancement
 
 The e2e suite takes about 4.5 minutes (242–282 s for 78 tests, in CI and locally) and is about 70% of a PR check. Most of that isn't the tests: signing in through the Auth emulator's Google popup is 176 s of the 254 s of test time, about 2.3 s for each of the 80 sign-ins. This milestone cuts that, then runs the suite in parallel. It doesn't touch what the tests check, the unit or rules suites (0.4 s and about 18 s), or CI's `npm ci` (60–72 s).
 
@@ -26,11 +26,11 @@ No dev-server step: nothing here is user-visible.
 - [x] **Sign-in without the popup.** Pick a mechanism and record why in Notes. The first choice needs no app change: get the account's tokens from `signInWithIdp`, as `seedAccounts` does, and use `page.addInitScript` to put the Firebase user into the app's persisted auth storage before it loads. If that relies on SDK internals too much, the fallback is an emulator-only hook in `src/firebase.ts` that signs in with `GoogleAuthProvider.credential(idToken)`. Point `signIn` at it, keep `completeGooglePopup` for the sign-in test in `app.spec.ts` and for `warm-up.ts`, and check that `reset()` deleting accounts before each test doesn't break a sign-in made after `seed()`.
 - [x] **Commit: sign in e2e tests without the popup.** *(auto)* — *(manual)* instead if it needed the hook in `src/firebase.ts` (auth code).
 - [x] **Choose how to run in parallel.** One full stack for each worker on offset ports; see Notes.
-- [x] **Parallel e2e.** `tests/e2e/stacks.mjs` starts `E2E_STACKS` stacks (default 2) at once, and each worker picks its own by `TEST_PARALLEL_INDEX`. e2e stays beside `npm run dev`, and CI's `npm run test:e2e` and report upload are unchanged.
-- [ ] **Commit: run e2e in parallel.** *(manual)* — CI.
-- [ ] **Measure** a PR check end to end, and record the before and after in Notes. Raise `E2E_STACKS` in CI if the runner has room.
-- [ ] **Move plan to `plans/done/`.** `git mv plans/active/37-faster-e2e.md plans/done/37-faster-e2e.md`.
-- [ ] **Commit: complete faster e2e milestone.** *(auto)*
+- [x] **Parallel e2e.** `tests/e2e/stacks.mjs` starts `E2E_STACKS` stacks (default 2) at once, each serving a production build, and each worker picks its own by `TEST_PARALLEL_INDEX`. e2e stays beside `npm run dev`, and CI's `npm run test:e2e` and report upload are unchanged.
+- [x] **Commit: run e2e in parallel.** *(manual)* — CI.
+- [x] **Measure** a PR check end to end, and record the before and after in Notes.
+- [x] **Move plan to `plans/done/`.** `git mv plans/active/37-faster-e2e.md plans/done/37-faster-e2e.md`.
+- [x] **Commit: complete faster e2e milestone.** *(auto)*
 - [x] **Number the plan** when it merges into `main`: `git mv` it to the next number across `plans/active/` and `plans/done/` there, and update the link in `ROADMAP.md`.
 
 ## Done when
@@ -74,3 +74,10 @@ No dev-server step: nothing here is user-visible.
 - More races that faster tests showed: the Staples picker opened before the Wares loaded, and the fake Basket read right after a count showed on screen (`odaSetPacks` commits Firestore before it calls Oda). Every fake Basket check polls now. The picker takes the Staples there are when it opens and doesn't update, so a Family Member who taps + right at launch sees "Alle basisvarene står allerede på lista". That's app behaviour, left as it is.
 - Two stacks, two runs in a row: 78 passed, 79 and 80 s wall clock including startup (stacks ready in about 14 s). Three stacks: 70 s, but test time rose from about 121 to 153 s, so the default stays 2 for CI's 4 vCPUs.
 - `npm run dev` beside e2e: `app.spec.ts` and `oda-order.spec.ts` passed (13) with the dev server up, and it still answered afterwards. Unit (107) and rules (60) pass.
+
+2026-11-10, PR check (PR #25), CI's 4 vCPUs:
+
+- Before (run 42787499173): e2e step 4 min 32 s, whole check 7 min 8 s.
+- Two stacks on Vite dev servers (run 42824490082): e2e step 2 min 19 s, whole check 4 min 12 s. Test time summed to 234 s, against 124 s locally: the two stacks starved the CPU, because each fresh browser context loads hundreds of unbundled modules from the dev server.
+- So each stack now serves a production build on `vite preview` (0.3 s to build). The chromium project blocks service workers, and the pwa tests and `npm run perf` use stack 0's build, so the separate preview server on 4273 and the per-stack Vite cache dirs are gone. Locally: 78 passed twice in 1.1 min, sign-in 12.6 s, test time 91–101 s.
+- Two stacks on production builds (run 42825786414): e2e step 1 min 33 s (17 s startup, 78 passed in 1.5 min, no retries), whole check 4 min 15 s. Test time summed to 148 s, so CPU still limits it; three stacks in CI weren't tried. `npm ci` (about 55 s) is now the biggest step.
