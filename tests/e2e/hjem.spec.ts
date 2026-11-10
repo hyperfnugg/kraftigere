@@ -146,9 +146,9 @@ test('chips that do not fit in one row are left out', async ({ page }) => {
   await signIn(page, MEMBERS[0])
   const shown = page.locator('[role=option]:not([aria-hidden])')
   await expect(shown.first()).toHaveText('+')
-  const count = await shown.count()
-  expect(count).toBeGreaterThan(1)
-  expect(count).toBeLessThan(6)
+  // The Wares' chips come once they load.
+  await expect.poll(() => shown.count()).toBeGreaterThan(1)
+  expect(await shown.count()).toBeLessThan(6)
   const tops = await shown.evaluateAll((els) => els.map((e) => e.getBoundingClientRect().top))
   expect(new Set(tops).size).toBe(1)
 

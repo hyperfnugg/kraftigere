@@ -138,14 +138,14 @@ test('Entries on one unavailable product share one Substitute, and Bestilt check
   await sharePack(page)
   await page.getByRole('button', { name: 'Bestilt' }).click()
   await expect.poll(async () => (await readDoc('entries/kefir')).checked.booleanValue).toBe(true)
-  expect((await readDoc('entries/melk')).checked.booleanValue).toBe(true)
+  await expect.poll(async () => (await readDoc('entries/melk')).checked.booleanValue).toBe(true)
 })
 
 test('Entries sharing one pack of a Substitute are cancelled together', async ({ page }) => {
   await sharePack(page)
   await cancel(page)
   expect(await fakeBasket()).toEqual(START)
-  expect((await readDoc('entries/kefir')).basket).toBeUndefined()
+  await expect.poll(async () => (await readDoc('entries/kefir')).basket).toBeUndefined()
 })
 
 test('skipping leaves an Entry out, unchecked after Bestilt, and its Ware tries again next time', async ({ page }) => {
@@ -163,10 +163,10 @@ test('skipping leaves an Entry out, unchecked after Bestilt, and its Ware tries 
 
   await page.getByRole('button', { name: 'Bestilt' }).click()
   await expect(fill(page)).toBeVisible()
+  await expect.poll(async () => (await readDoc('entries/smør')).checked.booleanValue).toBe(true)
   const ost = await readDoc('entries/ost')
   expect(ost.checked.booleanValue).toBe(false)
   expect(ost.basket).toBeUndefined()
-  expect((await readDoc('entries/smør')).checked.booleanValue).toBe(true)
 
   // Its Oda Product is still its own, ticked, and goes through the step again.
   await expect(page.getByRole('checkbox', { name: /^Ost/ })).toBeChecked()
@@ -194,7 +194,7 @@ test('with everything unavailable the Oda Order still starts, and a reload retur
   await expect(leftOut(page)).toBeVisible()
   await cancel(page)
   expect(await fakeBasket()).toEqual(START)
-  expect((await readDoc('entries/ost')).basket).toBeUndefined()
+  await expect.poll(async () => (await readDoc('entries/ost')).basket).toBeUndefined()
 })
 
 test('what replaces an Off Sale product becomes the Ware\'s own', async ({ page }) => {

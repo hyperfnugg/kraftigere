@@ -75,7 +75,7 @@ test('a Family Member chooses Entries and fills the Basket', async ({ page }) =>
   await results(page).filter({ hasText: 'Aldri fra Oda' }).click()
   await expect(page.getByRole('button', { name: '▸ Utenfor Oda (1)' })).toBeVisible()
   await expect(tick(page, 'Sokker')).toBeHidden()
-  expect((await readDoc('wares/sokker')).neverOda).toEqual({ booleanValue: true })
+  await expect.poll(async () => (await readDoc('wares/sokker')).neverOda).toEqual({ booleanValue: true })
 
   // Every ticked Entry needs an Oda Product.
   await tick(page, 'Melk').check()
@@ -89,7 +89,7 @@ test('a Family Member chooses Entries and fills the Basket', async ({ page }) =>
   await page.getByRole('button', { name: 'Fyll handlekurven' }).click()
   await expect(nextStep(page)).toBeVisible()
   expect(await fakeBasket()).toEqual({ 430: 4, 7: 1, 125: 1 })
-  expect((await readDoc('wares/melk')).oda.mapValue.fields.id).toEqual({ integerValue: '430' })
+  await expect.poll(async () => (await readDoc('wares/melk')).oda?.mapValue.fields.id).toEqual({ integerValue: '430' })
   expect((await readDoc('wares/ukjent')).oda).toBeUndefined()
 
   // Only the In Basket Entries show, with their Oda Products and nothing to change.

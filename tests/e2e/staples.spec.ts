@@ -18,9 +18,8 @@ test('a Ware that is waiting, in any spelling, has no chip to add it again, and 
   await expect(page.getByRole('option')).toHaveCount(0)
   await expect(page.getByRole('listitem')).toHaveText(['Melk'])
 
-  const melk = await readDoc('wares/melk')
-  expect(melk.name.stringValue).toBe('Melk')
-  expect(melk.addCount.integerValue).toBe('1')
+  await expect.poll(async () => (await readDoc('wares/melk')).addCount?.integerValue).toBe('1')
+  expect((await readDoc('wares/melk')).name.stringValue).toBe('Melk')
 })
 
 test('adding a Ware that is checked off replaces its Entry with a new one', async ({ page }) => {
