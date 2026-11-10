@@ -6,7 +6,7 @@ Where Kraft is heading. It changes often. Ideas are one line each, cheap to add 
 
 - [Dependency maintenance](plans/active/05-dependency-maintenance.md)
 - [Gemini behind the allowlist](plans/active/31-gemini-behind-the-allowlist.md)
-- [Favourite recipes](plans/active/XX-favourite-recipes.md)
+- [Favourite recipes](plans/active/35-favourite-recipes.md)
 
 ## Next
 

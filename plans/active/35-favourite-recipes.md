@@ -33,9 +33,9 @@ The Family keeps the Recipes it likes as Favourites and puts them on a day of a 
 - [ ] **Try it on the dev server**, iterating on feedback. Skipped in AFK mode. *(user)*
 - [ ] **e2e** in a new `tests/e2e/favourites.spec.ts`: ☆ makes one, the combobox places it with no AI call, ★ on the Menu, a Day Note doesn't make it Outdated, "Lagre" after a hand edit, ★ removes it, replacing by name, and uses counted at Confirm (ordering in the combobox).
 - [ ] **Commit: favourite recipes.** *(manual)* — user-visible.
-- [ ] **Move plan to `plans/done/`.** `git mv plans/active/XX-favourite-recipes.md plans/done/XX-favourite-recipes.md`.
+- [ ] **Move plan to `plans/done/`.** `git mv plans/active/35-favourite-recipes.md plans/done/35-favourite-recipes.md`.
 - [ ] **Commit: complete favourite recipes milestone.** *(auto)*
-- [ ] **Number the plan** when it merges into `main`: `git mv` it to the next number across `plans/active/` and `plans/done/` there, and update the link in `ROADMAP.md`.
+- [x] **Number the plan** when it merges into `main`: `git mv` it to the next number across `plans/active/` and `plans/done/` there, and update the link in `ROADMAP.md`.
 
 ## Done when
 
