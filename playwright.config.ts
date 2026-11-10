@@ -1,5 +1,5 @@
 import { defineConfig, devices } from '@playwright/test'
-import { PREVIEW_URL, READY_URL, STACKS, stack } from './tests/e2e/stacks.mjs'
+import { READY_URL, STACKS, stack } from './tests/e2e/stacks.mjs'
 
 // e2e runs on STACKS workers, each against its own emulators and servers (tests/e2e/stacks.mjs),
 // on other ports than `npm run dev`, so it can keep running beside it. Each worker loads this
@@ -11,8 +11,9 @@ process.env.FIREBASE_AUTH_EMULATOR_HOST = own.authHost
 process.env.FUNCTIONS_HOST = own.functionsHost
 process.env.FAKE_ODA_HOST = `127.0.0.1:${own.fakeOdaPort}`
 
-// A production-style build against stack 0's emulators, for service worker and manifest tests.
-export const previewURL = PREVIEW_URL
+// Stack 0, for the service worker and manifest tests and `npm run perf`. Every stack serves a
+// production build.
+export const previewURL = stack(0).baseURL
 
 export default defineConfig({
   testDir: 'tests/e2e',
@@ -27,7 +28,8 @@ export default defineConfig({
   expect: { timeout: 10_000 },
   use: { baseURL: own.baseURL, trace: 'retain-on-failure' },
   projects: [
-    { name: 'chromium', testIgnore: /pwa\.spec\.ts/, use: { ...devices['Desktop Chrome'] } },
+    // The service worker is the pwa tests' own; elsewhere it would only add work to each page.
+    { name: 'chromium', testIgnore: /pwa\.spec\.ts/, use: { ...devices['Desktop Chrome'], serviceWorkers: 'block' } },
     { name: 'pwa', testMatch: /pwa\.spec\.ts/, use: { ...devices['Desktop Chrome'], baseURL: previewURL } },
   ],
   webServer: {

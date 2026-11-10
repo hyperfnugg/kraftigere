@@ -1,7 +1,8 @@
 // e2e runs on several workers, each against its own stack: Auth, Firestore and functions
-// emulators, a fake Oda (fake-oda.mjs) and a Vite dev server. Stack i takes the ports of
-// firebase.test.json, 5273 and 8866, each plus i, so stack 0 is where e2e always ran and
-// `npm run dev` keeps its own ports. The preview build for the pwa tests runs once, on stack 0.
+// emulators, a fake Oda (fake-oda.mjs) and the app's production build on `vite preview`, which
+// costs a test's browser far less to load than the dev server's unbundled modules. Stack i takes
+// the ports of firebase.test.json, 5273 and 8866, each plus i, so stack 0 is where e2e always ran
+// and `npm run dev` keeps its own ports.
 //
 // Run as a script (playwright.config.ts does), it starts them all at once and opens READY_URL
 // once every one answers. Ctrl-C (SIGINT) stops them.
@@ -12,7 +13,6 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 
 export const STACKS = Number(process.env.E2E_STACKS ?? 2)
 export const READY_URL = 'http://127.0.0.1:4299/'
-export const PREVIEW_URL = 'http://localhost:4273/'
 
 const root = fileURLToPath(new URL('../..', import.meta.url))
 const testConfig = JSON.parse(readFileSync(`${root}/firebase.test.json`, 'utf8'))
@@ -99,11 +99,10 @@ function start() {
     run('node tests/e2e/fake-oda.mjs', { FAKE_ODA_PORT: String(s.fakeOdaPort) })
     run(
       `firebase emulators:exec --config ${firebaseConfig(i)} --project demo-kraftigere --only auth,firestore,functions ` +
-        `"node scripts/seed.mjs && vite --mode e2e --port ${s.vitePort} --strictPort"`,
+        `"node scripts/seed.mjs && vite build --mode e2e --outDir dist-e2e/${i} --logLevel warn && ` +
+        `vite preview --mode e2e --outDir dist-e2e/${i} --port ${s.vitePort} --strictPort"`,
       {
         ...viteEnv(s),
-        // Each dev server optimizes dependencies into its own folder.
-        VITE_CACHE_DIR: `node_modules/.vite-e2e-${i}`,
         // e2e drives the AI stubs, even when functions/.env.local turns real Gemini on for
         // `npm run dev`. The function talks to the fake Oda, never oda.com.
         AI_STUBS: '1',
@@ -111,13 +110,8 @@ function start() {
       },
     )
   }
-  // A production-style build against stack 0, for the service worker and manifest tests.
-  run(
-    'vite build --mode e2e --outDir dist-e2e && vite preview --mode e2e --outDir dist-e2e --port 4273 --strictPort',
-    viteEnv(stack(0)),
-  )
 
-  const urls = [...Array.from({ length: STACKS }, (_, i) => stack(i).baseURL), PREVIEW_URL]
+  const urls = Array.from({ length: STACKS }, (_, i) => stack(i).baseURL)
   const answers = (url) => fetch(url).then((res) => res.ok, () => false)
   ;(async () => {
     while (!(await Promise.all(urls.map(answers))).every(Boolean)) await new Promise((r) => setTimeout(r, 250))
