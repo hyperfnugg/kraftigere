@@ -33,7 +33,7 @@
 
 - `npm run dev` runs the app against the Auth, Firestore and Functions emulators with a seeded Family (sign in as alice@example.com). Gemini answers with fixed stubs. The Oda functions talk to the real oda.com and share the Family's Basket with production, through their own Oda client; the link is kept in the gitignored `.oda-link.json`.
 - **Real Gemini locally:** put `GEMINI_PROJECT=kraftigere` in the gitignored `functions/.env.local` and run `gcloud auth application-default login` once. `npm run dev`'s `generate` then calls Gemini on Vertex AI in the real project, as your Google account, while Auth and Firestore stay on the emulators. e2e tests always use the stubs.
-- `npm run test:e2e`, `npm run test:rules` and `npm run test:unit` run the tests. e2e and rules run their own emulators (`firebase.test.json`, `.env.e2e`) on other ports than `npm run dev`, so the dev server can keep running beside them.
+- `npm run test:e2e`, `npm run test:rules` and `npm run test:unit` run the tests. e2e and rules run their own emulators (`firebase.test.json`) on other ports than `npm run dev`, so the dev server can keep running beside them. e2e runs on two workers, each with its own emulators and servers (`tests/e2e/stacks.mjs`); `E2E_STACKS=3 npm run test:e2e` runs three.
 
 ## Sharing
 

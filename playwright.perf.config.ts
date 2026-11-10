@@ -6,6 +6,8 @@ export default defineConfig({
   ...base,
   testDir: 'tests/perf',
   retries: 0,
+  // One at a time, so the timings don't share the machine.
+  workers: 1,
   timeout: 180_000,
   reporter: 'list',
   projects: [{ name: 'perf', use: { ...devices['Desktop Chrome'], baseURL: previewURL } }],

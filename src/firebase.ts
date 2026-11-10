@@ -42,7 +42,7 @@ export const db = initializeFirestore(app, {
 export const functions = getFunctions(app, 'europe-west1')
 
 if (useEmulators) {
-  // The e2e tests run their own emulators, on the hosts in .env.e2e.
+  // The e2e tests run their own emulators, on the hosts tests/e2e/stacks.mjs gives.
   const env = import.meta.env
   const [firestoreHost, firestorePort] = (env.VITE_FIRESTORE_EMULATOR_HOST ?? '127.0.0.1:8080').split(':')
   connectAuthEmulator(auth, `http://${env.VITE_AUTH_EMULATOR_HOST ?? '127.0.0.1:9099'}`, { disableWarnings: true })

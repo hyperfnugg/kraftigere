@@ -82,13 +82,13 @@ test('a Family Member chooses Entries and fills the Basket', async ({ page }) =>
   await tick(page, 'Ukjent').check()
   await page.getByRole('button', { name: 'Fyll handlekurven' }).click()
   await expect(page.getByText('Alle varer må ha et Oda-produkt')).toBeVisible()
-  expect(await fakeBasket()).toEqual({ 430: 3, 7: 1 })
+  await expect.poll(fakeBasket).toEqual({ 430: 3, 7: 1 })
 
   // One pack each goes in beside what was there, and the suggestion is saved on Melk.
   await tick(page, 'Ukjent').uncheck()
   await page.getByRole('button', { name: 'Fyll handlekurven' }).click()
   await expect(nextStep(page)).toBeVisible()
-  expect(await fakeBasket()).toEqual({ 430: 4, 7: 1, 125: 1 })
+  await expect.poll(fakeBasket).toEqual({ 430: 4, 7: 1, 125: 1 })
   await expect.poll(async () => (await readDoc('wares/melk')).oda?.mapValue.fields.id).toEqual({ integerValue: '430' })
   expect((await readDoc('wares/ukjent')).oda).toBeUndefined()
 
@@ -125,12 +125,12 @@ test('the Order Summary has one count per Oda Product, which a suggestion can sh
   await expect(page.getByRole('listitem')).toHaveCount(1)
   await expect(page.getByRole('listitem').getByText('Kefir', { exact: true })).toBeVisible()
   await expect(page.getByRole('listitem').getByText('Melk', { exact: true })).toBeVisible()
-  expect(await fakeBasket()).toEqual({ 430: 5, 7: 1 })
+  await expect.poll(fakeBasket).toEqual({ 430: 5, 7: 1 })
 
   await page.getByRole('button', { name: 'Avbryt' }).click()
   await page.getByRole('button', { name: 'Avbryt odabestillingen' }).click()
   await expect(page.getByRole('button', { name: 'Fyll handlekurven' })).toBeVisible()
-  expect(await fakeBasket()).toEqual({ 430: 3, 7: 1 })
+  await expect.poll(fakeBasket).toEqual({ 430: 3, 7: 1 })
 })
 
 test('the warning that an Oda Order is under way leads to it', async ({ page }) => {
@@ -165,7 +165,7 @@ test('Groceries is locked on every device until Bestilt checks the Entries off',
   await expect(other.getByText('Odabestilling pågår')).toBeHidden()
   for (const e of await listDocs('entries')) expect(e.basket).toBeUndefined()
   // Bestilt leaves the Basket to Oda.
-  expect(await fakeBasket()).toEqual({ 430: 4, 7: 1, 125: 1 })
+  await expect.poll(fakeBasket).toEqual({ 430: 4, 7: 1, 125: 1 })
 })
 
 test('Avbryt asks, then takes out only the packs Kraft put in', async ({ page }) => {
@@ -176,12 +176,12 @@ test('Avbryt asks, then takes out only the packs Kraft put in', async ({ page })
   await page.getByRole('button', { name: 'Avbryt' }).click()
   await expect(page.getByText('Ta ut varene Kraft la i handlekurven?')).toBeVisible()
   await page.getByRole('button', { name: 'Tilbake' }).click()
-  expect(await fakeBasket()).toEqual({ 430: 4, 7: 1, 125: 2 })
+  await expect.poll(fakeBasket).toEqual({ 430: 4, 7: 1, 125: 2 })
 
   await page.getByRole('button', { name: 'Avbryt' }).click()
   await page.getByRole('button', { name: 'Avbryt odabestillingen' }).click()
   await expect(page.getByRole('button', { name: 'Fyll handlekurven' })).toBeVisible()
-  expect(await fakeBasket()).toEqual({ 430: 3, 7: 1, 125: 1 })
+  await expect.poll(fakeBasket).toEqual({ 430: 3, 7: 1, 125: 1 })
   for (const e of await listDocs('entries')) {
     expect(e.basket).toBeUndefined()
     expect(e.checked).toEqual({ booleanValue: false })

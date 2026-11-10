@@ -29,6 +29,8 @@ dist-ssr
 /playwright-report/
 /.playwright-mcp/
 /dist-e2e/
+# The emulator configs of e2e stacks 1 and up (tests/e2e/stacks.mjs)
+/firebase.test.*.json
 
 # Built Cloud Functions
 /functions/lib/
