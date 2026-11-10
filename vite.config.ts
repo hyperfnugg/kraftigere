@@ -17,8 +17,6 @@ function chunkFor(id: string) {
 export default defineConfig({
   // Claude Code's worktrees are whole copies of the repo, and their tests would run here too.
   test: { exclude: [...configDefaults.exclude, '.claude/**'] },
-  // The e2e stacks' dev servers run at once, each with its own (tests/e2e/stacks.mjs).
-  cacheDir: process.env.VITE_CACHE_DIR,
   build: { rolldownOptions: { output: { manualChunks: chunkFor } } },
   plugins: [
     react(),
