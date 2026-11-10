@@ -17,8 +17,9 @@ test.beforeEach(async () => {
   await seed()
 })
 
+// The other tests sign in without the popup (signIn in helpers.ts).
 test('a Family Member signs in and sees the List', async ({ page }) => {
-  await signIn(page, MEMBERS[0])
+  await completeGooglePopup(page, MEMBERS[0])
   await expect(page.getByPlaceholder('Hva trenger vi?')).toBeVisible()
 })
 
