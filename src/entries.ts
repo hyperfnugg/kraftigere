@@ -179,8 +179,9 @@ export function suggest(wares: Ware[], text: string, entries: Entry[]) {
 
 // Adds an Entry for the Ware with this name, creating the Ware or counting the add. A Ware
 // is on the List once: one that's waiting isn't added again, and its Entry is returned
-// instead. A Checked Entry for it is replaced.
-export function addEntry(name: string, entries: Entry[]) {
+// instead. A Checked Entry for it is replaced. A new Ware, or one from before Store Order,
+// gets the time as its Store Order, which is where its new Entry would sort anyway.
+export function addEntry(name: string, entries: Entry[], wares: Ware[]) {
   const ware = wareId(name)
   const waiting = entries.find((e) => e.ware === ware && !e.checked)
   if (waiting) return waiting
@@ -194,7 +195,12 @@ export function addEntry(name: string, entries: Entry[]) {
   })
   batch.set(
     doc(db, 'wares', ware),
-    { name, addCount: increment(1), lastAddedAt: serverTimestamp() },
+    {
+      name,
+      addCount: increment(1),
+      lastAddedAt: serverTimestamp(),
+      ...(wares.find((w) => w.id === ware)?.order === undefined && { order: Date.now() }),
+    },
     { merge: true },
   )
   batch.commit().catch(console.error)

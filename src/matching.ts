@@ -113,6 +113,8 @@ export function confirmWeek(
   family: Awaited<ReturnType<typeof readFamilyMatches>>,
 ) {
   const batch = writeBatch(db)
+  // New Wares get consecutive Store Orders, in the order of the lines.
+  let order = Date.now()
   for (const line of lines) {
     for (const w of line.wordings) {
       if (family.matches[w.key]?.ware !== line.key) batch.set(doc(db, 'matches', w.key), { wording: w.text, ware: line.key })
@@ -126,7 +128,7 @@ export function confirmWeek(
     }
     const ware = family.wares.find((w) => w.id === line.key)
     const atHome = !line.ticked
-    if (!ware) batch.set(doc(db, 'wares', line.key), { name: line.name, addCount: 0, usuallyAtHome: atHome })
+    if (!ware) batch.set(doc(db, 'wares', line.key), { name: line.name, addCount: 0, usuallyAtHome: atHome, order: order++ })
     else if (!!ware.usuallyAtHome !== atHome) batch.update(doc(db, 'wares', line.key), { usuallyAtHome: atHome })
     if (line.ticked) {
       for (const e of family.entries) if (e.ware === line.key) batch.delete(doc(db, 'entries', e.id))

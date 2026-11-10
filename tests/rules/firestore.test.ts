@@ -312,6 +312,26 @@ describe('/wares', () => {
     await assertFails(setDoc(ware(), { ...countedWare(), neverOda: true }))
   })
 
+  test('a new Ware may have a numeric Store Order', async () => {
+    await assertSucceeds(setDoc(ware(), { ...countedWare(), order: 1794259068480 }))
+    await assertSucceeds(setDoc(ware('salt'), { name: 'salt', addCount: 0, order: 1794259068481 }))
+    await assertFails(setDoc(ware('pepper'), { name: 'pepper', addCount: 0, order: 'first' }))
+  })
+
+  test('a hand add gives a Ware without a Store Order one, but never changes it', async () => {
+    await assertSucceeds(setDoc(ware('milk'), { ...countedWare('milk'), order: 1000 }, { merge: true }))
+    await assertFails(setDoc(ware('milk'), { ...countedWare('milk'), order: 2000 }, { merge: true }))
+    await assertFails(setDoc(ware('bread'), { ...countedWare('bread'), order: 'first' }, { merge: true }))
+  })
+
+  test('the Store Order can change on its own, as a number', async () => {
+    await assertSucceeds(updateDoc(ware('milk'), { order: 1500 }))
+    await assertSucceeds(updateDoc(ware('milk'), { order: 1500.25 }))
+    await assertFails(updateDoc(ware('milk'), { order: '1500' }))
+    await assertFails(updateDoc(ware('milk'), { order: 1500, usuallyAtHome: true }))
+    await assertFails(updateDoc(ware('milk'), { order: deleteField() }))
+  })
+
   test('Staples are gone', async () => {
     await assertFails(getDocs(collection(member(), 'staples')))
     await assertFails(setDoc(doc(member(), 'staples/eggs'), countedWare()))

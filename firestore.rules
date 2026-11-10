@@ -78,20 +78,25 @@ service cloud.firestore {
     // without a query. A hand add creates or counts it, which makes it a Staple. Iverksett
     // creates it without counting an add. usuallyAtHome is remembered from Iverksett, so
     // salt and oil start unticked. Its Oda Product is set, replaced or removed on its own,
-    // and so is neverOda, which keeps it out of every Oda Order.
+    // and so is neverOda, which keeps it out of every Oda Order. Its Store Order, where it
+    // sits in the store, is a number on the scale of epoch millis.
     match /wares/{wareId} {
       allow read: if isFamily();
       allow create: if isFamily() &&
-                       request.resource.data.keys().hasOnly(['name', 'addCount', 'lastAddedAt', 'usuallyAtHome']) &&
+                       request.resource.data.keys().hasOnly(['name', 'addCount', 'lastAddedAt', 'usuallyAtHome', 'order']) &&
                        request.resource.data.keys().hasAll(['name', 'addCount']) &&
                        isWareName(request.resource.data.name) &&
                        request.resource.data.get('usuallyAtHome', false) is bool &&
+                       request.resource.data.get('order', 0) is number &&
                        ((request.resource.data.addCount == 1 && request.resource.data.lastAddedAt == request.time) ||
                         (request.resource.data.addCount == 0 && !('lastAddedAt' in request.resource.data)));
-      // Each add counts once. The name may change to the spelling last added. Iverksett
-      // only sets usuallyAtHome.
+      // Each add counts once. The name may change to the spelling last added, and a Ware
+      // from before Store Order gets one. Iverksett only sets usuallyAtHome. Dragging on
+      // Handle sets the Store Order on its own.
       allow update: if isFamily() &&
-                       ((request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'addCount', 'lastAddedAt']) &&
+                       ((request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'addCount', 'lastAddedAt', 'order']) &&
+                         (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['order']) ||
+                          (!('order' in resource.data) && request.resource.data.order is number)) &&
                          isWareName(request.resource.data.name) &&
                          request.resource.data.addCount == resource.data.addCount + 1 &&
                          request.resource.data.lastAddedAt == request.time) ||
@@ -100,7 +105,9 @@ service cloud.firestore {
                         (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['oda']) &&
                          (!('oda' in request.resource.data) || isOdaProduct(request.resource.data.oda))) ||
                         (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['neverOda']) &&
-                         request.resource.data.get('neverOda', true) == true));
+                         request.resource.data.get('neverOda', true) == true) ||
+                        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['order']) &&
+                         request.resource.data.order is number));
     }
 
     // A remembered match, keyed on an Ingredient's normalized wording: the Ware (by id)

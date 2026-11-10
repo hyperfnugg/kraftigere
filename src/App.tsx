@@ -468,7 +468,7 @@ function Home({
 
   // A Ware already waiting opens its Entry for the Note instead.
   function add(name: string) {
-    const waiting = addEntry(name, entries)
+    const waiting = addEntry(name, entries, wares)
     if (waiting) setOpen({ entryId: waiting.id, note: waiting.note ?? '' })
     setText('')
     setActive(-1)
@@ -785,7 +785,7 @@ function Home({
           wares={wares}
           entries={entries}
           onClose={(names) => {
-            for (const name of names) addEntry(name, entries)
+            for (const name of names) addEntry(name, entries, wares)
             setPicking(false)
             addField.current?.focus()
           }}
