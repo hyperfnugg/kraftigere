@@ -7,6 +7,7 @@ Where Kraft is heading. It changes often. Ideas are one line each, cheap to add 
 - [Dependency maintenance](plans/active/05-dependency-maintenance.md)
 - [Gemini behind the allowlist](plans/active/31-gemini-behind-the-allowlist.md)
 - [Favourite recipes](plans/active/35-favourite-recipes.md)
+- [Design guide](plans/active/XX-design-guide.md)
 
 ## Next
 
@@ -14,7 +15,6 @@ Where Kraft is heading. It changes often. Ideas are one line each, cheap to add 
 
 ## Ideas
 
-- Style guide: one short page on how the app looks. Icons are plain black text glyphs on a transparent background (⌂ for Hjem, ↻ for a new dish), sized up a little, not emoji or boxed buttons.
 - Rescaling a Recipe's amounts when its servings change.
 - Timers from the times in a Recipe's steps.
 - A list of Favourites: their names and use counts, and removing one without finding a week it was used.

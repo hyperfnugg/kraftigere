@@ -26,6 +26,7 @@ Multi-step work lives in `plans/active/XX-<kebab-name>.md`. A plan is numbered o
 
 ## Style
 
+- How the app looks and what its parts are called: `DESIGN.md`. Follow it, and update it when a new recurring part or rule appears.
 - Tailwind v4 classes in components; see `docs/adr/0007-tailwind-styling.md`. Colours, sizes and spacing come from the `@theme` in `src/index.css`, and only its named colours exist. Patterns repeated across files go in `src/ui.tsx` as components, not `@apply`. Inline `style={{}}` only for values computed at runtime. No Preflight yet, no animations, no transitions, no icon library.
 - React + TypeScript + Vite frontend; Firebase (Auth, Firestore, Cloud Functions; Gemini on Vertex AI) backend. Full stack in `README.md`.
 - Keep new code minimal — this is a POC. Don't add abstractions for hypothetical future needs.
