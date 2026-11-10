@@ -2,6 +2,7 @@ import { useEffect, useId, useLayoutEffect, useRef, useState, type FormEvent, ty
 import { useCombobox } from 'downshift'
 import { type User } from 'firebase/auth'
 import { MealsTab, OdaOrderLink } from './Meals'
+import { Button, TextButton } from './ui'
 import { readPackSizes, warmUp } from './ai'
 import { MAX_PACKS, type PackSize, formatAmount, hasAmounts, startingPacks } from './amounts'
 import { signInWithGoogle, signOut, useOnline, useUser } from './firebase'
@@ -48,22 +49,7 @@ import {
   type Ware,
 } from './entries'
 
-const centerStyle = {
-  minHeight: '100vh',
-  display: 'flex',
-  flexDirection: 'column',
-  alignItems: 'center',
-  justifyContent: 'center',
-  gap: '1rem',
-  fontFamily: 'system-ui, sans-serif',
-  fontSize: '1.25rem',
-} as const
-
-const buttonStyle = {
-  fontSize: '1rem',
-  padding: '0.5rem 1rem',
-  cursor: 'pointer',
-}
+const centerClass = 'flex min-h-screen flex-col items-center justify-center gap-4 text-xl'
 
 export default function App() {
   const { user, loading: userLoading } = useUser()
@@ -73,10 +59,8 @@ export default function App() {
 
   if (!user) {
     return (
-      <main style={centerStyle}>
-        <button style={buttonStyle} onClick={() => signInWithGoogle()}>
-          Logg inn med Google
-        </button>
+      <main className={centerClass}>
+        <Button onClick={() => signInWithGoogle()}>Logg inn med Google</Button>
       </main>
     )
   }
@@ -85,23 +69,19 @@ export default function App() {
 
   if (access !== 'authorized') {
     return (
-      <main style={centerStyle}>
+      <main className={centerClass}>
         <div>
           {access === 'unreachable'
             ? "Får ikke kontakt. Sjekk nettet og prøv igjen."
             : 'Ingen tilgang. Be admin legge til Google-kontoen din.'}
         </div>
-        <button style={buttonStyle} onClick={() => signOut()}>
-          Logg ut
-        </button>
+        <Button onClick={() => signOut()}>Logg ut</Button>
       </main>
     )
   }
 
   return <List user={user} />
 }
-
-const smallButtonStyle = { ...buttonStyle, fontSize: '0.875rem', padding: '0.25rem 0.75rem' }
 
 type Tab = 'Home' | 'Meals' | 'Shop' | 'Oda'
 
@@ -139,23 +119,9 @@ function List({ user }: { user: User }) {
   const hidden = MORE_TABS.find((m) => m.tab === tab)
 
   return (
-    <main
-      style={{
-        minHeight: '100vh',
-        padding: '1rem',
-        width: 'min(100%, 32rem)',
-        margin: '0 auto',
-        fontFamily: 'system-ui, sans-serif',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '1rem',
-        boxSizing: 'border-box',
-      }}
-    >
-      {!online && (
-        <div style={{ fontSize: '0.875rem', color: '#8a5a00' }}>Frakoblet: endringer lagres når nettet er tilbake</div>
-      )}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+    <main className="mx-auto box-border flex min-h-screen w-[min(100%,32rem)] flex-col gap-4 p-4">
+      {!online && <div className="text-sm text-accent">Frakoblet: endringer lagres når nettet er tilbake</div>}
+      <div className="flex flex-1 flex-col gap-4">
         {tab === 'Home' && <Home entries={entries} ordering={ordering} onOdaOrder={() => setTab('Oda')} onDishes={setDishesOf} />}
         {tab === 'Meals' && <MealsTab openAt={recipeLink} ordering={ordering} onOdaOrder={() => setTab('Oda')} />}
         {tab === 'Shop' && <Shop entries={entries} ordering={ordering} onOdaOrder={() => setTab('Oda')} onDishes={setDishesOf} />}
@@ -163,20 +129,9 @@ function List({ user }: { user: User }) {
       </div>
       {dishesOf && <Dishes entry={dishesOf} onOpen={openRecipe} onClose={() => setDishesOf(null)} />}
 
-      <nav
-        style={{
-          position: 'sticky',
-          bottom: 0,
-          zIndex: 2,
-          display: 'flex',
-          gap: '0.5rem',
-          padding: '0.5rem 0',
-          background: 'white',
-          borderTop: '1px solid #ddd',
-        }}
-      >
+      <nav className="sticky bottom-0 z-2 flex gap-2 border-t border-line bg-white py-2">
         {TABS.map(({ tab: t, label, name }) => (
-          <button
+          <Button
             key={t}
             onClick={() => {
               setRecipeLink(null)
@@ -185,52 +140,31 @@ function List({ user }: { user: User }) {
             }}
             aria-pressed={tab === t}
             aria-label={name}
-            style={{
-              ...buttonStyle,
-              flex: 1,
-              fontWeight: tab === t ? 700 : 400,
-              color: tab === t ? 'black' : '#666',
-            }}
+            className={`flex-1 ${tab === t ? 'font-bold text-black' : 'font-normal text-muted'}`}
           >
-            {t === 'Home' ? <span style={{ fontSize: '1.5rem', lineHeight: 1 }}>{label}</span> : label}
-          </button>
+            {t === 'Home' ? <span className="text-2xl leading-none">{label}</span> : label}
+          </Button>
         ))}
         {/* Names the tab behind it while that one is open. */}
-        <button
+        <Button
           onClick={() => setMore(!more)}
           aria-expanded={more}
           aria-label="Mer"
-          style={{
-            ...buttonStyle,
-            flex: 1,
-            fontWeight: hidden ? 700 : 400,
-            color: hidden ? 'black' : '#666',
-          }}
+          className={`flex-1 ${hidden ? 'font-bold text-black' : 'font-normal text-muted'}`}
         >
           {hidden && `${hidden.name} `}
-          <span style={{ fontSize: '1.5rem', lineHeight: 1 }}>⋮</span>
-        </button>
+          <span className="text-2xl leading-none">⋮</span>
+        </Button>
         {/* A tap anywhere else closes the menu, and does nothing more. */}
-        {more && <div onClick={() => setMore(false)} style={{ position: 'fixed', inset: 0 }} />}
+        {more && <div onClick={() => setMore(false)} className="fixed inset-0" />}
         {more && (
           <div
             role="menu"
-            style={{
-              position: 'absolute',
-              right: 0,
-              bottom: '100%',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '0.25rem',
-              padding: '0.5rem',
-              background: 'white',
-              border: '1px solid #ddd',
-              borderRadius: '0.5rem',
-            }}
+            className="absolute right-0 bottom-full flex flex-col gap-1 rounded-lg border border-line bg-white p-2"
           >
             <Account user={user} />
             {MORE_TABS.map(({ tab: t, name }) => (
-              <button
+              <Button
                 key={t}
                 role="menuitem"
                 onClick={() => {
@@ -238,10 +172,10 @@ function List({ user }: { user: User }) {
                   setMore(false)
                   setTab(t)
                 }}
-                style={{ ...buttonStyle, fontWeight: tab === t ? 700 : 400, textAlign: 'left' }}
+                className={`text-left ${tab === t ? 'font-bold' : 'font-normal'}`}
               >
                 {name}
-              </button>
+              </Button>
             ))}
           </div>
         )}
@@ -250,14 +184,8 @@ function List({ user }: { user: User }) {
   )
 }
 
-const listStyle = {
-  listStyle: 'none',
-  padding: 0,
-  margin: 0,
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '0.5rem',
-} as const
+// A list without bullets; each use sets its gap.
+const listClass = 'm-0 flex list-none flex-col p-0'
 
 // The dishes an Entry is for: a cooking pot, drawn in the text's colour and size, so it sits
 // in the line like the ⌂ and ↻ glyphs. Unicode has no plain one, only a colour emoji.
@@ -266,7 +194,7 @@ function Pot() {
     <svg
       viewBox="0 0 24 24"
       aria-hidden="true"
-      style={{ width: '1.1em', height: '1.1em', verticalAlign: '-0.2em' }}
+      className="size-[1.1em] align-[-0.2em]"
       fill="none"
       stroke="currentColor"
       strokeWidth={1.75}
@@ -289,7 +217,7 @@ function Details({ entry, onDishes }: { entry: Entry; onDishes: (entry: Entry) =
 }
 
 function Note({ entry }: { entry: Entry }) {
-  return entry.note && <span style={{ color: '#666' }}> · {entry.note}</span>
+  return entry.note && <span className="text-muted"> · {entry.note}</span>
 }
 
 function DishesLink({
@@ -305,8 +233,8 @@ function DishesLink({
     <>
       {entry.dishes && (
         <>
-          <span style={{ color: '#666' }}> · </span>
-          <button
+          <span className="text-muted"> · </span>
+          <TextButton
             aria-label="Fra middag"
             tabIndex={tabIndex}
             onClick={(e) => {
@@ -315,59 +243,44 @@ function DishesLink({
               e.stopPropagation()
               onDishes(entry)
             }}
-            style={{ font: 'inherit', color: '#666', padding: 0, border: 'none', background: 'none', cursor: 'pointer' }}
+            className="text-muted"
           >
             <Pot /> {formatAmount(entry.dishes)}
-          </button>
+          </TextButton>
         </>
       )}
     </>
   )
 }
 
+// Dims the screen behind a dialog in its middle.
+const overlayClass = 'fixed inset-0 z-3 flex items-center justify-center bg-black/30'
+const dialogClass = 'box-border flex w-[min(100%_-_2rem,24rem)] flex-col gap-3 bg-white p-4'
+
 // The dishes an Entry was added for at Iverksett, each opening its Recipe.
 function Dishes({ entry, onOpen, onClose }: { entry: Entry; onOpen: (dish: Dish) => void; onClose: () => void }) {
   return (
     <div
       onClick={onClose}
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 3,
-        background: 'rgba(0, 0, 0, 0.3)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}
+      className={overlayClass}
     >
       <div
         role="dialog"
         aria-label={`${entry.text} fra middag`}
         onClick={(e) => e.stopPropagation()}
-        style={{
-          background: 'white',
-          padding: '1rem',
-          width: 'min(100% - 2rem, 24rem)',
-          boxSizing: 'border-box',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '0.75rem',
-          fontFamily: 'system-ui, sans-serif',
-        }}
+        className={dialogClass}
       >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <strong style={{ fontSize: '1.125rem' }}>{entry.text}</strong>
-          <button onClick={onClose} aria-label="Lukk" style={smallButtonStyle}>
+        <div className="flex items-center justify-between">
+          <strong className="text-lg">{entry.text}</strong>
+          <Button small onClick={onClose} aria-label="Lukk">
             ✕
-          </button>
+          </Button>
         </div>
-        <ul style={listStyle}>
+        <ul className={`${listClass} gap-2`}>
           {entry.dishes?.map((dish, i) => (
             <li key={i}>
-              <button
-                onClick={() => onOpen(dish)}
-                style={{ ...buttonStyle, width: '100%', textAlign: 'left', fontSize: '1.125rem' }}
-              >
+              {/* A Button, but bigger. */}
+              <button onClick={() => onOpen(dish)} className="w-full cursor-pointer px-4 py-2 text-left text-lg">
                 {dish.course}
               </button>
             </li>
@@ -568,27 +481,14 @@ function Home({
   return (
     <>
       {/* Stays at the top while the List scrolls, to filter or add from anywhere in it. */}
-      <div
-        style={{
-          position: 'sticky',
-          top: 0,
-          zIndex: 1,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '1rem',
-          padding: '0.5rem 0',
-          margin: '-0.5rem 0',
-          background: 'white',
-          borderBottom: '1px solid #ddd',
-        }}
-      >
+      <div className="sticky top-0 z-1 -my-2 flex flex-col gap-4 border-b border-line bg-white py-2">
         {ordering ? (
-          <div style={{ color: '#8a5a00' }}>
+          <div className="text-accent">
             <OdaOrderLink onClick={onOdaOrder} />
           </div>
         ) : (
-          <form onSubmit={onEnter} style={{ display: 'flex', gap: '0.5rem' }}>
-            <div style={{ flex: 1, position: 'relative', display: 'flex' }}>
+          <form onSubmit={onEnter} className="flex gap-2">
+            <div className="relative flex flex-1">
               <input
                 ref={addField}
                 value={text}
@@ -606,7 +506,7 @@ function Home({
                 maxLength={100}
                 placeholder="Hva trenger vi?"
                 aria-label="Hva trenger vi?"
-                style={{ flex: 1, minWidth: 0, fontSize: '1rem', padding: '0.5rem', paddingRight: '2rem' }}
+                className="min-w-0 flex-1 p-2 pr-8 text-base"
               />
               {text && (
                 <button
@@ -618,21 +518,7 @@ function Home({
                     setActive(-1)
                     addField.current?.focus()
                   }}
-                  style={{
-                    position: 'absolute',
-                    right: 0,
-                    top: 0,
-                    bottom: 0,
-                    width: '2rem',
-                    font: 'inherit',
-                    fontSize: '1.25rem',
-                    lineHeight: 1,
-                    color: '#666',
-                    padding: 0,
-                    border: 'none',
-                    background: 'none',
-                    cursor: 'pointer',
-                  }}
+                  className="absolute inset-y-0 right-0 w-8 cursor-pointer border-none bg-transparent p-0 text-xl leading-none text-muted [font-family:inherit]"
                 >
                   ×
                 </button>
@@ -649,18 +535,12 @@ function Home({
             aria-orientation="horizontal"
             aria-label="Forslag"
             // The padding keeps the highlight's outline from being clipped.
-            style={{
-              display: 'flex',
-              flexWrap: 'wrap',
-              gap: '0.5rem',
-              overflow: 'hidden',
-              height: fit.height || undefined,
-              padding: 3,
-              margin: 'calc(-0.5rem - 3px) -3px -3px',
-            }}
+            className="-mx-[3px] mt-[calc(-0.5rem_-_3px)] -mb-[3px] flex flex-wrap gap-2 overflow-hidden p-[3px]"
+            style={{ height: fit.height || undefined }}
           >
             {choices.map((s, i) => (
-              <button
+              <Button
+                small
                 key={s.id}
                 id={`${listId}-${i}`}
                 role="option"
@@ -668,32 +548,18 @@ function Home({
                 aria-hidden={i >= shown || undefined}
                 tabIndex={-1}
                 onClick={() => choose(s)}
-                style={{
-                  ...smallButtonStyle,
-                  flexShrink: 0,
-                  whiteSpace: 'nowrap',
-                  // A long typed name is cut short rather than pushing past the row.
-                  maxWidth: '100%',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  // "+" makes a new Ware rather than picking a Staple, so it looks apart.
-                  ...(s.id === '+' && {
-                    background: '#e3f1e3',
-                    border: '1px solid #8fb58f',
-                    borderRadius: '0.25rem',
-                    color: '#1f4d1f',
-                  }),
-                  ...(i === active && { outline: '2px solid #000', outlineOffset: 1 }),
-                }}
+                // A long typed name is cut short rather than pushing past the row. "+" makes a
+                // new Ware rather than picking a Staple, so it looks apart.
+                className={`max-w-full shrink-0 truncate ${s.id === '+' ? 'rounded border border-success-light bg-success-pale text-success' : ''} ${i === active ? 'outline-2 outline-offset-1 outline-black' : ''}`}
               >
                 {s.label}
-              </button>
+              </Button>
             ))}
           </div>
         )}
       </div>
 
-      <ul style={listStyle}>
+      <ul className={`${listClass} gap-2`}>
         {alphabetical.map((entry, i) => {
           const isOpen = !ordering && open?.entryId === entry.id
           const tabIndex = entry.id === currentId ? 0 : -1
@@ -701,18 +567,13 @@ function Home({
             <li
               key={entry.id}
               ref={isOpen ? openRef : undefined}
-              style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', fontSize: '1.125rem' }}
+              className="flex flex-col gap-1 text-lg"
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <div className="flex items-center gap-3">
                 <span
                   onClick={() => !ordering && toggleOpen(entry)}
                   onKeyDown={(e) => onRowKeyDown(e, i)}
-                  style={{
-                    flex: 1,
-                    cursor: ordering ? 'default' : 'pointer',
-                    opacity: entry.checked ? 0.4 : 1,
-                    textDecoration: entry.checked ? 'line-through' : 'none',
-                  }}
+                  className={`flex-1 ${ordering ? 'cursor-default' : 'cursor-pointer'} ${entry.checked ? 'line-through opacity-40' : ''}`}
                 >
                   <button
                     ref={(el) => {
@@ -723,16 +584,7 @@ function Home({
                     tabIndex={tabIndex}
                     aria-expanded={ordering ? undefined : isOpen}
                     onFocus={() => setCurrent(entry.id)}
-                    style={{
-                      font: 'inherit',
-                      color: 'inherit',
-                      textDecoration: 'inherit',
-                      textAlign: 'left',
-                      padding: 0,
-                      border: 'none',
-                      background: 'none',
-                      cursor: 'inherit',
-                    }}
+                    className="cursor-[inherit] border-none bg-transparent p-0 text-left text-inherit [font:inherit] [text-decoration:inherit]"
                   >
                     {entry.text}
                     <Note entry={entry} />
@@ -740,7 +592,8 @@ function Home({
                   <DishesLink entry={entry} onDishes={onDishes} tabIndex={tabIndex} />
                 </span>
                 {isOpen && (
-                    <button
+                    <Button
+                      small
                       type="button"
                       onClick={() => {
                         removeEntry(entry.id)
@@ -748,10 +601,9 @@ function Home({
                         const next = alphabetical[i + 1] ?? alphabetical[i - 1]
                         if (next) focusRow(next.id)
                       }}
-                      style={smallButtonStyle}
                     >
                       Fjern
-                    </button>
+                    </Button>
                 )}
               </div>
               {isOpen && (
@@ -762,7 +614,7 @@ function Home({
                     setOpen(null)
                     focusRow(entry.id)
                   }}
-                  style={{ display: 'flex', gap: '0.5rem' }}
+                  className="flex gap-2"
                 >
                   <input
                     autoFocus
@@ -774,7 +626,7 @@ function Home({
                     maxLength={200}
                     placeholder="Notat"
                     aria-label="Notat"
-                    style={{ flex: 1, minWidth: 0, fontSize: '1rem', padding: '0.25rem' }}
+                    className="min-w-0 flex-1 p-1 text-base"
                   />
                 </form>
               )}
@@ -838,51 +690,31 @@ function StaplePicker({
   return (
     <div
       onClick={close}
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 3,
-        background: 'rgba(0, 0, 0, 0.3)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}
+      className={overlayClass}
     >
+      {/* dvh: the phone's visible height, without its address bar. */}
       <div
         role="dialog"
         aria-label="Legg til fra basisvarer"
         onClick={(e) => e.stopPropagation()}
-        style={{
-          background: 'white',
-          padding: '1rem',
-          width: 'min(100% - 2rem, 24rem)',
-          // dvh: the phone's visible height, without its address bar.
-          maxHeight: 'calc(100dvh - 4rem)',
-          boxSizing: 'border-box',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '0.75rem',
-          fontFamily: 'system-ui, sans-serif',
-        }}
+        className={`${dialogClass} max-h-[calc(100dvh_-_4rem)]`}
       >
-        <strong style={{ fontSize: '1.125rem' }}>Legg til</strong>
+        <strong className="text-lg">Legg til</strong>
         {staples.length === 0 ? (
-          <div style={{ color: '#666' }}>Alle basisvarene står allerede på lista</div>
+          <div className="text-muted">Alle basisvarene står allerede på lista</div>
         ) : (
-          // Only the list scrolls, keeping the title and button in view. minHeight lets it
+          // Only the list scrolls, keeping the title and button in view. min-h-0 lets it
           // shrink below its content.
-          <ul style={{ ...listStyle, overflowY: 'auto', minHeight: 0, gap: 0 }}>
+          <ul className={`${listClass} min-h-0 gap-0 overflow-y-auto`}>
             {staples.map((w, i) => (
               <li key={w.id}>
-                <label
-                  style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.375rem 0', fontSize: '1.125rem', cursor: 'pointer' }}
-                >
+                <label className="flex cursor-pointer items-center gap-2 py-1.5 text-lg">
                   <input
                     type="checkbox"
                     autoFocus={i === 0}
                     checked={picked.has(w.id)}
                     onChange={() => toggle(w.id)}
-                    style={{ width: '1.125rem', height: '1.125rem', flexShrink: 0 }}
+                    className="size-4.5 shrink-0"
                   />
                   {w.name}
                 </label>
@@ -890,9 +722,7 @@ function StaplePicker({
             ))}
           </ul>
         )}
-        <button onClick={close} style={buttonStyle}>
-          {picked.size > 0 ? `Legg til ${picked.size}` : 'Lukk'}
-        </button>
+        <Button onClick={close}>{picked.size > 0 ? `Legg til ${picked.size}` : 'Lukk'}</Button>
       </div>
     </div>
   )
@@ -924,46 +754,23 @@ function Account({ user }: { user: User }) {
   }, [open])
 
   return (
-    <div ref={ref} style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.5rem' }}>
+    <div ref={ref} className="flex flex-col items-end gap-2">
       <button
         onClick={() => setOpen(!open)}
         aria-expanded={open}
         aria-label={`Konto: ${name}`}
         title={name}
-        style={{
-          width: '2rem',
-          height: '2rem',
-          borderRadius: '50%',
-          border: 'none',
-          background: '#e4e4e4',
-          color: '#444',
-          font: 'inherit',
-          fontSize: initials.length > 1 ? '0.875rem' : '1.125rem',
-          fontWeight: 700,
-          padding: 0,
-          cursor: 'pointer',
-        }}
+        className={`size-8 cursor-pointer rounded-full border-none bg-subtle p-0 font-bold text-muted [font-family:inherit] ${initials.length > 1 ? 'text-sm' : 'text-lg'}`}
       >
         {initials}
       </button>
       {open && (
-        <div
-          style={{
-            alignSelf: 'stretch',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '0.5rem',
-            padding: '0 0 0.5rem',
-            borderBottom: '1px solid #ddd',
-            fontSize: '0.875rem',
-            color: '#555',
-          }}
-        >
-          {user.displayName && <span style={{ color: '#000' }}>{user.displayName}</span>}
+        <div className="flex flex-col gap-2 self-stretch border-b border-line pb-2 text-sm text-muted">
+          {user.displayName && <span className="text-black">{user.displayName}</span>}
           {user.email && <span>{user.email}</span>}
-          <button onClick={() => signOut()} style={{ ...smallButtonStyle, alignSelf: 'flex-start' }}>
+          <Button small onClick={() => signOut()} className="self-start">
             Logg ut
-          </button>
+          </Button>
         </div>
       )}
     </div>
@@ -977,15 +784,15 @@ function OdaProductLine({ ware }: { ware?: Ware }) {
   if (!ware) return null
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.875rem', color: '#555' }}>
+    <div className="flex flex-col gap-2 text-sm text-muted">
       {ware.neverOda ? (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+        <div className="flex items-center gap-3">
           Aldri fra Oda
           <ClearButton label="Fjern Aldri fra Oda" onClick={() => setNeverOda(ware.id, false)} />
         </div>
       ) : ware.oda ? (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <a href={odaProductUrl(ware.oda.id)} target="_blank" rel="noreferrer" style={{ color: 'inherit' }}>
+        <div className="flex items-center gap-3">
+          <a href={odaProductUrl(ware.oda.id)} target="_blank" rel="noreferrer" className="text-inherit">
             {ware.oda.name}
             {ware.oda.packText && ` · ${ware.oda.packText}`}
           </a>
@@ -994,9 +801,9 @@ function OdaProductLine({ ware }: { ware?: Ware }) {
       ) : searching ? (
         <OdaSearch ware={ware} onClose={() => setSearching(false)} />
       ) : (
-        <button onClick={() => setSearching(true)} style={{ ...smallButtonStyle, alignSelf: 'flex-start' }}>
+        <Button small onClick={() => setSearching(true)} className="self-start">
           Velg Oda-produkt
-        </button>
+        </Button>
       )}
     </div>
   )
@@ -1013,7 +820,7 @@ function ClearButton({ label, onClick }: { label: string; onClick: () => void })
       onClick={onClick}
       aria-label={label}
       title={label}
-      style={{ font: 'inherit', fontSize: '1.25rem', lineHeight: 1, color: '#000', padding: 0, border: 'none', background: 'none', cursor: 'pointer' }}
+      className="cursor-pointer border-none bg-transparent p-0 text-xl leading-none text-black [font-family:inherit]"
     >
       ×
     </button>
@@ -1151,9 +958,9 @@ function OdaSearch({
       }}
       // Esc is the search's own, so it doesn't also close the Entry around it.
       onKeyDown={(e) => e.key === 'Escape' && e.nativeEvent.stopPropagation()}
-      style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}
+      className="flex flex-col gap-2"
     >
-      <div style={{ display: 'flex', flexDirection: 'column' }}>
+      <div className="flex flex-col">
         <input
           {...getInputProps({
             autoFocus: true,
@@ -1169,25 +976,9 @@ function OdaSearch({
           maxLength={200}
           placeholder="Søk, eller lim inn lenke fra oda.com"
           aria-label="Søk på Oda"
-          style={{
-            fontSize: '1rem',
-            padding: '0.25rem',
-            borderWidth: 1,
-            borderStyle: 'solid',
-            borderColor: listed ? '#888 #888 #ddd' : '#888',
-          }}
+          className={`border border-faint p-1 text-base ${listed ? 'border-b-line' : ''}`}
         />
-        <ul
-          {...getMenuProps()}
-          style={{
-            listStyle: 'none',
-            margin: 0,
-            padding: 0,
-            borderWidth: 1,
-            borderStyle: listed ? 'none solid solid' : 'none',
-            borderColor: '#888',
-          }}
-        >
+        <ul {...getMenuProps()} className={`m-0 list-none p-0 ${listed ? 'border-x border-b border-faint' : ''}`}>
           {listed &&
             rows.map((row, index) => {
               const off = typeof row === 'object' && unpickable(row)
@@ -1195,12 +986,7 @@ function OdaSearch({
                 <li
                   key={typeof row === 'object' ? row.id : row}
                   {...getItemProps({ item: row, index })}
-                  style={{
-                    padding: '0.375rem 0.5rem',
-                    cursor: off ? 'default' : 'pointer',
-                    background: highlightedIndex === index ? '#eee' : 'transparent',
-                    color: off ? '#888' : '#222',
-                  }}
+                  className={`px-2 py-1.5 ${off ? 'cursor-default text-faint' : 'cursor-pointer text-black'} ${highlightedIndex === index ? 'bg-subtle' : ''}`}
                 >
                   {row === 'more' ? (
                     'Flere...'
@@ -1222,40 +1008,30 @@ function OdaSearch({
       {search === 'searching' && <div>Søker …</div>}
       {search === 'error' && <div>Oda svarer ikke</div>}
       {typeof search === 'object' && !search.linked && (
-        <button onClick={() => linkOda()} style={{ ...smallButtonStyle, alignSelf: 'flex-start' }}>
+        <Button small onClick={() => linkOda()} className="self-start">
           Koble til Oda
-        </button>
+        </Button>
       )}
-      {message && <div style={{ color: '#8a5a00' }}>{message}</div>}
+      {message && <div className="text-accent">{message}</div>}
       {typeof search === 'object' && search.linked && products.length === 0 && !message && <div>Ingen treff</div>}
     </div>
   )
 }
-
-const askStyle = {
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '0.5rem',
-  padding: '0.75rem',
-  border: '1px solid #e0c080',
-  background: '#fff8e8',
-  color: '#5a3c00',
-} as const
 
 const varer = (n: number) => `${n} ${n === 1 ? 'vare' : 'varer'}`
 
 // A question before acting, naming both its buttons.
 function Ask({ text, go, onGo, onBack }: { text: string; go: string; onGo: () => void; onBack: () => void }) {
   return (
-    <div role="alert" style={askStyle}>
+    <div role="alert" className="flex flex-col gap-2 border border-accent-light bg-accent-pale p-3 text-accent-dark">
       {text}
-      <div style={{ display: 'flex', gap: '0.5rem' }}>
-        <button onClick={onGo} style={smallButtonStyle}>
+      <div className="flex gap-2">
+        <Button small onClick={onGo}>
           {go}
-        </button>
-        <button onClick={onBack} style={smallButtonStyle}>
+        </Button>
+        <Button small onClick={onBack}>
           Tilbake
-        </button>
+        </Button>
       </div>
     </div>
   )
@@ -1363,24 +1139,17 @@ function Shop({
         if (el) items.current.set(entry.id, el)
         else items.current.delete(entry.id)
       }}
-      style={{
-        fontSize: '1.375rem',
-        opacity: entry.checked ? 0.4 : 1,
-        display: 'flex',
-        alignItems: 'center',
-        gap: '0.75rem',
-        background: drag?.id === entry.id ? '#eee' : 'transparent',
-      }}
+      className={`flex items-center gap-3 text-xl ${entry.checked ? 'opacity-40' : ''} ${drag?.id === entry.id ? 'bg-subtle' : ''}`}
     >
-      <label style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: ordering ? 'default' : 'pointer' }}>
+      <label className={`flex min-w-0 flex-1 items-center gap-3 ${ordering ? 'cursor-default' : 'cursor-pointer'}`}>
         <input
           type="checkbox"
           checked={entry.checked}
           disabled={ordering}
           onChange={(e) => toggle(entry.id, e.target.checked)}
-          style={{ width: '1.5rem', height: '1.5rem', flexShrink: 0 }}
+          className="size-6 shrink-0"
         />
-        <span style={{ minWidth: 0, overflowWrap: 'anywhere', textDecoration: entry.checked ? 'line-through' : 'none' }}>
+        <span className={`min-w-0 wrap-anywhere ${entry.checked ? 'line-through' : ''}`}>
           {entry.text}
           <Details entry={entry} onDishes={onDishes} />
         </span>
@@ -1392,25 +1161,13 @@ function Shop({
             e.preventDefault()
             setDrag({ id: entry.id, to: i })
           }}
-          style={{
-            flexShrink: 0,
-            width: '2.25rem',
-            height: '2.25rem',
-            border: '1px solid #ccc',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: '#666',
-            cursor: 'grab',
-            touchAction: 'none',
-            userSelect: 'none',
-          }}
+          className="flex size-9 shrink-0 cursor-grab touch-none items-center justify-center border border-line text-muted select-none"
         >
           {/* Drawn, not the ↕ glyph, so the row's text is just the Entry's. */}
           <svg
             viewBox="0 0 24 24"
             aria-hidden="true"
-            style={{ width: '1.25rem', height: '1.25rem' }}
+            className="size-5"
             fill="none"
             stroke="currentColor"
             strokeWidth={1.75}
@@ -1427,21 +1184,21 @@ function Shop({
   return (
     <>
       {ordering && (
-        <div style={{ color: '#8a5a00' }}>
+        <div className="text-accent">
           <OdaOrderLink onClick={onOdaOrder} />
         </div>
       )}
-      <ul style={{ ...listStyle, gap: '0.75rem' }}>{shown.map(row)}</ul>
+      <ul className={`${listClass} gap-3`}>{shown.map(row)}</ul>
       {/* Folded away below the List, so checking off the first Entry doesn't push the List down. */}
       {checked.length > 0 && (
         <details>
-          <summary style={{ cursor: 'pointer', color: '#666', padding: '0.5rem 0' }}>Avkrysset ({checked.length})</summary>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            <ul style={{ ...listStyle, gap: '0.75rem' }}>{checked.map(row)}</ul>
+          <summary className="cursor-pointer py-2 text-muted">Avkrysset ({checked.length})</summary>
+          <div className="flex flex-col gap-3">
+            <ul className={`${listClass} gap-3`}>{checked.map(row)}</ul>
             {!ordering && (
-              <button onClick={() => removeEntries(checked)} style={{ ...smallButtonStyle, alignSelf: 'flex-end' }}>
+              <Button small onClick={() => removeEntries(checked)} className="self-end">
                 Fjern avkryssede
-              </button>
+              </Button>
             )}
           </div>
         </details>
@@ -1496,17 +1253,18 @@ function OdaTab({ entries, ordering, onDishes }: { entries: Entry[]; ordering: b
   }
   if (basket && basket !== 'error' && !basket.linked) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.875rem', color: '#8a5a00' }}>
-        <button
+      <div className="flex items-center gap-3 text-sm text-accent">
+        <Button
+          small
           disabled={linking}
           onClick={() => {
             setLinking(true)
             linkOda().catch(() => setLinking(false))
           }}
-          style={{ ...smallButtonStyle, alignSelf: 'flex-start' }}
+          className="self-start"
         >
           Koble til Oda
-        </button>
+        </Button>
         {linkResult === 'error' && 'Koblingen ble ikke fullført'}
       </div>
     )
@@ -1514,13 +1272,13 @@ function OdaTab({ entries, ordering, onDishes }: { entries: Entry[]; ordering: b
   return (
     <>
       {/* What's already in the Basket stays there through the Oda Order. */}
-      <div style={{ fontSize: '0.875rem', color: '#555' }}>
+      <div className="text-sm text-muted">
         {basket === null ? (
           'Oda: henter handlekurven …'
         ) : basket === 'error' ? (
           'Oda svarer ikke'
         ) : (
-          <a href={basket.url} target="_blank" rel="noreferrer" style={{ color: 'inherit' }}>
+          <a href={basket.url} target="_blank" rel="noreferrer" className="text-inherit">
             Oda: {varer(basket.items)} i handlekurven
           </a>
         )}
@@ -1602,20 +1360,20 @@ function Choosing({
   const row = (r: (typeof rows)[number]) => {
     const marked = tried && lacking.has(r.entry.id)
     return (
-      <li key={r.entry.id} style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', fontSize: '1.125rem' }}>
-        <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}>
+      <li key={r.entry.id} className="flex flex-col gap-1 text-lg">
+        <label className="flex cursor-pointer items-center gap-3">
           <input
             type="checkbox"
             checked={ticked(r)}
             onChange={(e) => setTicks({ ...ticks, [r.entry.id]: e.target.checked })}
-            style={{ width: '1.25rem', height: '1.25rem', flexShrink: 0 }}
+            className="size-5 shrink-0"
           />
-          <span style={{ minWidth: 0, overflowWrap: 'anywhere', color: marked ? '#b00020' : 'inherit', fontWeight: marked ? 600 : 400 }}>
+          <span className={`min-w-0 wrap-anywhere ${marked ? 'font-semibold text-danger' : 'font-normal'}`}>
             {r.entry.text}
             <Details entry={r.entry} onDishes={onDishes} />
           </span>
         </label>
-        <div style={{ paddingLeft: '2rem' }}>
+        <div className="pl-8">
           {r.ware?.oda ? (
             <OdaProductLine ware={r.ware} />
           ) : (
@@ -1639,15 +1397,10 @@ function Choosing({
   const section = (title: string, rs: typeof rows, framed = false) =>
     rs.length > 0 && (
       <section
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '0.5rem',
-          ...(framed && { padding: '0.75rem', border: '1px solid #d8dde6', borderRadius: '0.5rem', background: '#f4f6fa' }),
-        }}
+        className={`flex flex-col gap-2 ${framed ? 'rounded-lg border border-surface-line bg-surface p-3' : ''}`}
       >
-        <h3 style={{ fontSize: '1rem', margin: 0, color: '#555' }}>{title}</h3>
-        <ul style={{ ...listStyle, gap: '0.75rem' }}>{rs.map(row)}</ul>
+        <h3 className="m-0 text-base text-muted">{title}</h3>
+        <ul className={`${listClass} gap-3`}>{rs.map(row)}</ul>
       </section>
     )
 
@@ -1679,23 +1432,19 @@ function Choosing({
       {section('Nye varer', fresh, true)}
       {section('Tidligere kjøpte varer', known)}
       {outside.length > 0 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-          <button
-            onClick={() => setUnfolded(!unfolded)}
-            aria-expanded={unfolded}
-            style={{ ...smallButtonStyle, alignSelf: 'flex-start' }}
-          >
+        <div className="flex flex-col gap-2">
+          <Button small onClick={() => setUnfolded(!unfolded)} aria-expanded={unfolded} className="self-start">
             {unfolded ? '▾' : '▸'} Utenfor Oda ({outside.length})
-          </button>
+          </Button>
           {unfolded && (
-            <ul style={listStyle}>
+            <ul className={`${listClass} gap-2`}>
               {outside.map((r) => (
-                <li key={r.entry.id} style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', color: '#555' }}>
+                <li key={r.entry.id} className="flex flex-col gap-1 text-muted">
                   <span>
                     {r.entry.text}
                     <Details entry={r.entry} onDishes={onDishes} />
                   </span>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.875rem' }}>
+                  <div className="flex items-center gap-3 text-sm">
                     Aldri fra Oda
                     {/* Moves the Entry up, unticked. */}
                     <ClearButton
@@ -1712,11 +1461,11 @@ function Choosing({
           )}
         </div>
       )}
-      {tried && lacking.size > 0 && <div style={{ color: '#b00020' }}>Alle varer må ha et Oda-produkt</div>}
-      {error && <div style={{ color: '#8a5a00' }}>{error}</div>}
-      <button onClick={fill} disabled={chosen.length === 0} style={{ ...buttonStyle, alignSelf: 'flex-start' }}>
+      {tried && lacking.size > 0 && <div className="text-danger">Alle varer må ha et Oda-produkt</div>}
+      {error && <div className="text-accent">{error}</div>}
+      <Button onClick={fill} disabled={chosen.length === 0} className="self-start">
         Fyll handlekurven
-      </button>
+      </Button>
     </>
   )
 }
@@ -1726,16 +1475,7 @@ function FillingBasket() {
   return (
     <div
       role="status"
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 3,
-        background: 'white',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontSize: '1.125rem',
-      }}
+      className="fixed inset-0 z-3 flex items-center justify-center bg-white text-lg"
     >
       Fyller handlekurven …
     </div>
@@ -1756,22 +1496,25 @@ function PackStepper({
   note: string
   onChange: (count: number) => void
 }) {
-  const step = { ...smallButtonStyle, padding: '0 0.625rem' }
+  // A small Button, narrower.
+  const step = 'cursor-pointer px-2.5 py-0 text-sm'
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', color: '#555' }}>
-      <button aria-label="Færre pakker" disabled={disabled || count === null || count <= 1} onClick={() => onChange(count! - 1)} style={step}>
+    <div className="flex items-center gap-2 text-sm text-muted">
+      <button aria-label="Færre pakker" disabled={disabled || count === null || count <= 1} onClick={() => onChange(count! - 1)} className={step}>
         −
       </button>
-      <span aria-label="Antall pakker" style={{ minWidth: '2ch', textAlign: 'center' }}>
+      <span aria-label="Antall pakker" className="min-w-[2ch] text-center">
         {count}
       </span>
-      <button aria-label="Flere pakker" disabled={disabled || count === null || count >= MAX_PACKS} onClick={() => onChange(count! + 1)} style={step}>
+      <button aria-label="Flere pakker" disabled={disabled || count === null || count >= MAX_PACKS} onClick={() => onChange(count! + 1)} className={step}>
         +
       </button>
-      {note && <span style={{ color: '#8a5a00' }}>{note}</span>}
+      {note && <span className="text-accent">{note}</span>}
     </div>
   )
 }
+
+const lineClass = 'text-sm text-muted'
 
 // An Oda Product picked or suggested in the choosing, not yet saved on the Ware. It reads like a
 // saved one, linking to oda.com; × opens the search in its place, starting with the Ware's name.
@@ -1788,19 +1531,17 @@ function PickLine({
 }) {
   const [searching, setSearching] = useState(false)
   const pick: OdaResult | undefined = picks[ware.id]
-  const lineStyle = { fontSize: '0.875rem', color: '#555' }
-
   if (searching) {
     return (
-      <div style={lineStyle}>
+      <div className={lineClass}>
         <OdaSearch ware={ware} onPick={onPick} onClose={() => setSearching(false)} />
       </div>
     )
   }
   if (pick) {
     return (
-      <div style={{ ...lineStyle, display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-        <a href={odaProductUrl(pick.id)} target="_blank" rel="noreferrer" style={{ color: 'inherit' }}>
+      <div className={`${lineClass} flex items-center gap-3`}>
+        <a href={odaProductUrl(pick.id)} target="_blank" rel="noreferrer" className="text-inherit">
           {pick.name}
           {pick.packText && ` · ${pick.packText}`}
         </a>
@@ -1809,11 +1550,11 @@ function PickLine({
       </div>
     )
   }
-  if (suggesting) return <div style={lineStyle}>Finner Oda-produkt …</div>
+  if (suggesting) return <div className={lineClass}>Finner Oda-produkt …</div>
   return (
-    <button onClick={() => setSearching(true)} style={smallButtonStyle}>
+    <Button small onClick={() => setSearching(true)}>
       Velg Oda-produkt
-    </button>
+    </Button>
   )
 }
 
@@ -1875,18 +1616,18 @@ function SubstituteStep({
     <>
       {busy === 'adding' && <FillingBasket />}
       <div>Dette er ikke tilgjengelig på Oda. Velg noe annet å bestille, eller hopp over.</div>
-      <ul style={{ ...listStyle, gap: '0.75rem' }}>
+      <ul className={`${listClass} gap-3`}>
         {products.map((needs) => {
           const { productId, name, packText, gone } = needs[0].line
           const ware = wareOf(needs[0].entry)
           return (
-            <li key={productId} style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-              <div style={{ fontSize: '1.125rem' }}>
+            <li key={productId} className="flex flex-col gap-1">
+              <div className="text-lg">
                 {name}
                 {packText && ` · ${packText}`} · {gone ? 'ikke lenger tilgjengelig' : 'ikke tilgjengelig'}
               </div>
               {needs.map(({ entry }) => (
-                <div key={entry.id} style={{ fontSize: '0.875rem', color: '#555' }}>
+                <div key={entry.id} className={lineClass}>
                   {entry.text}
                   <Details entry={entry} onDishes={onDishes} />
                 </div>
@@ -1906,14 +1647,14 @@ function SubstituteStep({
           )
         })}
       </ul>
-      {error && <div style={{ color: '#8a5a00' }}>{error}</div>}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-        <button onClick={() => finish(picked)} disabled={picked.length === 0 || !!busy} style={buttonStyle}>
+      {error && <div className="text-accent">{error}</div>}
+      <div className="flex items-center gap-2">
+        <Button onClick={() => finish(picked)} disabled={picked.length === 0 || !!busy}>
           Legg i handlekurven
-        </button>
-        <button onClick={() => finish([])} disabled={!!busy} style={buttonStyle}>
+        </Button>
+        <Button onClick={() => finish([])} disabled={!!busy}>
           Hopp over
-        </button>
+        </Button>
       </div>
     </>
   )
@@ -1934,18 +1675,17 @@ function ReplaceLine({
   onClear: () => void
 }) {
   const [searching, setSearching] = useState(false)
-  const lineStyle = { fontSize: '0.875rem', color: '#555' }
   if (searching) {
     return (
-      <div style={lineStyle}>
+      <div className={lineClass}>
         <OdaSearch ware={ware} replacing={replacing} onPick={onPick} onClose={() => setSearching(false)} />
       </div>
     )
   }
   if (pick) {
     return (
-      <div style={{ ...lineStyle, display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-        <a href={odaProductUrl(pick.id)} target="_blank" rel="noreferrer" style={{ color: 'inherit' }}>
+      <div className={`${lineClass} flex items-center gap-3`}>
+        <a href={odaProductUrl(pick.id)} target="_blank" rel="noreferrer" className="text-inherit">
           {pick.name}
           {pick.packText && ` · ${pick.packText}`}
         </a>
@@ -1954,9 +1694,9 @@ function ReplaceLine({
     )
   }
   return (
-    <button onClick={() => setSearching(true)} style={{ ...smallButtonStyle, alignSelf: 'flex-start' }}>
+    <Button small onClick={() => setSearching(true)} className="self-start">
       {replacing === 'gone' ? 'Velg nytt Oda-produkt' : 'Velg erstatning'}
-    </button>
+    </Button>
   )
 }
 
@@ -2047,9 +1787,9 @@ function OrderSummary({ entries, onDishes }: { entries: Entry[]; onDishes: (entr
 
   return (
     <>
-      <h2 style={{ fontSize: '1.375rem', margin: 0 }}>Oppsummering odabestilling</h2>
+      <h2 className="m-0 text-xl">Oppsummering odabestilling</h2>
       <OdaOrder counting={counting} countError={countError} busy={busy} setBusy={setBusy} />
-      <ul style={{ ...listStyle, gap: '0.75rem' }}>
+      <ul className={`${listClass} gap-3`}>
         {products.map((needs) => (
           <OrderProduct
             key={needs[0].line.productId}
@@ -2064,11 +1804,11 @@ function OrderSummary({ entries, onDishes }: { entries: Entry[]; onDishes: (entr
         ))}
       </ul>
       {leftOut.length > 0 && (
-        <section style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-          <h3 style={{ fontSize: '1rem', margin: 0, color: '#555' }}>Ikke tilgjengelig</h3>
-          <ul style={{ ...listStyle, gap: '0.75rem' }}>
+        <section className="flex flex-col gap-2">
+          <h3 className="m-0 text-base text-muted">Ikke tilgjengelig</h3>
+          <ul className={`${listClass} gap-3`}>
             {leftOut.map((entry) => (
-              <li key={entry.id} style={{ fontSize: '1.125rem', color: '#555' }}>
+              <li key={entry.id} className="text-lg text-muted">
                 {entry.text}
                 <Details entry={entry} onDishes={onDishes} />
               </li>
@@ -2126,8 +1866,8 @@ function OrderProduct({
   }
 
   return (
-    <li style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-      <a href={odaProductUrl(productId)} target="_blank" rel="noreferrer" style={{ fontSize: '1.125rem', color: 'inherit' }}>
+    <li className="flex flex-col gap-1">
+      <a href={odaProductUrl(productId)} target="_blank" rel="noreferrer" className="text-lg text-inherit">
         {name}
         {packText && ` · ${packText}`}
       </a>
@@ -2138,7 +1878,7 @@ function OrderProduct({
         onChange={change}
       />
       {needs.map(({ entry }) => (
-        <div key={entry.id} style={{ fontSize: '0.875rem', color: '#555' }}>
+        <div key={entry.id} className={lineClass}>
           {entry.text}
           <Details entry={entry} onDishes={onDishes} />
         </div>
@@ -2184,23 +1924,23 @@ function OdaOrder({
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-      <div style={{ position: 'relative' }}>
-        {counting && <div style={{ position: 'absolute' }}>Regner ut antall pakker …</div>}
-        <div style={{ visibility: counting ? 'hidden' : 'visible' }}>
+    <div className="flex flex-col gap-3">
+      <div className="relative">
+        {counting && <div className="absolute">Regner ut antall pakker …</div>}
+        <div className={counting ? 'invisible' : 'visible'}>
           Neste steg er ditt: bestill i{' '}
           <a href={url} target="_blank" rel="noreferrer">
             handlekurven på oda.com
           </a>
         </div>
       </div>
-      <div style={{ display: 'flex', gap: '0.5rem' }}>
-        <button onClick={() => act(orderedOda)} disabled={counting || busy || asking} style={buttonStyle}>
+      <div className="flex gap-2">
+        <Button onClick={() => act(orderedOda)} disabled={counting || busy || asking}>
           Bestilt
-        </button>
-        <button onClick={() => setAsking(true)} disabled={counting || busy || asking} style={buttonStyle}>
+        </Button>
+        <Button onClick={() => setAsking(true)} disabled={counting || busy || asking}>
           Avbryt
-        </button>
+        </Button>
       </div>
       {asking && (
         <Ask
@@ -2213,7 +1953,7 @@ function OdaOrder({
           onBack={() => setAsking(false)}
         />
       )}
-      {(error || countError) && <div style={{ color: '#8a5a00' }}>{error || countError}</div>}
+      {(error || countError) && <div className="text-accent">{error || countError}</div>}
     </div>
   )
 }

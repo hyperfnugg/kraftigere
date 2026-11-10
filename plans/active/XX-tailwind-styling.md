@@ -27,8 +27,8 @@ Tailwind v4 via `@tailwindcss/vite`, a theme in `src/index.css` with a named col
 - [x] **Commit: Confirm on Tailwind** *(manual)*
 - [x] **Convert `Meals.tsx`.** `TextButton` in `src/ui.tsx` is a button that reads as text, for the links in Meals and App. The Recipe screen widens at `sm:`, which is the 40rem of `useWide`.
 - [x] **Commit: Meals on Tailwind** *(manual)*
-- [ ] **Convert `App.tsx`.**
-- [ ] **Commit: App on Tailwind** *(manual)*
+- [x] **Convert `App.tsx`.** Buttons that change the shared size or font (the Dishes list, the pack stepper, the × buttons, the initials) are plain `<button>`s with their own classes, as two utilities for one property don't apply in the order they're written.
+- [x] **Commit: App on Tailwind** *(manual)*
 - [ ] **Try it on the dev server**, comparing each screen with `main`, iterating on feedback. Skipped in AFK mode. *(user)*
 - [ ] **Tests**: `npx tsc -b`, `npm run lint`, `npm run test:unit` and `npm run test:e2e` pass. No test checks styles, so no new tests are expected.
 - [ ] **Commit: fixes from the dev server and tests** *(manual)* — skip if nothing changed.
