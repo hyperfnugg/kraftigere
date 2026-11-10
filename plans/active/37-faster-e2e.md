@@ -20,9 +20,9 @@ The e2e suite takes about 4.5 minutes (242–282 s for 78 tests, in CI and local
 
 No dev-server step: nothing here is user-visible.
 
-- [ ] **Baseline.** Note the e2e wall time and the total sign-in time on `main` in Notes, using a reporter that sums the steps in `helpers.ts` lines 8–25 (the analysis used one, see Notes).
-- [ ] **Ready popup.** In `completeGooglePopup`, wait for the popup to be ready (its load state, or the account's list item being visible and enabled) before one click. Keep a short retry as a fallback against dropped clicks, with intervals of about 100 ms rather than 500/1000. Run the whole suite twice to check it isn't flaky, and record the new numbers in Notes.
-- [ ] **Commit: wait for the sign-in popup before clicking.** *(auto)*
+- [x] **Baseline.** Note the e2e wall time and the total sign-in time on `main` in Notes, using a reporter that sums the steps in `helpers.ts` lines 8–25 (the analysis used one, see Notes).
+- [x] **Ready popup.** In `completeGooglePopup`, wait for the popup to be ready (its load state, or the account's list item being visible and enabled) before one click. Keep a short retry as a fallback against dropped clicks, with intervals of about 100 ms rather than 500/1000. Run the whole suite twice to check it isn't flaky, and record the new numbers in Notes.
+- [x] **Commit: wait for the sign-in popup before clicking.** *(auto)*
 - [ ] **Sign-in without the popup.** Pick a mechanism and record why in Notes. The first choice needs no app change: get the account's tokens from `signInWithIdp`, as `seedAccounts` does, and use `page.addInitScript` to put the Firebase user into the app's persisted auth storage before it loads. If that relies on SDK internals too much, the fallback is an emulator-only hook in `src/firebase.ts` that signs in with `GoogleAuthProvider.credential(idToken)`. Point `signIn` at it, keep `completeGooglePopup` for the sign-in test in `app.spec.ts` and for `warm-up.ts`, and check that `reset()` deleting accounts before each test doesn't break a sign-in made after `seed()`.
 - [ ] **Commit: sign in e2e tests without the popup.** *(auto)* — *(manual)* instead if it needed the hook in `src/firebase.ts` (auth code).
 - [ ] **Choose how to run in parallel.** Every test shares one stack: one Firestore and Auth emulator, a functions emulator that serves only `demo-kraftigere`, one fake Oda basket (`tests/e2e/fake-oda.mjs`), and fixed ports (`firebase.test.json`, 5273, 4273, 8866). Weigh (a) `playwright test --shard` across CI jobs, each with its own stack, which is simple but saves nothing locally, against (b) one full stack for each worker on offset ports. Record the decision and the reason in Notes, and rewrite the steps below to match.
@@ -47,3 +47,13 @@ No dev-server step: nothing here is user-visible.
 - Sign-in breakdown (median): `page.goto` 301 ms, waiting for the popup 188 ms, button click 44 ms, `toPass` 1716 ms with 2 clicks for every sign-in, waiting for "Mer" 9 ms.
 - `oda-products` "a pasted link or a tap picks another Ware's Oda Product" failed once and passed on retry in CI run 42787499173. Watch whether the faster sign-in changes that.
 - Reporter used to measure: a custom Playwright reporter that, in `onTestEnd`, sums `result.steps` whose `location` is in `helpers.ts` lines 8–25. The JSON reporter doesn't include steps.
+
+2026-11-10, baseline on `main` (d799846), local: 77 passed and 1 failed in 4.6 min (258 s from the reporter's `onBegin`). Sign-in 184.5 s of 255 s of test time. The failure was the `oda-products` race below.
+
+2026-11-10, ready popup, local:
+
+- The popup's click handlers come from an inline script at the end of the page, after `material-components-web` from unpkg and three stylesheets (unpkg and Google Fonts), so `domcontentloaded` means they're attached. One click then lands every time.
+- About 1 sign-in in 150 still never closes the popup, however often the account is clicked. The popup shows the list and no error, so the widget sent the event and the Firebase SDK in the opener dropped it; this is the flake `warm-up.ts` mentions. Clicking again doesn't help, so a popup still open 2 s after the click is closed and a new one opened. A probe of 300 sign-ins passed with one second popup (3.2 s).
+- Faster sign-ins showed races that were hidden behind the 2.3 s: reads straight from the emulator just after the page showed a write it made itself (the page shows it before the emulator has it), and `hjem` counting chips before the Wares loaded. Those reads poll now (`expect.poll`), as `substitutes` already did once. Reads that check nothing changed after a failure stay as they were. This fixes the `oda-products` failure in the analysis.
+- `pack-counts` "two devices counting at once": 40 runs of it alone took 2.5–3.0 s, with a tail of 5.9, 6.4 and 9.0 s, and once in a full run it took over 10 s to finish counting, from the emulator's transactions when both devices count at once. Its wait for what's next is 25 s.
+- Two full runs in a row: 78 passed in 2.8 and 2.9 min (153 and 154 s), sign-in 75.7 and 76.0 s, about 0.95 s each.

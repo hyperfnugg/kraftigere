@@ -6,17 +6,28 @@ export { FIRESTORE_HOST, MEMBERS, OUTSIDER, PROJECT, reset, seed, setMembers } f
 
 // Completes the Auth emulator's fake Google popup with a seeded account.
 export async function completeGooglePopup(page: Page, email: string) {
+  const button = page.getByRole('button', { name: 'Logg inn med Google' })
   await page.goto('./')
-  const popupPromise = page.waitForEvent('popup')
-  await page.getByRole('button', { name: 'Logg inn med Google' }).click()
-  const popup = await popupPromise
-  // The seeded accounts are listed in the popup. Clicks before its script is ready
-  // are dropped, so retry until the popup closes.
+  await button.waitFor()
+  // About one sign-in in 150, the app never hears of the account picked in the popup, and
+  // picking it again doesn't help. Then close the popup and open a new one.
   await expect(async () => {
-    if (!popup.isClosed())
-      await popup.getByRole('listitem').filter({ hasText: email }).click({ timeout: 1_000 })
-    expect(popup.isClosed()).toBe(true)
-  }).toPass({ intervals: [500, 1_000] })
+    // A popup that was closed can still sign in late.
+    if (await button.isHidden()) return
+    const popupPromise = page.waitForEvent('popup')
+    await button.click()
+    const popup = await popupPromise
+    try {
+      // The seeded accounts are listed in the popup. Its click handlers come from an inline
+      // script at the end of the page, after scripts and stylesheets from the web, so clicks
+      // before DOMContentLoaded are dropped.
+      await popup.waitForLoadState('domcontentloaded')
+      await popup.getByRole('listitem').filter({ hasText: email }).click({ timeout: 2_000 })
+      await expect.poll(() => popup.isClosed(), { timeout: 2_000, intervals: [50] }).toBe(true)
+    } finally {
+      if (!popup.isClosed()) await popup.close()
+    }
+  }).toPass({ intervals: [100], timeout: 20_000 })
 }
 
 export async function signIn(page: Page, email: string) {
