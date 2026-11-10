@@ -80,11 +80,16 @@ test('Home removes in two taps and never checks off', async ({ page }) => {
   await expect(entry(page, 'milk')).toHaveCount(0)
 })
 
-test('Shop shows unchecked Entries first', async ({ page }) => {
+test('Shop folds Checked Entries away under Avkrysset once Handle is left', async ({ page }) => {
   await signIn(page, MEMBERS[0])
   for (const text of ['milk', 'eggs', 'bread']) await addEntry(page, text)
   await openTab(page, 'Handle')
   await entry(page, 'milk').getByRole('checkbox').click()
+  await expect(page.getByRole('listitem')).toHaveText(['milk', 'eggs', 'bread'])
+  await openTab(page, 'Hjem')
+  await openTab(page, 'Handle')
+  await expect(page.getByRole('listitem')).toHaveText(['eggs', 'bread'])
+  await page.getByText('Avkrysset (1)').click()
   await expect(page.getByRole('listitem')).toHaveText(['eggs', 'bread', 'milk'])
 })
 

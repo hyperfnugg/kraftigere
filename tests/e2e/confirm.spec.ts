@@ -185,7 +185,7 @@ test('an Iverksett Entry shows what its dishes need, lists them, takes a Note, a
   await openTab(page, 'Hjem')
   await expect(entry(page, 'løk')).toHaveText('løk · 1200 g (12 stk)')
 
-  // The chef's hat lists the dishes, each opening its Recipe.
+  // The pot lists the dishes, each opening its Recipe.
   await entry(page, 'løk').getByRole('button', { name: 'Fra middag' }).click()
   const popup = page.getByRole('dialog', { name: 'løk fra middag' })
   await expect(popup.getByRole('button')).toHaveText(['✕', 'Fiskesuppe', 'Taco', 'Pasta med kjøttsaus', 'Pizza', 'Lammestek', 'Pannekaker'])
@@ -205,7 +205,7 @@ test('an Iverksett Entry shows what its dishes need, lists them, takes a Note, a
   await entry(page, 'løk').getByRole('button', { name: 'Fjern' }).click()
   await expect(entry(page, 'løk')).toHaveCount(0)
 
-  // On Handle, the chef's hat lists the dishes without checking the Entry off.
+  // On Handle, the pot lists the dishes without checking the Entry off.
   await openTab(page, 'Handle')
   await entry(page, 'salt').getByRole('button', { name: 'Fra middag' }).click()
   await page.getByRole('dialog', { name: 'salt fra middag' }).getByRole('button', { name: 'Lukk' }).click()

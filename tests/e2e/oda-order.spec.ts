@@ -157,6 +157,8 @@ test('Groceries is locked on every device until Bestilt checks the Entries off',
   await expect(other.getByRole('button', { name: 'Fjern avkryssede' })).toBeHidden()
 
   await page.getByRole('button', { name: 'Bestilt' }).click()
+  // Checked off on another device, they fold away under Avkrysset at once.
+  await other.getByText(/^Avkrysset/).click()
   await expect(tick(other, 'Melk')).toBeChecked()
   await expect(tick(other, 'Smør')).toBeChecked()
   await expect(other.getByText('Odabestilling pågår')).toBeHidden()

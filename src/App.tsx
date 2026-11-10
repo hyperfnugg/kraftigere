@@ -255,9 +255,9 @@ const listStyle = {
   gap: '0.5rem',
 } as const
 
-// The dishes an Entry is for: a chef's hat, drawn in the text's colour and size, so it sits
+// The dishes an Entry is for: a cooking pot, drawn in the text's colour and size, so it sits
 // in the line like the ⌂ and ↻ glyphs. Unicode has no plain one, only a colour emoji.
-function ChefsHat() {
+function Pot() {
   return (
     <svg
       viewBox="0 0 24 24"
@@ -267,13 +267,14 @@ function ChefsHat() {
       stroke="currentColor"
       strokeWidth={1.75}
       strokeLinejoin="round"
+      strokeLinecap="round"
     >
-      <path d="M7 20 V15 A3.5 3.5 0 0 1 7.6 8.1 A4.5 4.5 0 0 1 16.4 8.1 A3.5 3.5 0 0 1 17 15 V20 Z M7 17 H17" />
+      <path d="M5 11 H19 V17 A3 3 0 0 1 16 20 H8 A3 3 0 0 1 5 17 Z M5 13 H2.5 M19 13 H21.5 M4 8.5 H20 M10.5 8.5 V6.5 H13.5 V8.5" />
     </svg>
   )
 }
 
-// An Entry's Note, and the chef's hat with what its dishes need, which lists the dishes.
+// An Entry's Note, and the pot with what its dishes need, which lists the dishes.
 function Details({ entry, onDishes }: { entry: Entry; onDishes: (entry: Entry) => void }) {
   return (
     <>
@@ -312,7 +313,7 @@ function DishesLink({
             }}
             style={{ font: 'inherit', color: '#666', padding: 0, border: 'none', background: 'none', cursor: 'pointer' }}
           >
-            <ChefsHat /> {formatAmount(entry.dishes)}
+            <Pot /> {formatAmount(entry.dishes)}
           </button>
         </>
       )}
@@ -488,23 +489,23 @@ function Home({
   const currentId = alphabetical.some((e) => e.id === current) ? current : (alphabetical[0]?.id ?? null)
   const rows = useRef(new Map<string, HTMLButtonElement>())
 
-  // Right goes to a row's chef's hat and Left back. Moving between rows stays on the hats,
+  // Right goes to a row's pot and Left back. Moving between rows stays on the pots,
   // landing on the name of a row without one.
-  const onHats = useRef(false)
-  const hatOf = (row?: HTMLElement) =>
+  const onPots = useRef(false)
+  const potOf = (row?: HTMLElement) =>
     row?.parentElement?.querySelector<HTMLButtonElement>('[aria-label="Fra middag"]')
 
-  function focusRow(id: string, hat = false) {
+  function focusRow(id: string, pot = false) {
     setCurrent(id)
-    onHats.current = hat
+    onPots.current = pot
     const row = rows.current.get(id)
-    ;((hat && hatOf(row)) || row)?.focus()
+    ;((pot && potOf(row)) || row)?.focus()
   }
 
   function onRowKeyDown(e: ReactKeyboardEvent<HTMLElement>, i: number) {
     const to = { ArrowDown: i + 1, ArrowUp: i - 1, Home: 0, End: alphabetical.length - 1 }[e.key]
-    const hat = hatOf(rows.current.get(alphabetical[i].id))
-    if (e.key === 'ArrowRight' && hat) {
+    const pot = potOf(rows.current.get(alphabetical[i].id))
+    if (e.key === 'ArrowRight' && pot) {
       e.preventDefault()
       focusRow(alphabetical[i].id, true)
     } else if (e.key === 'ArrowLeft') {
@@ -513,7 +514,7 @@ function Home({
     } else if (to !== undefined) {
       e.preventDefault()
       const row = alphabetical[Math.max(0, Math.min(to, alphabetical.length - 1))]
-      if (row) focusRow(row.id, onHats.current)
+      if (row) focusRow(row.id, onPots.current)
     } else if (!ordering && e.key.length === 1 && e.key !== ' ' && !e.ctrlKey && !e.metaKey && !e.altKey) {
       e.preventDefault()
       setText(text + e.key)
@@ -877,7 +878,7 @@ function StaplePicker({
                     autoFocus={i === 0}
                     checked={picked.has(w.id)}
                     onChange={() => toggle(w.id)}
-                    style={{ width: '1.125rem', height: '1.125rem' }}
+                    style={{ width: '1.125rem', height: '1.125rem', flexShrink: 0 }}
                   />
                   {w.name}
                 </label>
@@ -1269,8 +1270,53 @@ function Shop({
   onOdaOrder: () => void
   onDishes: (entry: Entry) => void
 }) {
-  const unchecked = entries.filter((e) => !e.checked)
-  const checked = entries.filter((e) => e.checked)
+  // Entries checked off here stay in place until the screen sleeps or another tab opens
+  // (which unmounts Handle), so the List doesn't jump around while shopping.
+  const [lingering, setLingering] = useState<Set<string>>(new Set())
+  function toggle(id: string, on: boolean) {
+    toggleEntry(id, on)
+    setLingering((l) => {
+      const next = new Set(l)
+      if (on) next.add(id)
+      else next.delete(id)
+      return next
+    })
+  }
+  useEffect(() => {
+    const onHide = () => document.hidden && setLingering(new Set())
+    document.addEventListener('visibilitychange', onHide)
+    return () => document.removeEventListener('visibilitychange', onHide)
+  }, [])
+  const inPlace = (e: Entry) => !e.checked || lingering.has(e.id)
+  const unchecked = entries.filter(inPlace)
+  const checked = entries.filter((e) => !inPlace(e))
+
+  const row = (entry: Entry) => (
+    <li
+      key={entry.id}
+      style={{
+        fontSize: '1.375rem',
+        opacity: entry.checked ? 0.4 : 1,
+        display: 'flex',
+        alignItems: 'center',
+        gap: '0.75rem',
+      }}
+    >
+      <label style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: ordering ? 'default' : 'pointer' }}>
+        <input
+          type="checkbox"
+          checked={entry.checked}
+          disabled={ordering}
+          onChange={(e) => toggle(entry.id, e.target.checked)}
+          style={{ width: '1.5rem', height: '1.5rem', flexShrink: 0 }}
+        />
+        <span style={{ minWidth: 0, overflowWrap: 'anywhere', textDecoration: entry.checked ? 'line-through' : 'none' }}>
+          {entry.text}
+          <Details entry={entry} onDishes={onDishes} />
+        </span>
+      </label>
+    </li>
+  )
 
   return (
     <>
@@ -1279,30 +1325,20 @@ function Shop({
           <OdaOrderLink onClick={onOdaOrder} />
         </div>
       )}
-      <ul style={{ ...listStyle, gap: '0.75rem' }}>
-        {[...unchecked, ...checked].map((entry) => (
-          <li key={entry.id} style={{ fontSize: '1.375rem', opacity: entry.checked ? 0.4 : 1 }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: ordering ? 'default' : 'pointer' }}>
-              <input
-                type="checkbox"
-                checked={entry.checked}
-                disabled={ordering}
-                onChange={(e) => toggleEntry(entry.id, e.target.checked)}
-                style={{ width: '1.5rem', height: '1.5rem' }}
-              />
-              <span style={{ textDecoration: entry.checked ? 'line-through' : 'none' }}>
-                {entry.text}
-                <Details entry={entry} onDishes={onDishes} />
-              </span>
-            </label>
-          </li>
-        ))}
-      </ul>
-      {/* Below the List, so checking off the first Entry doesn't push the List down. */}
-      {!ordering && checked.length > 0 && (
-        <button onClick={() => removeEntries(checked)} style={{ ...smallButtonStyle, alignSelf: 'flex-end' }}>
-          Fjern avkryssede
-        </button>
+      <ul style={{ ...listStyle, gap: '0.75rem' }}>{unchecked.map(row)}</ul>
+      {/* Folded away below the List, so checking off the first Entry doesn't push the List down. */}
+      {checked.length > 0 && (
+        <details>
+          <summary style={{ cursor: 'pointer', color: '#666', padding: '0.5rem 0' }}>Avkrysset ({checked.length})</summary>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            <ul style={{ ...listStyle, gap: '0.75rem' }}>{checked.map(row)}</ul>
+            {!ordering && (
+              <button onClick={() => removeEntries(checked)} style={{ ...smallButtonStyle, alignSelf: 'flex-end' }}>
+                Fjern avkryssede
+              </button>
+            )}
+          </div>
+        </details>
       )}
     </>
   )
@@ -1466,9 +1502,9 @@ function Choosing({
             type="checkbox"
             checked={ticked(r)}
             onChange={(e) => setTicks({ ...ticks, [r.entry.id]: e.target.checked })}
-            style={{ width: '1.25rem', height: '1.25rem' }}
+            style={{ width: '1.25rem', height: '1.25rem', flexShrink: 0 }}
           />
-          <span style={{ color: marked ? '#b00020' : 'inherit', fontWeight: marked ? 600 : 400 }}>
+          <span style={{ minWidth: 0, overflowWrap: 'anywhere', color: marked ? '#b00020' : 'inherit', fontWeight: marked ? 600 : 400 }}>
             {r.entry.text}
             <Details entry={r.entry} onDishes={onDishes} />
           </span>

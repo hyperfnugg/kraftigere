@@ -13,11 +13,41 @@ test('Remove checked removes only the Checked Entries', async ({ page }) => {
   await openTab(page, 'Handle')
   await entry(page, 'milk').getByRole('checkbox').click()
   await expect(entry(page, 'milk').getByRole('checkbox')).toBeChecked()
+  await openTab(page, 'Hjem')
+  await openTab(page, 'Handle')
 
+  // Avkrysset starts closed, with Fjern avkryssede inside it.
+  await expect(entry(page, 'milk')).toBeHidden()
+  await expect(page.getByRole('button', { name: 'Fjern avkryssede' })).toBeHidden()
+  await page.getByText('Avkrysset (1)').click()
+  await expect(entry(page, 'milk')).toBeVisible()
   await page.getByRole('button', { name: 'Fjern avkryssede' }).click()
   await expect(entry(page, 'milk')).toHaveCount(0)
   await expect(entry(page, 'eggs')).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Fjern avkryssede' })).toHaveCount(0)
+  await expect(page.getByText(/^Avkrysset/)).toHaveCount(0)
+})
+
+test('an Entry checked off on Handle stays in place until the page hides', async ({ page }) => {
+  await signIn(page, MEMBERS[0])
+  for (const text of ['milk', 'eggs', 'bread']) await addEntry(page, text)
+  await openTab(page, 'Handle')
+  await entry(page, 'milk').getByRole('checkbox').click()
+  await expect(entry(page, 'milk').getByRole('checkbox')).toBeChecked()
+  await expect(page.getByRole('listitem')).toHaveText(['milk', 'eggs', 'bread'])
+  // Unchecking in place leaves it there.
+  await entry(page, 'milk').getByRole('checkbox').click()
+  await expect(entry(page, 'milk').getByRole('checkbox')).not.toBeChecked()
+  await entry(page, 'milk').getByRole('checkbox').click()
+  await expect(entry(page, 'milk').getByRole('checkbox')).toBeChecked()
+  await expect(page.getByRole('listitem')).toHaveText(['milk', 'eggs', 'bread'])
+
+  // The screen sleeping hides the page.
+  await page.evaluate(() => {
+    Object.defineProperty(document, 'hidden', { value: true, configurable: true })
+    document.dispatchEvent(new Event('visibilitychange'))
+  })
+  await expect(page.getByRole('listitem')).toHaveText(['eggs', 'bread'])
+  await expect(page.getByText('Avkrysset (1)')).toBeVisible()
 })
 
 test('Checked Entries are removed 15 minutes after the most recent check-off', async ({ page }) => {

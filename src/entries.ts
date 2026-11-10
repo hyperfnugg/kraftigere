@@ -76,6 +76,9 @@ export type Ware = {
   oda?: OdaProduct
   // Never from Oda: kept out of every Oda Order.
   neverOda?: boolean
+  // Store Order: where it sits in the store, as a number on the scale of epoch millis. Set
+  // when the Ware is created; Wares from before Store Order have none until dragged.
+  order?: number
 }
 
 // The Oda Product a Ware points to, with its name and pack text as Oda gave them when chosen,
@@ -93,6 +96,39 @@ export function setOdaProduct(wareId: string, oda: OdaProduct | null) {
 export function setOdaProducts(links: [string, OdaProduct][]) {
   const batch = writeBatch(db)
   for (const [wareId, oda] of links) batch.update(doc(db, 'wares', wareId), { oda })
+  return batch.commit()
+}
+
+// The Store Order of an Entry's Ware. A Ware from before Store Order goes by when its
+// Entry was added, the same scale, and an Entry not yet timed goes last.
+export function storeOrder(entry: Entry, wares: Ware[]) {
+  return wares.find((w) => w.id === entry.ware)?.order ?? entry.createdAt?.toMillis() ?? Infinity
+}
+
+// Entries in Store Order, ties (one Iverksett's Entries before Store Order) broken by id.
+export function inStoreOrder(entries: Entry[], order: (e: Entry) => number) {
+  return entries.toSorted((a, b) => order(a) - order(b) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
+}
+
+// The orders a drop writes, as [index in the new list, order] pairs. `others` are the
+// orders of the list without the moved item, which lands at `to`. It goes midway between its
+// neighbours. When they're less than 2 apart, it goes 1 after the one before, and those
+// after are pushed on just as far as needed to stay at least 1 apart.
+export function reorder(others: number[], to: number): [number, number][] {
+  const prev = others[to - 1]
+  const next = others[to]
+  if (prev === undefined) return [[to, next === undefined ? 0 : next - 1000]]
+  if (next === undefined) return [[to, prev + 1000]]
+  if (next - prev >= 2) return [[to, (prev + next) / 2]]
+  const writes: [number, number][] = [[to, prev + 1]]
+  for (let j = to; j < others.length && others[j] < prev + 1 + (j - to + 1); j++) writes.push([j + 1, prev + 1 + (j - to + 1)])
+  return writes
+}
+
+// Sets the Store Order of several Wares at once, as [wareId, order] pairs.
+export function setOrders(orders: [string, number][]) {
+  const batch = writeBatch(db)
+  for (const [wareId, order] of orders) batch.update(doc(db, 'wares', wareId), { order })
   return batch.commit()
 }
 
@@ -117,6 +153,7 @@ export function useWares() {
             usuallyAtHome: d.get('usuallyAtHome'),
             oda: d.get('oda'),
             neverOda: d.get('neverOda'),
+            order: d.get('order'),
           })),
         )
       }),
