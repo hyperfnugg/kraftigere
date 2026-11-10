@@ -71,8 +71,8 @@ test('Iverksett sends one Entry per Ware with its dishes, leaving out what is at
     grams: 200,
     pieces: 2,
   })
-  expect((await readDoc('wares/salt')).usuallyAtHome.booleanValue).toBe(true)
-  expect((await readDoc('wares/løk')).addCount.integerValue).toBe('0')
+  await expect.poll(async () => (await readDoc('wares/salt')).usuallyAtHome?.booleanValue).toBe(true)
+  await expect.poll(async () => (await readDoc('wares/løk')).addCount?.integerValue).toBe('0')
 
   // Salt starts unticked next week. Løk is waiting on the List, so its line is left off.
   await page.getByRole('button', { name: 'Neste uke' }).click()

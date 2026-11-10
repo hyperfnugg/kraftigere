@@ -37,8 +37,7 @@ test("a Family Member picks a Ware's Oda Product on Home", async ({ page }) => {
   const link = page.getByRole('link', { name: 'Tine Lettmelk 1% fett · 1% fett, 1 l' })
   await expect(link).toHaveAttribute('href', 'https://oda.com/no/products/430/')
   await expect(link).toHaveAttribute('target', '_blank')
-  const melk = await readDoc('wares/melk')
-  expect(melk.oda.mapValue.fields).toEqual({
+  await expect.poll(async () => (await readDoc('wares/melk')).oda?.mapValue.fields).toEqual({
     id: { integerValue: '430' },
     name: { stringValue: 'Tine Lettmelk 1% fett' },
     packText: { stringValue: '1% fett, 1 l' },
@@ -47,7 +46,7 @@ test("a Family Member picks a Ware's Oda Product on Home", async ({ page }) => {
   // Removing it lets the Family Member choose again.
   await page.getByRole('button', { name: 'Fjern Oda-produkt' }).click()
   await expect(link).toBeHidden()
-  expect((await readDoc('wares/melk')).oda).toBeUndefined()
+  await expect.poll(async () => (await readDoc('wares/melk')).oda).toBeUndefined()
   await page.getByRole('button', { name: 'Velg Oda-produkt' }).click()
 
   // ↓ and Enter pick too.
@@ -77,7 +76,8 @@ test("a pasted link or a tap picks another Ware's Oda Product", async ({ page })
   await expect(results(page).first()).toHaveAttribute('aria-disabled', 'false')
   await search.fill('https://oda.com/no/products/430-tine-tine-lettmelk-1-fett/')
   await expect(entry(page, 'Kaffe').getByRole('link', { name: 'Tine Lettmelk 1% fett · 1% fett, 1 l' })).toBeVisible()
-  expect((await readDoc('wares/kaffe')).oda.mapValue.fields.id).toEqual({ integerValue: '430' })
+  // The link shows from the local write, before the emulator has it.
+  await expect.poll(async () => (await readDoc('wares/kaffe')).oda?.mapValue.fields.id).toEqual({ integerValue: '430' })
 
   // By tap.
   await entry(page, 'Te').getByText('Te', { exact: true }).click()
@@ -101,11 +101,11 @@ test('a Ware set never from Oda on Home, and cleared again', async ({ page }) =>
   await results(page).filter({ hasText: 'Aldri fra Oda' }).click()
 
   await expect(page.getByRole('button', { name: 'Fjern Aldri fra Oda' })).toBeVisible()
-  expect((await readDoc('wares/sokker')).neverOda).toEqual({ booleanValue: true })
+  await expect.poll(async () => (await readDoc('wares/sokker')).neverOda).toEqual({ booleanValue: true })
 
   await page.getByRole('button', { name: 'Fjern Aldri fra Oda' }).click()
   await expect(page.getByRole('button', { name: 'Velg Oda-produkt' })).toBeVisible()
-  expect((await readDoc('wares/sokker')).neverOda).toBeUndefined()
+  await expect.poll(async () => (await readDoc('wares/sokker')).neverOda).toBeUndefined()
 })
 
 test("Esc in an open Ware's Oda search closes the search before the Ware", async ({ page }) => {

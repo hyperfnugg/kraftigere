@@ -161,7 +161,8 @@ test('Entries on one Oda Product go in as one pack, and their dishes are added u
   // Bestilt checks off every Entry, whichever holds the packs.
   await page.getByRole('button', { name: 'Bestilt' }).click()
   await expect(fill(page)).toBeVisible()
-  for (const name of ['pasta', 'pastasalat', 'melk', 'kefir']) expect((await readDoc(`entries/${name}`)).checked.booleanValue).toBe(true)
+  for (const name of ['pasta', 'pastasalat', 'melk', 'kefir'])
+    await expect.poll(async () => (await readDoc(`entries/${name}`)).checked.booleanValue).toBe(true)
 })
 
 test('counts left after filling land when the Order Summary is next opened', async ({ page }) => {
@@ -210,7 +211,8 @@ test('two devices counting at once count once', async ({ page, browser }) => {
 
   await Promise.all([openTab(page, 'Odabestilling'), openTab(other, 'Odabestilling')])
   for (const p of [page, other]) {
-    await expect(nextStep(p)).toBeVisible()
+    // Both count at once, and the emulator's transactions then sometimes take over 10 s.
+    await expect(nextStep(p)).toBeVisible({ timeout: 25_000 })
     await expect(count(p, 'Pasta')).toHaveText('3')
     await expect(count(p, 'Ris')).toHaveText('2')
   }
