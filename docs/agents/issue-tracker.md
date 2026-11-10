@@ -4,7 +4,7 @@ Issues, specs and tickets live in the repo's plan files, not an external tracker
 
 ## Mapping
 
-- **Issue / spec** = one plan file, `plans/active/<NN>-<kebab-name>.md`, created from `plans/TEMPLATE.md`. Spec content goes in the intro, Scope, Out of scope, and Done when.
+- **Issue / spec** = one plan file, `plans/active/XX-<kebab-name>.md` (numbered when it merges into `main`), created from `plans/TEMPLATE.md`. Spec content goes in the intro, Scope, Out of scope, and Done when.
 - **Tickets** = checkbox steps in the plan's `## Steps`, interleaved with commit steps per `CLAUDE.md`. Put acceptance criteria as sub-bullets under the step. Never create one file per ticket.
 - **Blocking** = step order: the first unchecked step is the frontier. Add `(blocked by: <step title>)` only when the order is not a straight line.
 - **Triage state** = a `**Status:** <label>` line directly under the plan title (labels from `triage-labels.md`). Category goes on the same line: `**Status:** ready-for-agent · enhancement`.
@@ -14,11 +14,11 @@ Issues, specs and tickets live in the repo's plan files, not an external tracker
 
 ## When a skill says "publish to the issue tracker"
 
-Create a new plan file at the next number across `plans/active/` and `plans/done/`. For tickets from an existing plan, rewrite that plan's `## Steps` instead of creating files.
+Create a new plan file named `XX-<kebab-name>.md`; it gets its number when it merges into `main`. For tickets from an existing plan, rewrite that plan's `## Steps` instead of creating files.
 
 ## When a skill says "fetch the relevant ticket"
 
-Read the plan file. The user will refer to it by number (`05`) or name.
+Read the plan file. The user will refer to it by number (`05`) or name; plans not yet on `main` have no number, only a name.
 
 ## Listing issues
 

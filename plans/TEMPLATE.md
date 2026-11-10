@@ -1,4 +1,4 @@
-<!-- Copy to plans/active/<NN>-<kebab-name>.md to start a new plan (NN = next number across active/ and done/). -->
+<!-- Copy to plans/active/XX-<kebab-name>.md to start a new plan. It gets its number when it merges into main (see CLAUDE.md). -->
 
 # <Title>
 
@@ -40,6 +40,7 @@ Commit cadence: roughly one commit per coherent chunk (1–2 prompts). Default c
 - [ ] **Commit: <summary>** *(manual)* — <why review is wanted>
 - [ ] **Move plan to `plans/done/`.** `git mv plans/active/<name>.md plans/done/<name>.md`.
 - [ ] **Commit: complete <name> milestone.** *(auto)*
+- [ ] **Number the plan** when it merges into `main`: `git mv` it to the next number across `plans/active/` and `plans/done/` there, and update links to it. Skip if already numbered.
 
 ## Done when
 
