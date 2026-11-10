@@ -32,8 +32,8 @@ Handle lists the Entries in the order the Family walks the store, so shopping is
 - [x] **e2e** in a new `tests/e2e/handle.spec.ts`: dragging moves a row, writing only its Ware, and holds after a reload; a re-added Ware returns to its place and a new one comes last; Wares from before Store Order sort by their Entries, and a drop between tied ones pushes on a Ware off the List; Checked Entries have no handle. No handles while an Oda Order lasts, in `oda-order.spec.ts`. The ↕ handle is drawn as SVG so a row's text is just its Entry's.
 - [x] **Glossary.** Add Store Order to `CONTEXT.md`.
 - [x] **Commit: drag to Store Order on Handle.** *(auto)*
-- [ ] **Move plan to `plans/done/`.** `git mv plans/active/34-store-order.md plans/done/34-store-order.md`.
-- [ ] **Commit: complete Store Order milestone.** *(auto)*
+- [x] **Move plan to `plans/done/`.** `git mv plans/active/34-store-order.md plans/done/34-store-order.md`.
+- [x] **Commit: complete Store Order milestone.** *(auto)*
 
 ## Done when
 
