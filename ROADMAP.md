@@ -6,11 +6,11 @@ Where Kraft is heading. It changes often. Ideas are one line each, cheap to add 
 
 - [Dependency maintenance](plans/active/05-dependency-maintenance.md)
 - [Gemini behind the allowlist](plans/active/31-gemini-behind-the-allowlist.md)
+- [Favourite recipes](plans/active/XX-favourite-recipes.md)
 
 ## Next
 
 - Pasting a link to a recipe as a Meal's dish name in Middag: Kraft reads the page and makes the Recipe from it, with the dish's title as the name.
-- Favourite Recipes: keeping the Recipes the Family likes, to use again.
 
 ## Ideas
 
