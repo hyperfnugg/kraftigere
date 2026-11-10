@@ -1,5 +1,6 @@
 import { configDefaults, defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
+import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
 const cream = '#FFF3D6'
@@ -19,6 +20,7 @@ export default defineConfig({
   build: { rolldownOptions: { output: { manualChunks: chunkFor } } },
   plugins: [
     react(),
+    tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
       // Firebase Hosting serves the sign-in handler under /__/auth/; never answer it with index.html.

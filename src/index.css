@@ -1,0 +1,44 @@
+/* Tailwind without Preflight, so buttons, headings and lists keep the browser's look until
+   the redesign turns it on. See docs/adr/0007-tailwind-styling.md. */
+@layer theme, base, components, utilities;
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/utilities.css' layer(utilities);
+
+@theme {
+  /* Only these colours exist; Tailwind's own palette is off. */
+  --color-*: initial;
+  --color-white: #fff;
+  --color-black: #000;
+  /* Secondary text, and lighter text for what's empty or unavailable. */
+  --color-muted: #555;
+  --color-faint: #888;
+  /* Borders and rules, and the grey behind a highlighted row. */
+  --color-line: #ddd;
+  --color-subtle: #eee;
+  --color-danger: #b00020;
+  /* Warnings and notices: offline, stale, errors from Oda. */
+  --color-accent: #8a5a00;
+  --color-accent-dark: #5a3c00;
+  --color-accent-light: #e0c080;
+  --color-accent-pale: #fff8e8;
+  --color-success: #1f4d1f;
+  --color-success-light: #8fb58f;
+  --color-success-pale: #e3f1e3;
+  /* A framed panel. */
+  --color-surface: #f4f6fa;
+  --color-surface-line: #d8dde6;
+
+  /* Sizes without Tailwind's line-heights, so text keeps the browser's. */
+  --text-*: initial;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;
+
+  --font-sans: system-ui, sans-serif;
+}
+
+body {
+  font-family: var(--font-sans);
+}

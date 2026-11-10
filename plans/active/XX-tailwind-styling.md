@@ -20,8 +20,8 @@ Tailwind v4 via `@tailwindcss/vite`, a theme in `src/index.css` with a named col
 
 - [x] **Write the ADR, this plan, and the new Style rule in CLAUDE.md.**
 - [x] **Commit: Tailwind styling plan, ADR and Style rule** *(auto)*
-- [ ] **Set up Tailwind.** Install `tailwindcss` and `@tailwindcss/vite`, add the plugin to `vite.config.ts`, create `src/index.css` with `@layer theme, base, components, utilities;`, the `theme` and `utilities` imports (not `preflight`) and an `@theme` block: `--color-*: initial`, then `text`, `muted` (#555/#666/#888/#999/#444), `border` (#ddd/#ccc/#eee/#e4e4e4/#d8dde6), `danger` (#a00/#b00020), `accent` (#8a5a00, #5a3c00, #e0c080), `success` (#1f4d1f, #8fb58f, #e3f1e3), `surface` (#fff8e8, #FFF3D6, #f4f6fa), plus white and black, splitting into shades where a family has light and dark uses. Set the `system-ui` font on `body` there. Import it in `main.tsx`. Nothing should look different yet.
-- [ ] **Add `src/ui.tsx`** with `<Button>` (and its `small` variant), matching the current `buttonStyle` / `smallButtonStyle`.
+- [x] **Set up Tailwind.** `tailwindcss` and `@tailwindcss/vite` in `vite.config.ts`, and `src/index.css` with the `theme` and `utilities` layers only (no `preflight`), imported in `main.tsx`. The `@theme` turns Tailwind's palette off and names: `black`, `white`, `muted` (#555/#666/#444), `faint` (#888/#999), `line` (#ddd/#ccc/#e4e4e4 borders), `subtle` (#eee/#e4e4e4 backgrounds), `danger` (#b00020/#a00), `accent` with `-dark`, `-light`, `-pale` (#8a5a00 family), `success` with `-light`, `-pale`, and `surface` with `surface-line`. Font sizes drop Tailwind's line-heights so text keeps the browser's. `system-ui` is set on `body`.
+- [x] **Add `src/ui.tsx`** with `<Button>` (and its `small` variant), matching the current `buttonStyle` / `smallButtonStyle`.
 - [ ] **Commit: Tailwind and its theme** *(manual)* — new dependency and build plugin.
 - [ ] **Convert `Confirm.tsx`.**
 - [ ] **Commit: Confirm on Tailwind** *(manual)*
