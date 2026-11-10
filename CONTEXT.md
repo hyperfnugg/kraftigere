@@ -87,6 +87,11 @@ How to cook one course of a Meal, as Steps, for a number of servings.
 _UI_: "Oppskrift"
 _Avoid_: Dish
 
+**Favourite**:
+A copy of a Recipe the Family likes, kept apart from any week, to put on a day of a Menu again. It is made with ☆ on a Recipe and keeps that version, whatever happens to the week's Recipe afterwards. No two Favourites share a name: ☆ on a Recipe named like one offers to replace it. Picking it while typing a Meal's dish name puts its Recipe on that day as it is, without the AI. Favourites are offered most used first, a use being a Confirm of a Meal placed from it. A Recipe placed from a Favourite and edited by hand can be saved back over it.
+_UI_: "Favoritt"; ☆ on the Recipe makes one, ★ marks a Recipe placed from one (on the Recipe, where it removes the Favourite, and next to the dish on the Menu), and "Lagre" saves a hand-edited Recipe back over its Favourite
+_Avoid_: Saved recipe, cookbook, bookmark
+
 **Step**:
 One part of a Recipe, as in Modernist Cuisine: the Ingredients used together, and short instructions for them. Instructions are numbered across the Recipe; Steps aren't numbered. A Step may have no Ingredients, and an Ingredient used in two Steps is in both.
 _UI_: none (Steps are separated by rules; "+ steg" when editing)
@@ -103,7 +108,7 @@ _UI_: "Iverksett"
 _Avoid_: Commit, submit, finalize
 
 **Outdated**:
-The state of a Menu whose Guidelines changed after it was made, or of a Recipe whose Guidelines, Day Note or own Meal changed after it was made. It stays as it is until a Family Member asks the AI to remake it, which loses their hand edits. A changed Day Note never changes the Meal itself.
+The state of a Menu whose Guidelines changed after it was made, or of a Recipe whose Guidelines, Day Note or own Meal changed after it was made. A Recipe placed from a Favourite is never Outdated by the Guidelines or a Day Note. It stays as it is until a Family Member asks the AI to remake it, which loses their hand edits. A changed Day Note never changes the Meal itself.
 _UI_: "Utdatert" on the Menu, "utdatert" next to a dish, and ↻ ("Lag oppskriften på nytt") on the Recipe
 _Avoid_: Stale, dirty
 

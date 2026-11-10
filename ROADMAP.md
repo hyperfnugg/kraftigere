@@ -17,6 +17,7 @@ Where Kraft is heading. It changes often. Ideas are one line each, cheap to add 
 - Style guide: one short page on how the app looks. Icons are plain black text glyphs on a transparent background (⌂ for Hjem, ↻ for a new dish), sized up a little, not emoji or boxed buttons.
 - Rescaling a Recipe's amounts when its servings change.
 - Timers from the times in a Recipe's steps.
+- A list of Favourites: their names and use counts, and removing one without finding a week it was used.
 - Active and total time on a Recipe.
 - Confirming again: bringing Menu Entries up to date after a week's Recipes change. See [Groceries and meals](docs/vision/groceries-and-meals.md#confirming-again).
 - Several Lists: create, name and switch between Lists of a List Kind.
