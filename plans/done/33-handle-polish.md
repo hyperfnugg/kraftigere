@@ -23,8 +23,8 @@ Small fixes to Handle and the Entry rows from a rapid-feedback session on the de
 - [x] **Try it on the dev server**, iterating on feedback. Done as the rapid-feedback session. *(user)*
 - [x] **e2e.** Update the specs that expect Checked Entries or Fjern avkryssede visible on Handle (`checked.spec.ts`, `app.spec.ts`, `oda-order.spec.ts`). New tests: a checked Entry stays in place, moves to Avkrysset on leaving Handle and on the page hiding, and Avkrysset starts closed with Fjern avkryssede inside.
 - [x] **Commit: Handle polish.** *(auto)*
-- [ ] **Move plan to `plans/done/`.** `git mv plans/active/33-handle-polish.md plans/done/33-handle-polish.md`.
-- [ ] **Commit: complete Handle polish milestone.** *(auto)*
+- [x] **Move plan to `plans/done/`.** `git mv plans/active/33-handle-polish.md plans/done/33-handle-polish.md`.
+- [x] **Commit: complete Handle polish milestone.** *(auto)*
 
 ## Done when
 
