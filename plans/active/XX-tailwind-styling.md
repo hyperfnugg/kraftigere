@@ -22,9 +22,9 @@ Tailwind v4 via `@tailwindcss/vite`, a theme in `src/index.css` with a named col
 - [x] **Commit: Tailwind styling plan, ADR and Style rule** *(auto)*
 - [x] **Set up Tailwind.** `tailwindcss` and `@tailwindcss/vite` in `vite.config.ts`, and `src/index.css` with the `theme` and `utilities` layers only (no `preflight`), imported in `main.tsx`. The `@theme` turns Tailwind's palette off and names: `black`, `white`, `muted` (#555/#666/#444), `faint` (#888/#999), `line` (#ddd/#ccc/#e4e4e4 borders), `subtle` (#eee/#e4e4e4 backgrounds), `danger` (#b00020/#a00), `accent` with `-dark`, `-light`, `-pale` (#8a5a00 family), `success` with `-light`, `-pale`, and `surface` with `surface-line`. Font sizes drop Tailwind's line-heights so text keeps the browser's. `system-ui` is set on `body`.
 - [x] **Add `src/ui.tsx`** with `<Button>` (and its `small` variant), matching the current `buttonStyle` / `smallButtonStyle`.
-- [ ] **Commit: Tailwind and its theme** *(manual)* — new dependency and build plugin.
-- [ ] **Convert `Confirm.tsx`.**
-- [ ] **Commit: Confirm on Tailwind** *(manual)*
+- [x] **Commit: Tailwind and its theme** *(manual)* — new dependency and build plugin.
+- [x] **Convert `Confirm.tsx`.**
+- [x] **Commit: Confirm on Tailwind** *(manual)*
 - [ ] **Convert `Meals.tsx`.**
 - [ ] **Commit: Meals on Tailwind** *(manual)*
 - [ ] **Convert `App.tsx`.**

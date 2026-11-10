@@ -13,11 +13,7 @@ import {
 } from './matching'
 import { wareName } from './entries'
 import { DAY_SHORT, type StoredRecipe } from './weeks'
-
-const buttonStyle = { fontSize: '1rem', padding: '0.5rem 1rem', cursor: 'pointer' }
-const smallButtonStyle = { ...buttonStyle, fontSize: '0.875rem', padding: '0.25rem 0.75rem' }
-const sectionStyle = { display: 'flex', flexDirection: 'column', gap: '0.5rem' } as const
-const greyStyle = { fontSize: '0.875rem', color: '#555' }
+import { Button } from './ui'
 
 type Family = Awaited<ReturnType<typeof readFamilyMatches>>
 
@@ -91,37 +87,27 @@ export function ConfirmView({
     <div
       role="dialog"
       aria-label="Iverksett"
-      style={{ position: 'fixed', inset: 0, zIndex: 1, background: '#fff', overflowY: 'auto' }}
+      className="fixed inset-0 z-1 overflow-y-auto bg-white"
     >
-      <div
-        style={{
-          ...sectionStyle,
-          gap: '1rem',
-          width: 'min(100%, 32rem)',
-          margin: '0 auto',
-          padding: '1rem 1rem 6rem',
-          boxSizing: 'border-box',
-          fontFamily: 'system-ui, sans-serif',
-        }}
-      >
-        <button onClick={onClose} style={{ ...smallButtonStyle, alignSelf: 'flex-start' }}>
+      <div className="mx-auto box-border flex w-[min(100%,32rem)] flex-col gap-4 px-4 pt-4 pb-24">
+        <Button small onClick={onClose} className="self-start">
           ‹ Meny
-        </button>
-        <h2 style={{ fontSize: '1.375rem', margin: 0 }}>Iverksett</h2>
-        <div style={greyStyle}>
+        </Button>
+        <h2 className="m-0 text-xl">Iverksett</h2>
+        <div className="text-sm text-muted">
           Det som er krysset av, havner på Dagligvarer. Det som ikke er krysset av, har dere hjemme.
         </div>
-        {!lines && !error && <div style={{ color: '#555' }}>Finner varer… ⏳</div>}
-        {error && <div style={{ color: '#a00', fontSize: '0.875rem' }}>{error}</div>}
+        {!lines && !error && <div className="text-muted">Finner varer… ⏳</div>}
+        {error && <div className="text-sm text-danger">{error}</div>}
         {shown?.map((line) => (
-          <div key={line.key} role="group" aria-label={line.name} style={sectionStyle}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '1.125rem' }}>
+          <div key={line.key} role="group" aria-label={line.name} className="flex flex-col gap-2">
+            <div className="flex items-center gap-3 text-lg">
               <input
                 type="checkbox"
                 aria-label={`Kjøp ${line.name}`}
                 checked={ticked(line)}
                 onChange={(e) => setTicks({ ...ticks, [line.key]: e.target.checked })}
-                style={{ width: '1.5rem', height: '1.5rem' }}
+                className="size-6"
               />
               <span
                 role="button"
@@ -129,10 +115,10 @@ export function ConfirmView({
                 aria-expanded={editing === line.key}
                 onClick={() => setEditing(editing === line.key ? null : line.key)}
                 onKeyDown={(e) => e.key === 'Enter' && setEditing(editing === line.key ? null : line.key)}
-                style={{ flex: 1, cursor: 'pointer', opacity: ticked(line) ? 1 : 0.5 }}
+                className={`flex-1 cursor-pointer ${ticked(line) ? '' : 'opacity-50'}`}
               >
                 {line.name}
-                <span style={{ color: '#666' }}>
+                <span className="text-muted">
                   {[formatAmount(line.amounts), line.days.map((d) => DAY_SHORT[d]).join(', ')]
                     .filter(Boolean)
                     .map((t) => ` · ${t}`)}
@@ -140,7 +126,7 @@ export function ConfirmView({
               </span>
             </div>
             {line.wordings.some((w) => w.text !== line.name) && (
-              <div style={{ ...greyStyle, marginLeft: '2.25rem' }}>
+              <div className="ml-9 text-sm text-muted">
                 fra {line.wordings.map((w) => w.text).join(', ')}
               </div>
             )}
@@ -150,9 +136,9 @@ export function ConfirmView({
           </div>
         ))}
         {lines && (
-          <button onClick={confirm} style={{ ...buttonStyle, alignSelf: 'flex-start' }}>
+          <Button onClick={confirm} className="self-start">
             Iverksett
-          </button>
+          </Button>
         )}
       </div>
     </div>
@@ -180,7 +166,7 @@ function MatchEditor({
     <form
       onSubmit={onSubmit}
       aria-label="Endre vare"
-      style={{ ...sectionStyle, padding: '0.5rem', border: '1px solid #ddd', marginLeft: '2.25rem' }}
+      className="ml-9 flex flex-col gap-2 border border-line p-2"
     >
       <input
         autoFocus
@@ -188,15 +174,13 @@ function MatchEditor({
         value={name}
         onChange={(e) => setName(e.target.value)}
         maxLength={100}
-        style={{ fontSize: '1rem', padding: '0.25rem' }}
+        className="p-1 text-base"
       />
-      <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
-        <button type="button" onClick={onClose} style={buttonStyle}>
+      <div className="flex justify-end gap-2">
+        <Button type="button" onClick={onClose}>
           Avbryt
-        </button>
-        <button type="submit" style={buttonStyle}>
-          Lagre
-        </button>
+        </Button>
+        <Button type="submit">Lagre</Button>
       </div>
     </form>
   )
