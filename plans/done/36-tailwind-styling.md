@@ -29,12 +29,12 @@ Tailwind v4 via `@tailwindcss/vite`, a theme in `src/index.css` with a named col
 - [x] **Commit: Meals on Tailwind** *(manual)*
 - [x] **Convert `App.tsx`.** Buttons that change the shared size or font (the Dishes list, the pack stepper, the × buttons, the initials) are plain `<button>`s with their own classes, as two utilities for one property don't apply in the order they're written.
 - [x] **Commit: App on Tailwind** *(manual)*
-- [ ] **Try it on the dev server**, comparing each screen with `main`, iterating on feedback. Skipped in AFK mode. *(user)*
-- [ ] **Tests**: `npx tsc -b`, `npm run lint`, `npm run test:unit` and `npm run test:e2e` pass. No test checks styles, so no new tests are expected.
-- [ ] **Commit: fixes from the dev server and tests** *(manual)* — skip if nothing changed.
-- [ ] **Move plan to `plans/done/`.** `git mv plans/active/XX-tailwind-styling.md plans/done/XX-tailwind-styling.md`.
-- [ ] **Commit: complete Tailwind styling milestone.** *(auto)*
-- [ ] **Number the plan** when it merges into `main`: `git mv` it to the next number across `plans/active/` and `plans/done/` there, and update links to it. Skip if already numbered.
+- [x] **Try it on the dev server**, comparing each screen with `main`, iterating on feedback. Skipped: the user was AFK through the merge. *(user)*
+- [x] **Tests**: `npx tsc -b`, `npm run lint`, `npm run test:unit` (107) and `npm run test:e2e` (78) pass. No test checks styles, so no new tests are expected. Every class in `src` was also checked against the built CSS.
+- [x] **Commit: fixes from the dev server and tests** *(manual)* — skipped, nothing changed.
+- [x] **Move plan to `plans/done/`.** `git mv plans/active/XX-tailwind-styling.md plans/done/36-tailwind-styling.md`.
+- [x] **Commit: complete Tailwind styling milestone.** *(auto)*
+- [x] **Number the plan** when it merges into `main`: `git mv` it to the next number across `plans/active/` and `plans/done/` there, and update links to it. Skip if already numbered.
 
 ## Done when
 
@@ -47,3 +47,4 @@ Tailwind v4 via `@tailwindcss/vite`, a theme in `src/index.css` with a named col
 ## Notes
 
 - 2026-11-10: Grilled. Tailwind was chosen over CSS Modules, Preflight is off to keep the look, and the redesign thread owns dark mode and the style guide.
+- 2026-11-10: Built in AFK mode, so nobody has looked at it on the dev server. The redesign thread should give each screen a once-over against the old look.
