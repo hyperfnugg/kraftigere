@@ -7,11 +7,17 @@ updates:
     cooldown:
       default-days: 7
     groups:
+      # firebase and rules-unit-testing peer-depend on each other's major.
+      firebase:
+        patterns: ['firebase', '@firebase/*']
       npm-minor-patch:
         update-types: [minor, patch]
     ignore:
       # Keep in step with the Node version CI runs (24).
       - dependency-name: '@types/node'
+        update-types: ['version-update:semver-major']
+      # Hold until typescript-eslint's peer range allows the next major.
+      - dependency-name: 'typescript'
         update-types: ['version-update:semver-major']
 
   - package-ecosystem: npm
