@@ -3,10 +3,11 @@
 // and a product_search that answers every query with the same 7 products, or none for a query
 // with "ukjent" in it. Tests read and change the Basket at /basket, make manipulate_cart fail at
 // /fail, and put it all back at /reset.
-// The test emulators' function finds it through ODA_BASE_URL (playwright.config.ts).
+// The test emulators' function finds it through ODA_BASE_URL (stacks.mjs).
 import { createServer } from 'node:http'
 
-const FAKE_ODA_PORT = 8866
+// Each e2e stack has its own (stacks.mjs).
+const FAKE_ODA_PORT = Number(process.env.FAKE_ODA_PORT ?? 8866)
 const base = `http://127.0.0.1:${FAKE_ODA_PORT}`
 
 // Off Sale: filling finds out, and product_search never shows it.

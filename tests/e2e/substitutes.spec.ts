@@ -68,7 +68,7 @@ test('with everything available there is no step', async ({ page }) => {
   await fillBasket(page)
   await expect(nextStep(page)).toBeVisible()
   await expect(skip(page)).toBeHidden()
-  expect(await fakeBasket()).toEqual({ ...START, 501: 1 })
+  await expect.poll(fakeBasket).toEqual({ ...START, 501: 1 })
 })
 
 test('a Substitute goes in the Basket for this Oda Order, and the Ware keeps its own', async ({ page }) => {
@@ -80,7 +80,7 @@ test('a Substitute goes in the Basket for this Oda Order, and the Ware keeps its
 
   await expect(row(page, 'Ost').getByText('Ost fra Oda · 1 l · ikke tilgjengelig')).toBeVisible()
   await expect(nextStep(page)).toBeHidden()
-  expect(await fakeBasket()).toEqual({ ...START, [SOLD_OUT.id]: 1, 125: 1 })
+  await expect.poll(fakeBasket).toEqual({ ...START, [SOLD_OUT.id]: 1, 125: 1 })
   await expect(add(page)).toBeDisabled()
 
   // What's unavailable can't be picked, and another Ware's Oda Product can.
@@ -100,14 +100,14 @@ test('a Substitute goes in the Basket for this Oda Order, and the Ware keeps its
   // 1200 g in packs of 250 g, counted together with Smør, which has the same Oda Product.
   await expect(count(page, 'TINE Ekte smør')).toHaveText('6')
   await expect(leftOut(page)).toBeHidden()
-  expect(await fakeBasket()).toEqual({ ...START, [SOLD_OUT.id]: 1, 125: 6 })
+  await expect.poll(fakeBasket).toEqual({ ...START, [SOLD_OUT.id]: 1, 125: 6 })
   // The Ware keeps its own, with no Pack Size from the Substitute.
   expect((await odaOf('Ost')).id.integerValue).toBe(String(SOLD_OUT.id))
   expect((await odaOf('Ost')).packGrams).toBeUndefined()
 
   // Avbryt takes out the Substitute too, and only what Kraft added.
   await cancel(page)
-  expect(await fakeBasket()).toEqual({ ...START, [SOLD_OUT.id]: 1 })
+  await expect.poll(fakeBasket).toEqual({ ...START, [SOLD_OUT.id]: 1 })
 })
 
 // Two Entries on one unavailable Oda Product, which both reach the step, sharing one pack of a
@@ -119,7 +119,7 @@ async function sharePack(page: Page) {
   await expect(page.getByRole('button', { name: 'Velg erstatning' })).toHaveCount(1)
   await expect(page.getByRole('listitem').getByText('Kefir', { exact: true })).toBeVisible()
   await expect(page.getByRole('listitem').getByText('Melk', { exact: true })).toBeVisible()
-  expect(await fakeBasket()).toEqual(START)
+  await expect.poll(fakeBasket).toEqual(START)
   await page.getByRole('button', { name: 'Velg erstatning' }).click()
   await page.getByRole('option').filter({ hasText: 'TINE Ekte smør' }).click()
   await add(page).click()
@@ -131,7 +131,7 @@ async function sharePack(page: Page) {
   await expect(row(page, 'TINE Ekte smør').getByLabel('Flere pakker')).toBeEnabled()
   await expect(page.getByRole('listitem').getByText('Kefir', { exact: true })).toBeVisible()
   await expect(page.getByRole('listitem').getByText('Melk', { exact: true })).toBeVisible()
-  expect(await fakeBasket()).toEqual({ ...START, 125: 1 })
+  await expect.poll(fakeBasket).toEqual({ ...START, 125: 1 })
 }
 
 test('Entries on one unavailable product share one Substitute, and Bestilt checks off both', async ({ page }) => {
@@ -144,7 +144,7 @@ test('Entries on one unavailable product share one Substitute, and Bestilt check
 test('Entries sharing one pack of a Substitute are cancelled together', async ({ page }) => {
   await sharePack(page)
   await cancel(page)
-  expect(await fakeBasket()).toEqual(START)
+  await expect.poll(fakeBasket).toEqual(START)
   await expect.poll(async () => (await readDoc('entries/kefir')).basket).toBeUndefined()
 })
 
@@ -159,7 +159,7 @@ test('skipping leaves an Entry out, unchecked after Bestilt, and its Ware tries 
   await expect(row(page, 'Ost').getByRole('button')).toHaveCount(0)
   await expect(row(page, 'Ost').getByRole('link')).toHaveCount(0)
   await expect(count(page, 'Smør fra Oda')).toHaveText('1')
-  expect(await fakeBasket()).toEqual({ ...START, 125: 1 })
+  await expect.poll(fakeBasket).toEqual({ ...START, 125: 1 })
 
   await page.getByRole('button', { name: 'Bestilt' }).click()
   await expect(fill(page)).toBeVisible()
@@ -178,7 +178,7 @@ test('with everything unavailable the Oda Order still starts, and a reload retur
   await put('Ost', SOLD_OUT)
   await fillBasket(page)
   await expect(skip(page)).toBeVisible()
-  expect(await fakeBasket()).toEqual(START)
+  await expect.poll(fakeBasket).toEqual(START)
 
   // Picks are lost, and the warning leads back.
   await row(page, 'Ost').getByRole('button', { name: 'Velg erstatning' }).click()
@@ -193,7 +193,7 @@ test('with everything unavailable the Oda Order still starts, and a reload retur
   await expect(nextStep(page)).toBeVisible()
   await expect(leftOut(page)).toBeVisible()
   await cancel(page)
-  expect(await fakeBasket()).toEqual(START)
+  await expect.poll(fakeBasket).toEqual(START)
   await expect.poll(async () => (await readDoc('entries/ost')).basket).toBeUndefined()
 })
 
@@ -203,7 +203,7 @@ test('what replaces an Off Sale product becomes the Ware\'s own', async ({ page 
   await fillBasket(page)
 
   await expect(row(page, 'Brokkoli').getByText('Brokkoli fra Oda · 400 g · ikke lenger tilgjengelig')).toBeVisible()
-  expect(await fakeBasket()).toEqual({ ...START, 430: 4 })
+  await expect.poll(fakeBasket).toEqual({ ...START, 430: 4 })
   await expect.poll(() => odaOf('Brokkoli')).toBeUndefined()
 
   // Another Ware's Oda Product can become its own too.
@@ -215,7 +215,7 @@ test('what replaces an Off Sale product becomes the Ware\'s own', async ({ page 
   await expect(nextStep(page)).toBeVisible()
   // 500 g in packs of 250 g, read on the Order Summary and saved, as it's the Ware's own now.
   await expect(count(page, 'TINE Ekte smør')).toHaveText('2')
-  expect(await fakeBasket()).toEqual({ ...START, 430: 4, 125: 2 })
+  await expect.poll(fakeBasket).toEqual({ ...START, 430: 4, 125: 2 })
   const oda = await odaOf('Brokkoli')
   expect(oda.id.integerValue).toBe('125')
   expect(Number(oda.packGrams.integerValue ?? oda.packGrams.doubleValue)).toBe(250)
@@ -244,11 +244,11 @@ test('Oda failing while adding Substitutes keeps the step, its picks and the err
   await add(page).click()
   await expect(page.getByText('Oda svarer ikke')).toBeVisible()
   await expect(row(page, 'Ost').getByRole('link', { name: 'TINE Ekte smør · 250 g' })).toBeVisible()
-  expect(await fakeBasket()).toEqual(START)
+  await expect.poll(fakeBasket).toEqual(START)
   expect(Number((await readDoc('entries/ost')).basket.mapValue.fields.quantity.integerValue)).toBe(0)
 
   await failFakeOda(false)
   await add(page).click()
   await expect(nextStep(page)).toBeVisible()
-  expect(await fakeBasket()).toEqual({ ...START, 125: 1 })
+  await expect.poll(fakeBasket).toEqual({ ...START, 125: 1 })
 })

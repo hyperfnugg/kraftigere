@@ -1,61 +1,42 @@
 import { defineConfig, devices } from '@playwright/test'
-import { loadEnv } from 'vite'
+import { PREVIEW_URL, READY_URL, STACKS, stack } from './tests/e2e/stacks.mjs'
 
-// e2e runs its own emulators (firebase.test.json) and servers on their own ports, so
-// `npm run dev` can keep running beside it. The app finds the emulators through .env.e2e,
-// and seed.mjs and the tests through these.
-const env = loadEnv('e2e', process.cwd())
-process.env.FIRESTORE_EMULATOR_HOST = env.VITE_FIRESTORE_EMULATOR_HOST
-process.env.FIREBASE_AUTH_EMULATOR_HOST = env.VITE_AUTH_EMULATOR_HOST
-process.env.FUNCTIONS_HOST = env.VITE_FUNCTIONS_EMULATOR_HOST
+// e2e runs on STACKS workers, each against its own emulators and servers (tests/e2e/stacks.mjs),
+// on other ports than `npm run dev`, so it can keep running beside it. Each worker loads this
+// file with its own TEST_PARALLEL_INDEX, so these point seed.mjs and the tests at its stack;
+// the runner itself gets stack 0.
+const own = stack(Number(process.env.TEST_PARALLEL_INDEX ?? 0))
+process.env.FIRESTORE_EMULATOR_HOST = own.firestoreHost
+process.env.FIREBASE_AUTH_EMULATOR_HOST = own.authHost
+process.env.FUNCTIONS_HOST = own.functionsHost
+process.env.FAKE_ODA_HOST = `127.0.0.1:${own.fakeOdaPort}`
 
-const baseURL = 'http://localhost:5273/'
-// The fake oda.com (tests/e2e/fake-oda.mjs) that the test emulators' function talks to.
-const fakeOdaPort = 8866
-// A production-style build against the emulators, for service worker and manifest tests.
-export const previewURL = 'http://localhost:4273/'
+// A production-style build against stack 0's emulators, for service worker and manifest tests.
+export const previewURL = PREVIEW_URL
 
 export default defineConfig({
   testDir: 'tests/e2e',
   globalSetup: './tests/e2e/warm-up.ts',
-  // All tests share one emulator, so run them one at a time.
-  workers: 1,
+  // Tests share their worker's stack, so a worker runs one at a time.
+  workers: STACKS,
+  fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? [['list'], ['html', { open: 'never' }]] : 'list',
   // The emulators are slow on their first requests after starting.
   expect: { timeout: 10_000 },
-  use: { baseURL, trace: 'retain-on-failure' },
+  use: { baseURL: own.baseURL, trace: 'retain-on-failure' },
   projects: [
     { name: 'chromium', testIgnore: /pwa\.spec\.ts/, use: { ...devices['Desktop Chrome'] } },
     { name: 'pwa', testMatch: /pwa\.spec\.ts/, use: { ...devices['Desktop Chrome'], baseURL: previewURL } },
   ],
-  webServer: [
-    {
-      command: 'node tests/e2e/fake-oda.mjs',
-      port: fakeOdaPort,
-      reuseExistingServer: !process.env.CI,
-    },
-    {
-      command:
-        'tsc -b functions && ' +
-        'firebase emulators:exec --config firebase.test.json --project demo-kraftigere --only auth,firestore,functions ' +
-        '"node scripts/seed.mjs && vite --mode e2e --port 5273 --strictPort"',
-      url: baseURL,
-      // e2e drives the AI stubs, even when functions/.env.local turns real Gemini on for
-      // `npm run dev`. The function talks to the fake Oda, never oda.com.
-      env: { AI_STUBS: '1', ODA_BASE_URL: `http://127.0.0.1:${fakeOdaPort}` },
-      reuseExistingServer: !process.env.CI,
-      timeout: 120_000,
-      // SIGINT lets the Firebase CLI stop its emulator processes.
-      gracefulShutdown: { signal: 'SIGINT', timeout: 10_000 },
-    },
-    {
-      command:
-        'vite build --mode e2e --outDir dist-e2e && vite preview --mode e2e --outDir dist-e2e --port 4273 --strictPort',
-      url: previewURL,
-      reuseExistingServer: !process.env.CI,
-      timeout: 120_000,
-    },
-  ],
+  webServer: {
+    command: 'node tests/e2e/stacks.mjs',
+    url: READY_URL,
+    env: { E2E_STACKS: String(STACKS) },
+    reuseExistingServer: !process.env.CI,
+    timeout: 120_000,
+    // SIGINT lets the Firebase CLI stop its emulator processes.
+    gracefulShutdown: { signal: 'SIGINT', timeout: 20_000 },
+  },
 })

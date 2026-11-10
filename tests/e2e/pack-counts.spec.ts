@@ -117,7 +117,7 @@ test('starting counts reach the Basket, can be changed both ways, and Avbryt tak
   // A Note doesn't change the count, and neither does a Ware with no amounts.
   await expect(count(page, 'Pasta')).toHaveText('3')
   await expect(count(page, 'Melk')).toHaveText('1')
-  expect(await fakeBasket()).toEqual({ ...START, 501: 3, 502: 1 })
+  await expect.poll(fakeBasket).toEqual({ ...START, 501: 3, 502: 1 })
 
   // The Pack Size read for Pasta is saved, and none is read for what has no amounts.
   expect(await packGrams('Pasta')).toBe(500)
@@ -126,14 +126,14 @@ test('starting counts reach the Basket, can be changed both ways, and Avbryt tak
   await more(page, 'Melk').click()
   await expect(count(page, 'Melk')).toHaveText('2')
   await expect(more(page, 'Melk')).toBeEnabled()
-  expect(await fakeBasket()).toEqual({ ...START, 501: 3, 502: 2 })
+  await expect.poll(fakeBasket).toEqual({ ...START, 501: 3, 502: 2 })
   await fewer(page, 'Pasta').click()
   await expect(count(page, 'Pasta')).toHaveText('2')
   await expect(fewer(page, 'Pasta')).toBeEnabled()
-  expect(await fakeBasket()).toEqual({ ...START, 501: 2, 502: 2 })
+  await expect.poll(fakeBasket).toEqual({ ...START, 501: 2, 502: 2 })
 
   await cancel(page)
-  expect(await fakeBasket()).toEqual(START)
+  await expect.poll(fakeBasket).toEqual(START)
 })
 
 test('Entries on one Oda Product go in as one pack, and their dishes are added up', async ({ page }) => {
@@ -149,14 +149,14 @@ test('Entries on one Oda Product go in as one pack, and their dishes are added u
   await expect(nextStep(page)).toBeVisible()
   await expect(count(page, 'Pasta')).toHaveText('1')
   await expect(count(page, 'Kefir')).toHaveText('2')
-  expect(await fakeBasket()).toEqual({ ...START, 501: 1, 502: 2 })
+  await expect.poll(fakeBasket).toEqual({ ...START, 501: 1, 502: 2 })
 
   // They can be one carton.
   await fewer(page, 'Kefir').click()
   await expect(count(page, 'Kefir')).toHaveText('1')
   await expect(fewer(page, 'Kefir')).toBeDisabled()
   await expect(more(page, 'Kefir')).toBeEnabled()
-  expect(await fakeBasket()).toEqual({ ...START, 501: 1, 502: 1 })
+  await expect.poll(fakeBasket).toEqual({ ...START, 501: 1, 502: 1 })
 
   // Bestilt checks off every Entry, whichever holds the packs.
   await page.getByRole('button', { name: 'Bestilt' }).click()
@@ -175,7 +175,7 @@ test('counts left after filling land when the Order Summary is next opened', asy
   await expect(nextStep(page)).toBeVisible()
   await expect(count(page, 'Pasta')).toHaveText('3')
   await expect(count(page, 'Ris')).toHaveText('2')
-  expect(await fakeBasket()).toEqual({ ...START, 501: 3, 502: 2 })
+  await expect.poll(fakeBasket).toEqual({ ...START, 501: 3, 502: 2 })
   expect(await uncounted('Pasta')).toBeUndefined()
   expect(await packGrams('Ris')).toBe(1000)
 })
@@ -193,13 +193,13 @@ test('a Substitute meeting a product already in the Oda Order is counted togethe
   await expect(nextStep(page)).toBeVisible()
   await expect(count(page, 'Ost')).toHaveText('6')
   await expect(page.getByRole('listitem')).toHaveCount(1)
-  expect(await fakeBasket()).toEqual({ ...START, 125: 6 })
+  await expect.poll(fakeBasket).toEqual({ ...START, 125: 6 })
   // Saved on the Ware whose own it is, not on the one it substitutes for.
   expect(await packGrams('Smør')).toBe(250)
   expect(await packGrams('Ost')).toBeUndefined()
 
   await cancel(page)
-  expect(await fakeBasket()).toEqual(START)
+  await expect.poll(fakeBasket).toEqual(START)
 })
 
 test('two devices counting at once count once', async ({ page, browser }) => {
@@ -216,12 +216,12 @@ test('two devices counting at once count once', async ({ page, browser }) => {
     await expect(count(p, 'Pasta')).toHaveText('3')
     await expect(count(p, 'Ris')).toHaveText('2')
   }
-  expect(await fakeBasket()).toEqual({ ...START, 501: 3, 502: 2 })
+  await expect.poll(fakeBasket).toEqual({ ...START, 501: 3, 502: 2 })
 
   // A count set on one shows on the other.
   await more(page, 'Ris').click()
   await expect(count(other, 'Ris')).toHaveText('3')
-  expect(await fakeBasket()).toEqual({ ...START, 501: 3, 502: 3 })
+  await expect.poll(fakeBasket).toEqual({ ...START, 501: 3, 502: 3 })
 })
 
 test('a failed read shows "Sjekk antall" and blocks nothing, and reopening reads again', async ({ page }) => {
@@ -241,7 +241,7 @@ test('a failed read shows "Sjekk antall" and blocks nothing, and reopening reads
   await expect(count(page, 'Pasta')).toHaveText('3')
   await expect(check(page, 'Pasta')).toBeHidden()
   await expect(nextStep(page)).toBeVisible()
-  expect(await fakeBasket()).toEqual({ ...START, 501: 3 })
+  await expect.poll(fakeBasket).toEqual({ ...START, 501: 3 })
 })
 
 test('a count set by hand is never changed by a later starting count', async ({ page, browser }) => {
@@ -263,7 +263,7 @@ test('a count set by hand is never changed by a later starting count', async ({ 
   await openTab(other, 'Odabestilling')
   await expect(nextStep(other)).toBeVisible()
   await expect(count(other, 'Pasta')).toHaveText('2')
-  expect(await fakeBasket()).toEqual({ ...START, 501: 2 })
+  await expect.poll(fakeBasket).toEqual({ ...START, 501: 2 })
 })
 
 test('after a change, Avbryt takes out what Kraft holds and leaves what the Family added', async ({ page }) => {
@@ -278,10 +278,10 @@ test('after a change, Avbryt takes out what Kraft holds and leaves what the Fami
   await fewer(page, 'Pasta').click()
   await expect(count(page, 'Pasta')).toHaveText('2')
   await expect(fewer(page, 'Pasta')).toBeEnabled()
-  expect(await fakeBasket()).toEqual({ ...START, 501: 4 })
+  await expect.poll(fakeBasket).toEqual({ ...START, 501: 4 })
 
   await cancel(page)
-  expect(await fakeBasket()).toEqual({ ...START, 501: 2 })
+  await expect.poll(fakeBasket).toEqual({ ...START, 501: 2 })
 })
 
 test('Oda failing while counts land leaves them not yet counted, and they land next time', async ({ page }) => {
@@ -295,7 +295,7 @@ test('Oda failing while counts land leaves them not yet counted, and they land n
   await expect(count(page, 'Pasta')).toHaveText('1')
   await expect(page.getByRole('button', { name: 'Bestilt' })).toBeEnabled()
   expect(await uncounted('Pasta')).toBe(true)
-  expect(await fakeBasket()).toEqual({ ...START, 501: 1 })
+  await expect.poll(fakeBasket).toEqual({ ...START, 501: 1 })
 
   await failFakeOda(false)
   await openTab(page, 'Hjem')
@@ -303,7 +303,7 @@ test('Oda failing while counts land leaves them not yet counted, and they land n
   await expect(nextStep(page)).toBeVisible()
   await expect(count(page, 'Pasta')).toHaveText('3')
   await expect(page.getByText('Oda svarer ikke')).toBeHidden()
-  expect(await fakeBasket()).toEqual({ ...START, 501: 3 })
+  await expect.poll(fakeBasket).toEqual({ ...START, 501: 3 })
 })
 
 test('Oda failing while a count changes puts it back and says so on its row', async ({ page }) => {
@@ -317,7 +317,7 @@ test('Oda failing while a count changes puts it back and says so on its row', as
   await more(page, 'Pasta').click()
   await expect(product(page, 'Pasta').getByText('Oda svarer ikke')).toBeVisible()
   await expect(count(page, 'Pasta')).toHaveText('3')
-  expect(await fakeBasket()).toEqual({ ...START, 501: 3 })
+  await expect.poll(fakeBasket).toEqual({ ...START, 501: 3 })
   expect(Number((await readDoc('entries/pasta')).basket.mapValue.fields.quantity.integerValue)).toBe(3)
 
   await failFakeOda(false)
@@ -325,5 +325,5 @@ test('Oda failing while a count changes puts it back and says so on its row', as
   await expect(count(page, 'Pasta')).toHaveText('4')
   await expect(more(page, 'Pasta')).toBeEnabled()
   await expect(product(page, 'Pasta').getByText('Oda svarer ikke')).toBeHidden()
-  expect(await fakeBasket()).toEqual({ ...START, 501: 4 })
+  await expect.poll(fakeBasket).toEqual({ ...START, 501: 4 })
 })

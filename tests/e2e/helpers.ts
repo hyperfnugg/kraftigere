@@ -124,7 +124,8 @@ export async function expectTab(page: Page, name: TabName) {
 }
 
 // The fake Oda's Basket (tests/e2e/fake-oda.mjs), as quantities by product id.
-const FAKE_ODA = 'http://127.0.0.1:8866'
+// The worker's own (playwright.config.ts).
+const FAKE_ODA = `http://${process.env.FAKE_ODA_HOST}`
 export const fakeBasket = async (): Promise<Record<string, number>> => (await fetch(`${FAKE_ODA}/basket`)).json()
 export const resetFakeBasket = () => fetch(`${FAKE_ODA}/reset`, { method: 'POST' })
 // Makes manipulate_cart on the fake Oda fail, or work again. resetFakeBasket also makes it work.

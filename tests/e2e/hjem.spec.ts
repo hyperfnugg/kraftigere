@@ -61,6 +61,8 @@ test('with nothing typed, + picks several of the most added Staples, added on cl
     await writeDoc(`wares/${id}`, ware(id, count))
   }
   await signIn(page, MEMBERS[0])
+  // The picker takes the Staples there are when it opens.
+  await expect(chip(page, 'bread')).toBeVisible()
   await page.getByRole('option', { name: '+', exact: true }).click()
   const picker = page.getByRole('dialog', { name: 'Legg til fra basisvarer' })
   await expect(picker.getByRole('checkbox')).toHaveCount(3)
