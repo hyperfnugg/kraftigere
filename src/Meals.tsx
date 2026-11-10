@@ -42,10 +42,10 @@ import {
   type StoredRecipe,
   type Week,
 } from './weeks'
-import { Button, TextButton } from './ui'
+import { Button, ErrorLine, GlyphButton, StatusLine, TextButton } from './ui'
 
-const textareaClass = 'box-border w-full p-2 text-base [font-family:inherit]'
-const headingClass = 'm-0 text-lg'
+const textareaClass = 'box-border w-full p-2 text-base'
+const headingClass = 'text-lg font-bold'
 
 // A text that saves when you leave it. While you type, others' changes don't overwrite it.
 export function SavedText({
@@ -87,7 +87,7 @@ export function SavedText({
 // Says an Oda Order is under way, and goes to it.
 export function OdaOrderLink({ onClick }: { onClick: () => void }) {
   return (
-    <TextButton onClick={onClick} className="text-inherit underline">
+    <TextButton onClick={onClick} className="underline">
       Odabestilling pågår
     </TextButton>
   )
@@ -146,13 +146,13 @@ export function MealsTab({
       )}
 
       <div className="flex items-center gap-2">
-        <Button onClick={() => previous && setWeekId(previous)} disabled={!previous} aria-label="Forrige uke">
+        <GlyphButton onClick={() => previous && setWeekId(previous)} disabled={!previous} aria-label="Forrige uke" className="text-2xl">
           ‹
-        </Button>
+        </GlyphButton>
         <h2 className={`${headingClass} flex-1 text-center`}>{weekLabel(weekId)}</h2>
-        <Button onClick={() => next && setWeekId(next)} disabled={!next} aria-label="Neste uke">
+        <GlyphButton onClick={() => next && setWeekId(next)} disabled={!next} aria-label="Neste uke" className="text-2xl">
           ›
-        </Button>
+        </GlyphButton>
       </div>
 
       {week && (
@@ -173,7 +173,6 @@ export function MealsTab({
 }
 
 const sectionClass = 'flex flex-col gap-2'
-const errorClass = 'text-sm text-danger'
 
 // The day's one dish, or none.
 function parseMeal(text: string) {
@@ -261,8 +260,9 @@ function confirmRemake(onRemake: () => void) {
 // "Utdatert" on the Menu, with when it became so. Tapping it remakes.
 function Outdated({ since, disabled, onRemake }: { since: Timestamp; disabled: boolean; onRemake: () => void }) {
   return (
-    <Button small onClick={() => confirmRemake(onRemake)} disabled={disabled} className="self-start text-accent">
-      Utdatert · {timeLabel(since.toDate())}
+    // A Notice that's also a Button: its text in amber, its box black.
+    <Button small onClick={() => confirmRemake(onRemake)} disabled={disabled} className="self-start">
+      <span className={disabled ? '' : 'text-accent'}>Utdatert · {timeLabel(since.toDate())}</span>
     </Button>
   )
 }
@@ -297,14 +297,14 @@ async function makeWeekRecipes(
   const { week, context } = await readContext(weekId)
   mark(courses.map(({ day, course }) => recipeId(day, course)), true)
   let done = 0
-  progress(`Lager oppskrifter… 0 av ${courses.length}`)
+  progress(`Lager oppskrifter … 0 av ${courses.length}`)
   const results = await Promise.allSettled(
     courses.map(async ({ day, course }) => {
       try {
         const meal = week.menu?.[day] ?? []
         const recipe = await makeRecipe(context, { day, meal, course: meal[course] })
         setMadeRecipe(weekId, recipeId(day, course), recipe).catch(console.error)
-        progress(`Lager oppskrifter… ${++done} av ${courses.length}`)
+        progress(`Lager oppskrifter … ${++done} av ${courses.length}`)
       } finally {
         mark([recipeId(day, course)], false)
       }
@@ -322,7 +322,7 @@ function useAutoMake(weekId: string) {
   useEffect(() => {
     if (!week?.synced || job.busy || week.week.menu || week.week.confirmedAt || tried.current) return
     tried.current = true
-    job.run('Lager meny…', () => job.track([...DAYS], () => makeWeekMenu(weekId, {})))
+    job.run('Lager meny …', () => job.track([...DAYS], () => makeWeekMenu(weekId, {})))
   })
   return job
 }
@@ -341,21 +341,17 @@ function Remake({
 }) {
   const title = since ? `${label} · utdatert ${timeLabel(since.toDate())}` : label
   return (
-    <button
+    <GlyphButton
       onClick={() => confirmRemake(onRemake)}
       disabled={disabled}
       aria-label={title}
       title={title}
-      className={iconClass(disabled, since ? 'text-accent' : 'text-black')}
+      className={`text-2xl ${since ? 'text-accent' : ''}`}
     >
       ↻
-    </button>
+    </GlyphButton>
   )
 }
-
-// A plain text glyph as a button, not an emoji or a button box.
-const iconClass = (disabled: boolean, color = 'text-black') =>
-  `border-none bg-transparent p-1 text-2xl leading-none ${color} ${disabled ? 'cursor-default opacity-30' : 'cursor-pointer'}`
 
 // A new Meal for the day from the AI, following its Note.
 async function suggestMeal(weekId: string, day: Day) {
@@ -365,11 +361,11 @@ async function suggestMeal(weekId: string, day: Day) {
   return made[day]
 }
 
-// Shows that something is being made.
+// Shows that something is being made, in words: no ⏳ or spinner.
 function Working() {
   return (
-    <span role="status" aria-label="Lager…" title="Lager…">
-      ⏳
+    <span role="status" aria-label="Lager…" className="shrink-0 text-muted">
+      Lager …
     </span>
   )
 }
@@ -431,9 +427,9 @@ function MenuSection({
   // ↻ beside a day, until "Lag oppskrifter": a new dish from the AI, following the day's
   // Note, saved at once.
   const suggestButton = (day: Day) => (
-    <button
+    <GlyphButton
       onClick={() =>
-        run('Lager middag…', () =>
+        run('Lager middag …', () =>
           job.track([day], async () => {
             const meal = await suggestMeal(weekId, day)
             if (menu) setMeal(weekId, day, meal, menu[day], recipes).catch(console.error)
@@ -443,10 +439,10 @@ function MenuSection({
       disabled={!!busy}
       aria-label={`Ny middag ${DAY_NAMES[day].toLowerCase()}`}
       title="Ny middag"
-      className={iconClass(!!busy)}
+      className="text-2xl"
     >
       ↻
-    </button>
+    </GlyphButton>
   )
 
   const make = () => job.track([...DAYS], () => makeWeekMenu(weekId, recipes))
@@ -457,10 +453,10 @@ function MenuSection({
     <section className={sectionClass}>
       <h3 className={headingClass}>Meny</h3>
       {menuOutdated && (
-        <Outdated since={menuOutdated} disabled={!!busy} onRemake={() => run('Lager meny…', () => make())} />
+        <Outdated since={menuOutdated} disabled={!!busy} onRemake={() => run('Lager meny …', () => make())} />
       )}
       {DAYS.map((d) => (
-        <div key={d} className="flex items-center gap-3">
+        <div key={d} className="flex min-h-11 items-center gap-3 border-b border-line py-2">
           <div
             onClick={(e) => onDayClick(d, e)}
             className={`flex min-w-0 flex-1 flex-col gap-1 ${daysEditable || recipeToOpen(d) ? 'cursor-pointer' : ''}`}
@@ -516,12 +512,12 @@ function MenuSection({
                           role="button"
                           tabIndex={0}
                           onKeyDown={(e) => e.key === 'Enter' && setOpenRecipe({ day: d, course: i })}
-                          className="text-lg"
+                          className="text-lg wrap-anywhere"
                         >
                           {course}
                         </span>
                       ) : (
-                        <span className="text-lg text-faint">{course}</span>
+                        <span className="text-lg text-faint wrap-anywhere">{course}</span>
                       )}
                       {pending.includes(id) && <Working />}
                       {/* After "Lag oppskrifter", a changed course gets its Recipe here. */}
@@ -530,7 +526,7 @@ function MenuSection({
                           small
                           onClick={(e) => {
                             e.stopPropagation()
-                            run('Lager oppskrift…', (p) => makeRecipes([{ day: d, course: i }], p))
+                            run('Lager oppskrift …', (p) => makeRecipes([{ day: d, course: i }], p))
                           }}
                           disabled={!!busy}
                         >
@@ -562,21 +558,23 @@ function MenuSection({
           onClose={() => setOpenRecipe(null)}
         />
       )}
-      {busy && <div className="text-muted">{busy}</div>}
-      {error && <div className={errorClass}>{error}</div>}
+      {busy && <StatusLine>{busy}</StatusLine>}
+      {error && <ErrorLine>{error}</ErrorLine>}
       {week.confirmedAt ? (
         <div className="text-muted">Iverksatt · {timeLabel(week.confirmedAt.toDate())}</div>
       ) : (
         menu && (
           <div className="flex gap-2">
-            {/* Stays, disabled once run, so the steps show: Lag oppskrifter, then Iverksett. */}
+            {/* Stays, disabled once run, so the steps show: Lag oppskrifter, then Iverksett. The
+                next step is the Main Action. */}
             <Button
-              onClick={() => run('Lager oppskrifter…', (p) => makeRecipes(allCourses, p))}
+              inverted={!recipesStarted}
+              onClick={() => run('Lager oppskrifter …', (p) => makeRecipes(allCourses, p))}
               disabled={!!busy || recipesStarted}
             >
               Lag oppskrifter
             </Button>
-            <Button onClick={() => setConfirming(true)} disabled={!!busy || !ready || ordering}>
+            <Button inverted={recipesStarted} onClick={() => setConfirming(true)} disabled={!!busy || !ready || ordering}>
               Iverksett
             </Button>
             {ordering && (
@@ -648,7 +646,7 @@ function Quantity({ ingredient }: { ingredient: Ingredient }) {
 // An instruction's number in a circle, as in Modernist Cuisine.
 function InstructionNumber({ n }: { n: number }) {
   return (
-    <span className="mt-[0.1em] box-border inline-flex h-[1.5em] min-w-[1.5em] shrink-0 items-center justify-center rounded-[0.75em] border border-current text-[0.75em]">
+    <span className="mt-[0.1em] box-border inline-flex h-[1.5em] min-w-[1.5em] shrink-0 items-center justify-center border border-current text-[0.75em]">
       {n}
     </span>
   )
@@ -787,14 +785,14 @@ function RecipeView({
         </div>
         <div className="text-sm text-muted">{DAY_NAMES[day]}</div>
         <div className="flex items-center gap-2">
-          <h2 className="m-0 text-xl">{recipe.course}</h2>
+          <h2 className="text-xl font-bold">{recipe.course}</h2>
           {pending.includes(recipe.id) && <Working />}
           {ai && !pending.includes(recipe.id) && (
             <Remake
               label="Lag oppskriften på nytt"
               since={outdated}
               disabled={!!busy}
-              onRemake={() => run('Lager oppskrift…', onRemake)}
+              onRemake={() => run('Lager oppskrift …', onRemake)}
             />
           )}
         </div>
@@ -810,11 +808,11 @@ function RecipeView({
           <Instruct
             label={`Endring i oppskriften ${recipe.course}`}
             disabled={!!busy}
-            onInstruct={(instruction) => run('Endrer oppskrift…', () => remake(instruction))}
+            onInstruct={(instruction) => run('Endrer oppskrift …', () => remake(instruction))}
           />
         )}
-        {busy && <div className="text-muted">{busy}</div>}
-        {error && <div className={errorClass}>{error}</div>}
+        {busy && <StatusLine>{busy}</StatusLine>}
+        {error && <ErrorLine>{error}</ErrorLine>}
       </div>
     </div>
   )
@@ -853,7 +851,7 @@ function DayEditor({
       onBlur={(e) => {
         if (!e.currentTarget.contains(e.relatedTarget)) save()
       }}
-      className={`${sectionClass} border border-line p-2`}
+      className={`${sectionClass} border border-black p-2`}
     >
       <label className={sectionClass}>
         <span className="text-sm text-muted">Notat</span>

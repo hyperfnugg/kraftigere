@@ -118,7 +118,7 @@ test('the Order Summary has one count per Oda Product, which a suggestion can sh
 
   await tick(page, 'Kefir').check()
   await page.getByRole('button', { name: 'Fyll handlekurven' }).click()
-  await expect(page.getByRole('heading', { name: 'Oppsummering odabestilling' })).toBeVisible()
+  await expect(nextStep(page)).toBeVisible()
   await expect(page.getByRole('link', { name: 'Tine Lettmelk 1% fett · 1% fett, 1 l' })).toBeVisible()
   await expect(page.getByLabel('Antall pakker')).toHaveText('2')
   await expect(page.getByRole('button', { name: 'Bestilt' })).toBeEnabled()

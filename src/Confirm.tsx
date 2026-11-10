@@ -13,7 +13,7 @@ import {
 } from './matching'
 import { wareName } from './entries'
 import { DAY_SHORT, type StoredRecipe } from './weeks'
-import { Button } from './ui'
+import { Button, ErrorLine, MainAction, StatusLine } from './ui'
 
 type Family = Awaited<ReturnType<typeof readFamilyMatches>>
 
@@ -93,52 +93,53 @@ export function ConfirmView({
         <Button small onClick={onClose} className="self-start">
           ‹ Meny
         </Button>
-        <h2 className="m-0 text-xl">Iverksett</h2>
-        <div className="text-sm text-muted">
+        <div className="text-muted">
           Det som er krysset av, havner på Dagligvarer. Det som ikke er krysset av, har dere hjemme.
         </div>
-        {!lines && !error && <div className="text-muted">Finner varer… ⏳</div>}
-        {error && <div className="text-sm text-danger">{error}</div>}
-        {shown?.map((line) => (
-          <div key={line.key} role="group" aria-label={line.name} className="flex flex-col gap-2">
-            <div className="flex items-center gap-3 text-lg">
-              <input
-                type="checkbox"
-                aria-label={`Kjøp ${line.name}`}
-                checked={ticked(line)}
-                onChange={(e) => setTicks({ ...ticks, [line.key]: e.target.checked })}
-                className="size-6"
-              />
-              <span
-                role="button"
-                tabIndex={0}
-                aria-expanded={editing === line.key}
-                onClick={() => setEditing(editing === line.key ? null : line.key)}
-                onKeyDown={(e) => e.key === 'Enter' && setEditing(editing === line.key ? null : line.key)}
-                className={`flex-1 cursor-pointer ${ticked(line) ? '' : 'opacity-50'}`}
-              >
-                {line.name}
-                <span className="text-muted">
-                  {[formatAmount(line.amounts), line.days.map((d) => DAY_SHORT[d]).join(', ')]
-                    .filter(Boolean)
-                    .map((t) => ` · ${t}`)}
+        {!lines && !error && <StatusLine>Finner varer …</StatusLine>}
+        {error && <ErrorLine>{error}</ErrorLine>}
+        <div>
+          {shown?.map((line) => (
+            <div key={line.key} role="group" aria-label={line.name} className="flex min-h-11 flex-col justify-center gap-2 border-b border-line py-2">
+              <div className="flex items-center gap-3 text-lg">
+                <input
+                  type="checkbox"
+                  aria-label={`Kjøp ${line.name}`}
+                  checked={ticked(line)}
+                  onChange={(e) => setTicks({ ...ticks, [line.key]: e.target.checked })}
+                  className="size-6"
+                />
+                <span
+                  role="button"
+                  tabIndex={0}
+                  aria-expanded={editing === line.key}
+                  onClick={() => setEditing(editing === line.key ? null : line.key)}
+                  onKeyDown={(e) => e.key === 'Enter' && setEditing(editing === line.key ? null : line.key)}
+                  className={`min-w-0 flex-1 cursor-pointer wrap-anywhere ${ticked(line) ? '' : 'opacity-50'}`}
+                >
+                  {line.name}
+                  <span className="text-muted">
+                    {[formatAmount(line.amounts), line.days.map((d) => DAY_SHORT[d]).join(', ')]
+                      .filter(Boolean)
+                      .map((t) => ` · ${t}`)}
+                  </span>
                 </span>
-              </span>
-            </div>
-            {line.wordings.some((w) => w.text !== line.name) && (
-              <div className="ml-9 text-sm text-muted">
-                fra {line.wordings.map((w) => w.text).join(', ')}
               </div>
-            )}
-            {editing === line.key && (
-              <MatchEditor match={line.name} onSave={(m) => rematch(line, m)} onClose={() => setEditing(null)} />
-            )}
-          </div>
-        ))}
+              {line.wordings.some((w) => w.text !== line.name) && (
+                <div className="ml-9 text-sm text-muted">
+                  fra {line.wordings.map((w) => w.text).join(', ')}
+                </div>
+              )}
+              {editing === line.key && (
+                <MatchEditor match={line.name} onSave={(m) => rematch(line, m)} onClose={() => setEditing(null)} />
+              )}
+            </div>
+          ))}
+        </div>
         {lines && (
-          <Button onClick={confirm} className="self-start">
+          <MainAction onClick={confirm} className="self-start">
             Iverksett
-          </Button>
+          </MainAction>
         )}
       </div>
     </div>
@@ -166,7 +167,7 @@ function MatchEditor({
     <form
       onSubmit={onSubmit}
       aria-label="Endre vare"
-      className="ml-9 flex flex-col gap-2 border border-line p-2"
+      className="ml-9 flex flex-col gap-2 border border-black p-2"
     >
       <input
         autoFocus
@@ -174,13 +175,13 @@ function MatchEditor({
         value={name}
         onChange={(e) => setName(e.target.value)}
         maxLength={100}
-        className="p-1 text-base"
+        className="p-2 text-base"
       />
       <div className="flex justify-end gap-2">
         <Button type="button" onClick={onClose}>
           Avbryt
         </Button>
-        <Button type="submit">Lagre</Button>
+        <MainAction type="submit">Lagre</MainAction>
       </div>
     </form>
   )

@@ -188,7 +188,7 @@ _Avoid_: Skipped, missing
 
 **Order Summary**:
 What an Oda Order put in the Basket, once any Substitutes are chosen: each Oda Product with its Pack Count and the Entries it meets, then what was Left Out. Kraft works out the Pack Counts here, and changing one changes the Basket at once. From here the Family Member orders in Oda, then ends the Oda Order as Ordered or Cancelled.
-_UI_: "Oppsummering odabestilling"
+_UI_: no title (screens have none); Odabestilling opens on it with "Neste steg er ditt: bestill i handlekurven på oda.com"
 _Avoid_: Checkout, Basket view, step
 
 **Ordered**:
